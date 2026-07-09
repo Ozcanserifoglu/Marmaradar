@@ -1,0 +1,52 @@
+{
+  "corridors": [
+    {
+      "external_id": "bursa-corridor-nilufer-karacabey",
+      "name": "Nilüfer - Karacabey",
+      "maxspeed_kmh": 90,
+      "length_m": 35531,
+      "region_code": "bursa",
+      "direction": "both",
+      "gates": [
+        {"gate_type": "entry", "lat": 40.2100, "lon": 28.9500, "radius_m": 100, "sequence": 0},
+        {"gate_type": "exit", "lat": 40.3800, "lon": 28.7200, "radius_m": 100, "sequence": 0}
+      ]
+    },
+    {
+      "external_id": "bursa-corridor-inegol-eskisehir",
+      "name": "İnegöl - Eskişehir",
+      "maxspeed_kmh": 90,
+      "length_m": 88162,
+      "region_code": "bursa",
+      "direction": "both",
+      "gates": [
+        {"gate_type": "entry", "lat": 40.0780, "lon": 29.5130, "radius_m": 100, "sequence": 0},
+        {"gate_type": "exit", "lat": 39.7767, "lon": 30.5206, "radius_m": 100, "sequence": 0}
+      ]
+    },
+    {
+      "external_id": "bursa-corridor-harmancik-tavsanli",
+      "name": "Harmancık - Tavşanlı",
+      "maxspeed_kmh": 90,
+      "length_m": 30359,
+      "region_code": "bursa",
+      "direction": "both",
+      "gates": [
+        {"gate_type": "entry", "lat": 39.6760, "lon": 29.1550, "radius_m": 100, "sequence": 0},
+        {"gate_type": "exit", "lat": 39.5420, "lon": 29.4880, "radius_m": 100, "sequence": 0}
+      ]
+    },
+    {
+      "external_id": "bursa-corridor-akcalar-karacabey",
+      "name": "Akçalar - Karacabey Sanayi Kavşağı",
+      "maxspeed_kmh": 90,
+      "length_m": 25000,
+      "region_code": "bursa",
+      "direction": "both",
+      "gates": [
+        {"gate_type": "entry", "lat": 40.2500, "lon": 28.8800, "radius_m": 100, "sequence": 0},
+        {"gate_type": "exit", "lat": 40.3200, "lon": 28.7500, "radius_m": 100, "sequence": 0}
+      ]
+    }
+  ]
+}

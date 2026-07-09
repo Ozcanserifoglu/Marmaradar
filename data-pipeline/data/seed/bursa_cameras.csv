@@ -1,0 +1,4 @@
+external_id,lat,lon,road_name,maxspeed_kmh,direction_deg,type,region_code,active
+bursa-eds-nilufer-d200-001,40.2189,29.0431,D200 Nilüfer,90,270,fixed,bursa,true
+bursa-eds-osmangazi-001,40.1985,29.0612,Osmangazi Bulvarı,50,,fixed,bursa,true
+bursa-eds-inegol-001,40.0778,29.5134,D100 İnegöl,90,90,fixed,bursa,true
