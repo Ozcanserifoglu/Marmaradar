@@ -3,7 +3,15 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class RadarApiClient {
-  RadarApiClient({this.baseUrl = 'http://10.0.2.2:8081'});
+  RadarApiClient({String? baseUrl}) : baseUrl = baseUrl ?? _defaultBaseUrl;
+
+  /// Overridable at build time, e.g. for a physical phone on the same Wi-Fi:
+  ///   flutter build apk --dart-define=RADAR_API_URL=http://192.168.1.105:8081
+  /// The fallback 10.0.2.2 only works from the Android emulator.
+  static const _defaultBaseUrl = String.fromEnvironment(
+    'RADAR_API_URL',
+    defaultValue: 'http://10.0.2.2:8081',
+  );
 
   final String baseUrl;
 

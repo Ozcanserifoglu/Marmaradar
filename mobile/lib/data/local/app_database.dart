@@ -70,6 +70,8 @@ class AppDatabase extends _$AppDatabase {
     }).toList();
   }
 
+  Future<List<CachedCamera>> allCameras() => select(cachedCameras).get();
+
   Future<List<CachedCorridor>> allCorridors() => select(cachedCorridors).get();
 
   Future<List<CachedCorridorGate>> gatesFor(int corridorId) {
