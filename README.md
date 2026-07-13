@@ -95,3 +95,7 @@ No database env vars needed. The gateway proxies to `https://marmaradar.onrender
 ## Background location
 
 The Flutter app uses `geolocator` with an Android foreground service notification. See `mobile/docs/BACKGROUND_LOCATION.md` for device testing notes and tracelet migration path.
+
+## Security
+
+This repo is public. Production secrets (`DATABASE_URL`, signing keys) must live in Render/Neon dashboards and local `.env` files only — never in git. See [SECURITY.md](SECURITY.md).

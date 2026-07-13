@@ -13,18 +13,28 @@ mobile/.pub-cache/
 mobile/.pub/
 mobile/pubspec.lock
 
-# IDE
+# IDE / local dev (keep on disk, never push to GitHub)
 .idea/
 .vscode/
+.cursor/
 *.iml
 
 # OS
 .DS_Store
 Thumbs.db
 
-# Env
+# Env — never commit real credentials
 .env
-.env.*
+.env.local
+.env.*.local
+!.env.example
+
+# Secrets / signing
+**/*.keystore
+**/*.jks
+**/key.properties
+**/google-services.json
+**/GoogleService-Info.plist
 
 # Data
 *.db
