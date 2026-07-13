@@ -200,6 +200,14 @@ class TrackingController extends ChangeNotifier {
       final count = await _sync.syncTurkey();
       _status = '$count kayıt senkronize edildi';
       await _loadMapData();
+    } on ApiException catch (e) {
+      if (e.isServerWakingUp) {
+        _status = 'Sunucu uyanıyor — birazdan tekrar deneyin';
+      } else if (e.isNetworkError) {
+        _status = 'İnternet bağlantısı yok — bağlantıyı kontrol edin';
+      } else {
+        _status = 'Sunucu hatası (${e.statusCode}) — daha sonra tekrar deneyin';
+      }
     } catch (e) {
       _status = 'Senkron hatası: $e';
     } finally {

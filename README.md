@@ -63,6 +63,11 @@ go run ./cmd/importer -mode pbf -file data/turkey-latest.osm.pbf -region ""
 go run ./cmd/importer -mode overpass-tiles -region ""
 # Community POI CSV (lat,lon,speed,direction):
 go run ./cmd/importer -mode poi-csv -file path/to/radars.csv
+# Road-following corridor geometry via OSRM (run after corridors are imported;
+# fills speed_corridors.route_polyline so the app can paint the actual road):
+go run ./cmd/importer -mode enrich-routes
+# Recompute all corridors, or use a self-hosted OSRM:
+go run ./cmd/importer -mode enrich-routes -force -osrm https://router.project-osrm.org
 ```
 
 ### Backend (local)

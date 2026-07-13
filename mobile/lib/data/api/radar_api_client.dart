@@ -1,7 +1,28 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+
+/// HTTP failure that survived all retries. [statusCode] is null when the
+/// request never reached the server (no connectivity, DNS failure, ...).
+class ApiException implements Exception {
+  const ApiException(this.endpoint, this.statusCode, [this.cause]);
+
+  final String endpoint;
+  final int? statusCode;
+  final Object? cause;
+
+  /// The Render free tier answers 502/503 while the service is waking up.
+  bool get isServerWakingUp =>
+      statusCode == 502 || statusCode == 503 || statusCode == 504;
+
+  bool get isNetworkError => statusCode == null;
+
+  @override
+  String toString() =>
+      'ApiException($endpoint, status: $statusCode, cause: $cause)';
+}
 
 class RadarApiClient {
   RadarApiClient({String? baseUrl}) : baseUrl = baseUrl ?? _resolveBaseUrl();
@@ -22,6 +43,45 @@ class RadarApiClient {
 
   final String baseUrl;
 
+  /// Delays between retries. Sized for Render's free-tier cold start, which
+  /// typically takes 10-15 s: waiting a few seconds and retrying usually
+  /// turns a 502 into a 200 without the user doing anything.
+  static const _retryDelays = [
+    Duration(seconds: 3),
+    Duration(seconds: 6),
+    Duration(seconds: 10),
+  ];
+
+  Future<http.Response> _getWithRetry(Uri uri, String endpoint) async {
+    Object? lastError;
+    int? lastStatus;
+
+    for (var attempt = 0; attempt <= _retryDelays.length; attempt++) {
+      if (attempt > 0) {
+        await Future<void>.delayed(_retryDelays[attempt - 1]);
+      }
+      try {
+        final resp = await http.get(uri).timeout(const Duration(seconds: 25));
+        if (resp.statusCode == 200) return resp;
+        lastStatus = resp.statusCode;
+        lastError = null;
+        // Only gateway errors are worth retrying; a 4xx won't fix itself.
+        if (resp.statusCode < 500) break;
+      } on SocketException catch (e) {
+        lastError = e;
+        lastStatus = null;
+      } on http.ClientException catch (e) {
+        lastError = e;
+        lastStatus = null;
+      } on Exception catch (e) {
+        // TimeoutException and friends: retry, the server may be waking up.
+        lastError = e;
+        lastStatus = null;
+      }
+    }
+    throw ApiException(endpoint, lastStatus, lastError);
+  }
+
   Future<List<Map<String, dynamic>>> fetchCamerasNearby({
     required double lat,
     required double lon,
@@ -36,10 +96,7 @@ class RadarApiClient {
         'region': region,
       },
     );
-    final resp = await http.get(uri);
-    if (resp.statusCode != 200) {
-      throw Exception('cameras/nearby failed: ${resp.statusCode}');
-    }
+    final resp = await _getWithRetry(uri, 'cameras/nearby');
     final list = jsonDecode(resp.body) as List<dynamic>;
     return list.cast<Map<String, dynamic>>();
   }
@@ -57,10 +114,7 @@ class RadarApiClient {
       params['since'] = since.toUtc().toIso8601String();
     }
     final uri = Uri.parse('$baseUrl/v1/sync').replace(queryParameters: params);
-    final resp = await http.get(uri);
-    if (resp.statusCode != 200) {
-      throw Exception('sync failed: ${resp.statusCode}');
-    }
+    final resp = await _getWithRetry(uri, 'sync');
     return jsonDecode(resp.body) as Map<String, dynamic>;
   }
 }

@@ -52,7 +52,10 @@ func (s *GeoService) NearbyCameras(ctx context.Context, lat, lon, radiusM float6
 
 func (s *GeoService) NearbyCorridors(ctx context.Context, lat, lon float64, region string) ([]model.Corridor, error) {
 	const q = `
-		SELECT id, external_id, name, maxspeed_kmh, length_m, direction, region_code
+		SELECT id, external_id, name, maxspeed_kmh, length_m, direction, region_code,
+		       CASE WHEN route_polyline IS NOT NULL
+		            THEN ST_AsEncodedPolyline(route_polyline::geometry)
+		       END AS polyline
 		FROM speed_corridors sc
 		WHERE sc.active AND sc.region_code = $3
 		  AND (
@@ -73,7 +76,7 @@ func (s *GeoService) NearbyCorridors(ctx context.Context, lat, lon float64, regi
 	var corridors []model.Corridor
 	for rows.Next() {
 		var c model.Corridor
-		if err := rows.Scan(&c.ID, &c.ExternalID, &c.Name, &c.MaxspeedKmh, &c.LengthM, &c.Direction, &c.RegionCode); err != nil {
+		if err := rows.Scan(&c.ID, &c.ExternalID, &c.Name, &c.MaxspeedKmh, &c.LengthM, &c.Direction, &c.RegionCode, &c.Polyline); err != nil {
 			return nil, err
 		}
 		gates, err := s.gatesForCorridor(ctx, c.ID)
@@ -182,7 +185,10 @@ func (s *GeoService) camerasInBBox(ctx context.Context, region string, west, sou
 
 func (s *GeoService) corridorsInBBox(ctx context.Context, region string, west, south, east, north float64, since *time.Time) ([]model.Corridor, error) {
 	q := `
-		SELECT id, external_id, name, maxspeed_kmh, length_m, direction, region_code
+		SELECT id, external_id, name, maxspeed_kmh, length_m, direction, region_code,
+		       CASE WHEN route_polyline IS NOT NULL
+		            THEN ST_AsEncodedPolyline(route_polyline::geometry)
+		       END AS polyline
 		FROM speed_corridors
 		WHERE active`
 	args := []any{}
@@ -218,7 +224,7 @@ func (s *GeoService) corridorsInBBox(ctx context.Context, region string, west, s
 	var corridors []model.Corridor
 	for rows.Next() {
 		var c model.Corridor
-		if err := rows.Scan(&c.ID, &c.ExternalID, &c.Name, &c.MaxspeedKmh, &c.LengthM, &c.Direction, &c.RegionCode); err != nil {
+		if err := rows.Scan(&c.ID, &c.ExternalID, &c.Name, &c.MaxspeedKmh, &c.LengthM, &c.Direction, &c.RegionCode, &c.Polyline); err != nil {
 			return nil, err
 		}
 		gates, err := s.gatesForCorridor(ctx, c.ID)

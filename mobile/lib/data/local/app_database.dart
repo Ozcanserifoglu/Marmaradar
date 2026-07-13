@@ -31,6 +31,10 @@ class CachedCorridors extends Table {
   IntColumn get maxspeedKmh => integer()();
   RealColumn get lengthM => real()();
   TextColumn get regionCode => text().withDefault(const Constant('bursa'))();
+
+  /// Road-following geometry as a Google encoded polyline (precision 5).
+  /// Null for corridors the server hasn't enriched with route geometry.
+  TextColumn get polyline => text().nullable()();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 
   @override
@@ -55,7 +59,16 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+        onUpgrade: (m, from, to) async {
+          if (from < 2) {
+            await m.addColumn(cachedCorridors, cachedCorridors.polyline);
+          }
+        },
+      );
 
   Future<List<CachedCamera>> camerasNear(
     double lat,

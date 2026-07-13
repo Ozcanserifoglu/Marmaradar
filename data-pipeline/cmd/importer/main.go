@@ -9,16 +9,19 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/radar-alert/data-pipeline/internal/csvimporter"
+	"github.com/radar-alert/data-pipeline/internal/enrich"
 	"github.com/radar-alert/data-pipeline/internal/overpass"
 	"github.com/radar-alert/data-pipeline/internal/pbf"
 	"github.com/radar-alert/data-pipeline/internal/store"
 )
 
 func main() {
-	mode := flag.String("mode", "overpass", "import mode: overpass, overpass-tiles, csv, poi-csv, json, pbf")
+	mode := flag.String("mode", "overpass", "import mode: overpass, overpass-tiles, csv, poi-csv, json, pbf, enrich-routes")
 	region := flag.String("region", "bursa", "region filter (empty = all regions)")
 	file := flag.String("file", "", "path to CSV, JSON, or PBF file")
 	dbURL := flag.String("db", envOr("DATABASE_URL", "postgres://radar:radar@127.0.0.1:5433/radar_alert?sslmode=disable"), "database URL")
+	osrmURL := flag.String("osrm", envOr("OSRM_URL", enrich.DefaultOSRMBaseURL), "OSRM base URL for enrich-routes mode")
+	force := flag.Bool("force", false, "enrich-routes: recompute corridors that already have geometry")
 	flag.Parse()
 
 	ctx := context.Background()
@@ -105,6 +108,13 @@ func main() {
 			log.Fatalf("pbf import: %v", err)
 		}
 		fmt.Printf("imported %d cameras and %d corridors from PBF (region=%s)\n", camN, corrN, *region)
+
+	case "enrich-routes":
+		n, err := enrich.Corridors(ctx, pool, *osrmURL, *force)
+		if err != nil {
+			log.Fatalf("enrich routes: %v", err)
+		}
+		fmt.Printf("enriched %d corridors with road-following geometry\n", n)
 
 	default:
 		log.Fatalf("unknown mode: %s", *mode)

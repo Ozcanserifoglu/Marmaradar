@@ -69,6 +69,7 @@ class RegionSyncService {
           maxspeedKmh: Value(c['maxspeed_kmh'] as int),
           lengthM: Value((c['length_m'] as num).toDouble()),
           regionCode: Value((c['region_code'] as String?) ?? region),
+          polyline: Value(c['polyline'] as String?),
           updatedAt: Value(DateTime.now().toUtc()),
         ),
       );

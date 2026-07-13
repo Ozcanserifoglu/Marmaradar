@@ -3,11 +3,13 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:radar_alert/core/geo/encoded_polyline.dart';
 import 'package:radar_alert/core/location/background_location_service.dart';
 import 'package:radar_alert/core/theme/app_theme.dart';
 import 'package:radar_alert/data/local/app_database.dart';
 import 'package:radar_alert/features/corridors/corridor_tracker.dart';
 import 'package:radar_alert/features/tracking/tracking_controller.dart';
+import 'package:radar_alert/features/tracking/widgets/camera_detail_sheet.dart';
 
 /// Bursa city center, used before the first GPS fix arrives.
 const _fallbackCenter = LatLng(40.1885, 29.0610);
@@ -177,6 +179,29 @@ class RadarMapView extends StatelessWidget {
   List<Polyline> _corridorLines() {
     final lines = <Polyline>[];
     for (final item in corridors) {
+      // Preferred: road-following geometry synced from the server, drawn as
+      // an orange overlay that hugs the actual road.
+      final encoded = item.corridor.polyline;
+      if (encoded != null && encoded.isNotEmpty) {
+        final points = decodePolyline(encoded);
+        if (points.length >= 2) {
+          lines.add(
+            Polyline(
+              points: points,
+              strokeWidth: 6,
+              color: AppColors.corridor.withValues(alpha: 0.85),
+              borderColor: Colors.black.withValues(alpha: 0.35),
+              borderStrokeWidth: 1.5,
+              strokeCap: StrokeCap.round,
+              strokeJoin: StrokeJoin.round,
+            ),
+          );
+          continue;
+        }
+      }
+
+      // Fallback for corridors without route geometry: a dotted straight
+      // line between the gates, so the corridor is at least visible.
       final gates = [...item.gates]
         ..sort((a, b) => a.sequence.compareTo(b.sequence));
       final entries = gates.where((g) => g.gateType == 'entry').toList();
@@ -189,7 +214,7 @@ class RadarMapView extends StatelessWidget {
             for (final g in exits) LatLng(g.lat, g.lon),
           ],
           strokeWidth: 4,
-          color: AppColors.red.withValues(alpha: 0.55),
+          color: AppColors.corridor.withValues(alpha: 0.6),
           pattern: const StrokePattern.dotted(),
         ),
       );
@@ -260,7 +285,8 @@ class _UserMarker extends StatelessWidget {
 }
 
 /// Speed camera: looks like a Turkish speed-limit sign when the limit is
-/// known, otherwise a camera badge.
+/// known, otherwise a camera badge. Tapping opens a sheet that explains
+/// whether this is a speed or a control camera.
 class _CameraMarker extends StatelessWidget {
   const _CameraMarker({required this.camera, required this.highlighted});
 
@@ -271,38 +297,41 @@ class _CameraMarker extends StatelessWidget {
   Widget build(BuildContext context) {
     final limit = camera.maxspeedKmh;
 
-    return AnimatedScale(
-      scale: highlighted ? 1.25 : 1,
-      duration: const Duration(milliseconds: 250),
-      child: Container(
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: limit != null ? AppColors.white : AppColors.night,
-          border: Border.all(
-            color: AppColors.red,
-            width: limit != null ? 4 : 2.5,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: highlighted
-                  ? AppColors.red.withValues(alpha: 0.7)
-                  : Colors.black.withValues(alpha: 0.5),
-              blurRadius: highlighted ? 14 : 6,
-              spreadRadius: highlighted ? 2 : 0,
+    return GestureDetector(
+      onTap: () => showCameraDetailSheet(context, camera),
+      child: AnimatedScale(
+        scale: highlighted ? 1.25 : 1,
+        duration: const Duration(milliseconds: 250),
+        child: Container(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: limit != null ? AppColors.white : AppColors.night,
+            border: Border.all(
+              color: AppColors.red,
+              width: limit != null ? 4 : 2.5,
             ),
-          ],
+            boxShadow: [
+              BoxShadow(
+                color: highlighted
+                    ? AppColors.red.withValues(alpha: 0.7)
+                    : Colors.black.withValues(alpha: 0.5),
+                blurRadius: highlighted ? 14 : 6,
+                spreadRadius: highlighted ? 2 : 0,
+              ),
+            ],
+          ),
+          alignment: Alignment.center,
+          child: limit != null
+              ? Text(
+                  '$limit',
+                  style: const TextStyle(
+                    color: Colors.black,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
+                  ),
+                )
+              : const Icon(Icons.videocam, color: AppColors.white, size: 18),
         ),
-        alignment: Alignment.center,
-        child: limit != null
-            ? Text(
-                '$limit',
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w900,
-                ),
-              )
-            : const Icon(Icons.videocam, color: AppColors.white, size: 18),
       ),
     );
   }

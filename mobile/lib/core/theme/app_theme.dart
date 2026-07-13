@@ -12,6 +12,9 @@ abstract final class AppColors {
   static const outline = Color(0xFF2E2E34);
   static const success = Color(0xFF3DDC84);
   static const warning = Color(0xFFFFB300);
+
+  /// Speed corridor road overlay.
+  static const corridor = Color(0xFFFF8A00);
 }
 
 ThemeData buildAppTheme() {

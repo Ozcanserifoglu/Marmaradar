@@ -721,6 +721,17 @@ class $CachedCorridorsTable extends CachedCorridors
     requiredDuringInsert: false,
     defaultValue: const Constant('bursa'),
   );
+  static const VerificationMeta _polylineMeta = const VerificationMeta(
+    'polyline',
+  );
+  @override
+  late final GeneratedColumn<String> polyline = GeneratedColumn<String>(
+    'polyline',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _updatedAtMeta = const VerificationMeta(
     'updatedAt',
   );
@@ -740,6 +751,7 @@ class $CachedCorridorsTable extends CachedCorridors
     maxspeedKmh,
     lengthM,
     regionCode,
+    polyline,
     updatedAt,
   ];
   @override
@@ -790,6 +802,12 @@ class $CachedCorridorsTable extends CachedCorridors
         regionCode.isAcceptableOrUnknown(data['region_code']!, _regionCodeMeta),
       );
     }
+    if (data.containsKey('polyline')) {
+      context.handle(
+        _polylineMeta,
+        polyline.isAcceptableOrUnknown(data['polyline']!, _polylineMeta),
+      );
+    }
     if (data.containsKey('updated_at')) {
       context.handle(
         _updatedAtMeta,
@@ -825,6 +843,10 @@ class $CachedCorridorsTable extends CachedCorridors
         DriftSqlType.string,
         data['${effectivePrefix}region_code'],
       )!,
+      polyline: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}polyline'],
+      ),
       updatedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}updated_at'],
@@ -844,6 +866,10 @@ class CachedCorridor extends DataClass implements Insertable<CachedCorridor> {
   final int maxspeedKmh;
   final double lengthM;
   final String regionCode;
+
+  /// Road-following geometry as a Google encoded polyline (precision 5).
+  /// Null for corridors the server hasn't enriched with route geometry.
+  final String? polyline;
   final DateTime updatedAt;
   const CachedCorridor({
     required this.id,
@@ -851,6 +877,7 @@ class CachedCorridor extends DataClass implements Insertable<CachedCorridor> {
     required this.maxspeedKmh,
     required this.lengthM,
     required this.regionCode,
+    this.polyline,
     required this.updatedAt,
   });
   @override
@@ -861,6 +888,9 @@ class CachedCorridor extends DataClass implements Insertable<CachedCorridor> {
     map['maxspeed_kmh'] = Variable<int>(maxspeedKmh);
     map['length_m'] = Variable<double>(lengthM);
     map['region_code'] = Variable<String>(regionCode);
+    if (!nullToAbsent || polyline != null) {
+      map['polyline'] = Variable<String>(polyline);
+    }
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
   }
@@ -872,6 +902,9 @@ class CachedCorridor extends DataClass implements Insertable<CachedCorridor> {
       maxspeedKmh: Value(maxspeedKmh),
       lengthM: Value(lengthM),
       regionCode: Value(regionCode),
+      polyline: polyline == null && nullToAbsent
+          ? const Value.absent()
+          : Value(polyline),
       updatedAt: Value(updatedAt),
     );
   }
@@ -887,6 +920,7 @@ class CachedCorridor extends DataClass implements Insertable<CachedCorridor> {
       maxspeedKmh: serializer.fromJson<int>(json['maxspeedKmh']),
       lengthM: serializer.fromJson<double>(json['lengthM']),
       regionCode: serializer.fromJson<String>(json['regionCode']),
+      polyline: serializer.fromJson<String?>(json['polyline']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
   }
@@ -899,6 +933,7 @@ class CachedCorridor extends DataClass implements Insertable<CachedCorridor> {
       'maxspeedKmh': serializer.toJson<int>(maxspeedKmh),
       'lengthM': serializer.toJson<double>(lengthM),
       'regionCode': serializer.toJson<String>(regionCode),
+      'polyline': serializer.toJson<String?>(polyline),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
   }
@@ -909,6 +944,7 @@ class CachedCorridor extends DataClass implements Insertable<CachedCorridor> {
     int? maxspeedKmh,
     double? lengthM,
     String? regionCode,
+    Value<String?> polyline = const Value.absent(),
     DateTime? updatedAt,
   }) => CachedCorridor(
     id: id ?? this.id,
@@ -916,6 +952,7 @@ class CachedCorridor extends DataClass implements Insertable<CachedCorridor> {
     maxspeedKmh: maxspeedKmh ?? this.maxspeedKmh,
     lengthM: lengthM ?? this.lengthM,
     regionCode: regionCode ?? this.regionCode,
+    polyline: polyline.present ? polyline.value : this.polyline,
     updatedAt: updatedAt ?? this.updatedAt,
   );
   CachedCorridor copyWithCompanion(CachedCorridorsCompanion data) {
@@ -929,6 +966,7 @@ class CachedCorridor extends DataClass implements Insertable<CachedCorridor> {
       regionCode: data.regionCode.present
           ? data.regionCode.value
           : this.regionCode,
+      polyline: data.polyline.present ? data.polyline.value : this.polyline,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
   }
@@ -941,14 +979,22 @@ class CachedCorridor extends DataClass implements Insertable<CachedCorridor> {
           ..write('maxspeedKmh: $maxspeedKmh, ')
           ..write('lengthM: $lengthM, ')
           ..write('regionCode: $regionCode, ')
+          ..write('polyline: $polyline, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, name, maxspeedKmh, lengthM, regionCode, updatedAt);
+  int get hashCode => Object.hash(
+    id,
+    name,
+    maxspeedKmh,
+    lengthM,
+    regionCode,
+    polyline,
+    updatedAt,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -958,6 +1004,7 @@ class CachedCorridor extends DataClass implements Insertable<CachedCorridor> {
           other.maxspeedKmh == this.maxspeedKmh &&
           other.lengthM == this.lengthM &&
           other.regionCode == this.regionCode &&
+          other.polyline == this.polyline &&
           other.updatedAt == this.updatedAt);
 }
 
@@ -967,6 +1014,7 @@ class CachedCorridorsCompanion extends UpdateCompanion<CachedCorridor> {
   final Value<int> maxspeedKmh;
   final Value<double> lengthM;
   final Value<String> regionCode;
+  final Value<String?> polyline;
   final Value<DateTime> updatedAt;
   const CachedCorridorsCompanion({
     this.id = const Value.absent(),
@@ -974,6 +1022,7 @@ class CachedCorridorsCompanion extends UpdateCompanion<CachedCorridor> {
     this.maxspeedKmh = const Value.absent(),
     this.lengthM = const Value.absent(),
     this.regionCode = const Value.absent(),
+    this.polyline = const Value.absent(),
     this.updatedAt = const Value.absent(),
   });
   CachedCorridorsCompanion.insert({
@@ -982,6 +1031,7 @@ class CachedCorridorsCompanion extends UpdateCompanion<CachedCorridor> {
     required int maxspeedKmh,
     required double lengthM,
     this.regionCode = const Value.absent(),
+    this.polyline = const Value.absent(),
     this.updatedAt = const Value.absent(),
   }) : name = Value(name),
        maxspeedKmh = Value(maxspeedKmh),
@@ -992,6 +1042,7 @@ class CachedCorridorsCompanion extends UpdateCompanion<CachedCorridor> {
     Expression<int>? maxspeedKmh,
     Expression<double>? lengthM,
     Expression<String>? regionCode,
+    Expression<String>? polyline,
     Expression<DateTime>? updatedAt,
   }) {
     return RawValuesInsertable({
@@ -1000,6 +1051,7 @@ class CachedCorridorsCompanion extends UpdateCompanion<CachedCorridor> {
       if (maxspeedKmh != null) 'maxspeed_kmh': maxspeedKmh,
       if (lengthM != null) 'length_m': lengthM,
       if (regionCode != null) 'region_code': regionCode,
+      if (polyline != null) 'polyline': polyline,
       if (updatedAt != null) 'updated_at': updatedAt,
     });
   }
@@ -1010,6 +1062,7 @@ class CachedCorridorsCompanion extends UpdateCompanion<CachedCorridor> {
     Value<int>? maxspeedKmh,
     Value<double>? lengthM,
     Value<String>? regionCode,
+    Value<String?>? polyline,
     Value<DateTime>? updatedAt,
   }) {
     return CachedCorridorsCompanion(
@@ -1018,6 +1071,7 @@ class CachedCorridorsCompanion extends UpdateCompanion<CachedCorridor> {
       maxspeedKmh: maxspeedKmh ?? this.maxspeedKmh,
       lengthM: lengthM ?? this.lengthM,
       regionCode: regionCode ?? this.regionCode,
+      polyline: polyline ?? this.polyline,
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }
@@ -1040,6 +1094,9 @@ class CachedCorridorsCompanion extends UpdateCompanion<CachedCorridor> {
     if (regionCode.present) {
       map['region_code'] = Variable<String>(regionCode.value);
     }
+    if (polyline.present) {
+      map['polyline'] = Variable<String>(polyline.value);
+    }
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
@@ -1054,6 +1111,7 @@ class CachedCorridorsCompanion extends UpdateCompanion<CachedCorridor> {
           ..write('maxspeedKmh: $maxspeedKmh, ')
           ..write('lengthM: $lengthM, ')
           ..write('regionCode: $regionCode, ')
+          ..write('polyline: $polyline, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
         .toString();
@@ -1913,6 +1971,7 @@ typedef $$CachedCorridorsTableCreateCompanionBuilder =
       required int maxspeedKmh,
       required double lengthM,
       Value<String> regionCode,
+      Value<String?> polyline,
       Value<DateTime> updatedAt,
     });
 typedef $$CachedCorridorsTableUpdateCompanionBuilder =
@@ -1922,6 +1981,7 @@ typedef $$CachedCorridorsTableUpdateCompanionBuilder =
       Value<int> maxspeedKmh,
       Value<double> lengthM,
       Value<String> regionCode,
+      Value<String?> polyline,
       Value<DateTime> updatedAt,
     });
 
@@ -1996,6 +2056,11 @@ class $$CachedCorridorsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get polyline => $composableBuilder(
+    column: $table.polyline,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<DateTime> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
     builder: (column) => ColumnFilters(column),
@@ -2061,6 +2126,11 @@ class $$CachedCorridorsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get polyline => $composableBuilder(
+    column: $table.polyline,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
     builder: (column) => ColumnOrderings(column),
@@ -2094,6 +2164,9 @@ class $$CachedCorridorsTableAnnotationComposer
     column: $table.regionCode,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get polyline =>
+      $composableBuilder(column: $table.polyline, builder: (column) => column);
 
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
@@ -2160,6 +2233,7 @@ class $$CachedCorridorsTableTableManager
                 Value<int> maxspeedKmh = const Value.absent(),
                 Value<double> lengthM = const Value.absent(),
                 Value<String> regionCode = const Value.absent(),
+                Value<String?> polyline = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
               }) => CachedCorridorsCompanion(
                 id: id,
@@ -2167,6 +2241,7 @@ class $$CachedCorridorsTableTableManager
                 maxspeedKmh: maxspeedKmh,
                 lengthM: lengthM,
                 regionCode: regionCode,
+                polyline: polyline,
                 updatedAt: updatedAt,
               ),
           createCompanionCallback:
@@ -2176,6 +2251,7 @@ class $$CachedCorridorsTableTableManager
                 required int maxspeedKmh,
                 required double lengthM,
                 Value<String> regionCode = const Value.absent(),
+                Value<String?> polyline = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
               }) => CachedCorridorsCompanion.insert(
                 id: id,
@@ -2183,6 +2259,7 @@ class $$CachedCorridorsTableTableManager
                 maxspeedKmh: maxspeedKmh,
                 lengthM: lengthM,
                 regionCode: regionCode,
+                polyline: polyline,
                 updatedAt: updatedAt,
               ),
           withReferenceMapper: (p0) => p0
