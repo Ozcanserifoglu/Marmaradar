@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/radar-alert/backend/internal/config"
 	"github.com/radar-alert/backend/internal/db"
+	"github.com/radar-alert/backend/internal/db/migrate"
 	"github.com/radar-alert/backend/internal/handler"
 	"github.com/radar-alert/backend/internal/service"
 )
@@ -18,6 +19,7 @@ func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	slog.SetDefault(logger)
 
+	// API server only — data seeding runs via data-pipeline/cmd/importer (separate CLI).
 	cfg := config.Load()
 	ctx := context.Background()
 
@@ -27,6 +29,27 @@ func main() {
 		os.Exit(1)
 	}
 	defer pool.Close()
+
+	if err := migrate.Ping(ctx, pool); err != nil {
+		slog.Error("database ping failed", "error", err)
+		os.Exit(1)
+	}
+
+	migrationsDir := cfg.MigrationsDir
+	if migrationsDir == "" {
+		migrationsDir, err = migrate.ResolveDir()
+		if err != nil {
+			slog.Error("migrations directory not found", "error", err)
+			os.Exit(1)
+		}
+	}
+
+	slog.Info("running database migrations", "dir", migrationsDir)
+	if err := migrate.Run(ctx, pool, migrationsDir); err != nil {
+		slog.Error("database migration failed", "error", err)
+		os.Exit(1)
+	}
+	slog.Info("database migrations complete")
 
 	geo := service.NewGeoService(pool)
 

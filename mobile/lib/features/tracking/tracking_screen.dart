@@ -1,8 +1,11 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:radar_alert/app.dart';
+import 'package:radar_alert/core/location/background_location_service.dart';
 import 'package:radar_alert/core/theme/app_theme.dart';
 import 'package:radar_alert/features/tracking/widgets/camera_alert_banner.dart';
 import 'package:radar_alert/features/tracking/widgets/corridor_panel.dart';
@@ -17,10 +20,15 @@ class TrackingScreen extends ConsumerStatefulWidget {
 }
 
 class _TrackingScreenState extends ConsumerState<TrackingScreen> {
+  /// GPS headings are noise below walking speed; don't steer the camera with
+  /// them or the map would spin while waiting at a light.
+  static const _headingMinSpeedMps = 1.5;
+
   final MapController _mapController = MapController();
   bool _mapReady = false;
   bool _follow = true;
   bool _centeredOnce = false;
+  bool _wasDriving = false;
   MapStyle _mapStyle = MapStyle.dark;
 
   @override
@@ -34,6 +42,13 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
     final snap = controller.lastSnapshot;
     if (snap == null || !_mapReady) return;
 
+    final driving = controller.isRunning;
+    if (driving != _wasDriving) {
+      _wasDriving = driving;
+      // Drive ended: settle back to a north-up map.
+      if (!driving) _mapController.rotate(0);
+    }
+
     // Always jump to the very first fix so the map opens where the user is,
     // then keep following only while follow mode is on.
     if (!_centeredOnce) {
@@ -42,10 +57,39 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
       return;
     }
     if (!_follow) return;
+
+    if (driving && snap.speedMps >= _headingMinSpeedMps) {
+      _driveCamera(snap);
+      return;
+    }
     _mapController.move(
       LatLng(snap.lat, snap.lon),
       _mapController.camera.zoom < 14 ? 15.5 : _mapController.camera.zoom,
     );
+  }
+
+  /// Google Maps-style chase view: the map rotates so the direction of travel
+  /// points up, and the camera aims ahead of the car so the driver marker
+  /// sits in the lower part of the screen with the road ahead filling it.
+  void _driveCamera(DriverSnapshot snap) {
+    final zoom =
+        _mapController.camera.zoom < 14 ? 16.5 : _mapController.camera.zoom;
+
+    // Meters per logical pixel for 256px web-mercator tiles at this
+    // zoom/latitude, used to convert the desired screen offset into a
+    // geographic look-ahead distance.
+    final metersPerPixel = 156543.03392 *
+        math.cos(snap.lat * math.pi / 180) /
+        math.pow(2, zoom);
+    final lookAheadM =
+        MediaQuery.sizeOf(context).height * 0.22 * metersPerPixel;
+
+    final target = const Distance().offset(
+      LatLng(snap.lat, snap.lon),
+      lookAheadM,
+      snap.headingDeg,
+    );
+    _mapController.moveAndRotate(target, zoom, -snap.headingDeg);
   }
 
   void _recenter() {

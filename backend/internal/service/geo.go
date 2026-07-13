@@ -140,11 +140,22 @@ func (s *GeoService) camerasInBBox(ctx context.Context, region string, west, sou
 		       maxspeed_kmh, direction_deg, direction_tolerance_deg,
 		       0::float8 AS distance_m, road_name, camera_type, region_code
 		FROM fixed_cameras
-		WHERE active AND region_code = $1
-		  AND location && ST_MakeEnvelope($2, $3, $4, $5, 4326)::geography`
-	args := []any{region, west, south, east, north}
+		WHERE active`
+	args := []any{}
+	argN := 1
+
+	if region != "" && region != "turkey" {
+		q += fmt.Sprintf(` AND region_code = $%d`, argN)
+		args = append(args, region)
+		argN++
+	}
+
+	q += fmt.Sprintf(` AND location && ST_MakeEnvelope($%d, $%d, $%d, $%d, 4326)::geography`, argN, argN+1, argN+2, argN+3)
+	args = append(args, west, south, east, north)
+	argN += 4
+
 	if since != nil {
-		q += ` AND updated_at > $6`
+		q += fmt.Sprintf(` AND updated_at > $%d`, argN)
 		args = append(args, *since)
 	}
 
@@ -173,17 +184,28 @@ func (s *GeoService) corridorsInBBox(ctx context.Context, region string, west, s
 	q := `
 		SELECT id, external_id, name, maxspeed_kmh, length_m, direction, region_code
 		FROM speed_corridors
-		WHERE active AND region_code = $1
-		  AND (
-		    (corridor_polygon IS NOT NULL AND corridor_polygon && ST_MakeEnvelope($2, $3, $4, $5, 4326)::geography)
+		WHERE active`
+	args := []any{}
+	argN := 1
+
+	if region != "" && region != "turkey" {
+		q += fmt.Sprintf(` AND region_code = $%d`, argN)
+		args = append(args, region)
+		argN++
+	}
+
+	q += fmt.Sprintf(` AND (
+		    (corridor_polygon IS NOT NULL AND corridor_polygon && ST_MakeEnvelope($%d, $%d, $%d, $%d, 4326)::geography)
 		    OR id IN (
 		      SELECT corridor_id FROM corridor_gates
-		      WHERE location && ST_MakeEnvelope($2, $3, $4, $5, 4326)::geography
+		      WHERE location && ST_MakeEnvelope($%d, $%d, $%d, $%d, 4326)::geography
 		    )
-		  )`
-	args := []any{region, west, south, east, north}
+		  )`, argN, argN+1, argN+2, argN+3, argN, argN+1, argN+2, argN+3)
+	args = append(args, west, south, east, north)
+	argN += 4
+
 	if since != nil {
-		q += ` AND updated_at > $6`
+		q += fmt.Sprintf(` AND updated_at > $%d`, argN)
 		args = append(args, *since)
 	}
 

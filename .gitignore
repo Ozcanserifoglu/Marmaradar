@@ -38,3 +38,9 @@ Thumbs.db
 
 # Data
 *.db
+
+# Bulky map extracts (Geofabrik downloads etc.) — far over GitHub's 100 MB
+# limit, always re-downloadable via scripts/import-turkey.ps1
+*.osm.pbf
+*.osm.bz2
+*.osm

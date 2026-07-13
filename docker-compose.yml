@@ -17,10 +17,13 @@ services:
       retries: 5
 
   api:
-    build: ./backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
     environment:
       DATABASE_URL: postgres://radar:radar@db:5432/radar_alert?sslmode=disable
       PORT: "8080"
+      MIGRATIONS_DIR: /migrations
     expose:
       - "8080"
     depends_on:

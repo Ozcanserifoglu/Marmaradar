@@ -12,12 +12,16 @@ import 'package:radar_alert/features/tracking/tracking_controller.dart';
 /// Bursa city center, used before the first GPS fix arrives.
 const _fallbackCenter = LatLng(40.1885, 29.0610);
 
-/// Keeps panning/zooming inside the greater Marmara region so the map can
-/// never get "lost" in empty world tiles.
-final _marmaraBounds = LatLngBounds(
-  const LatLng(38.6, 25.5),
-  const LatLng(42.5, 32.5),
+/// Keeps the map centered somewhere over Turkey (with a little slack past the
+/// borders) so it can never get "lost" in empty world tiles.
+final _turkeyBounds = LatLngBounds(
+  const LatLng(35.0, 24.5),
+  const LatLng(42.9, 45.5),
 );
+
+/// Below this zoom the country-wide camera set is drawn as cheap canvas dots
+/// instead of full marker widgets.
+const _markerMinZoom = 10.0;
 
 enum MapStyle { dark, light }
 
@@ -54,9 +58,12 @@ class RadarMapView extends StatelessWidget {
             ? LatLng(snapshot!.lat, snapshot!.lon)
             : _fallbackCenter,
         initialZoom: 15,
-        minZoom: 9,
+        minZoom: 5,
         maxZoom: 18,
-        cameraConstraint: CameraConstraint.contain(bounds: _marmaraBounds),
+        // containCenter (not contain): it allows zooming out far enough to
+        // see the whole country and stays stable while the camera is rotated
+        // in the driving chase view.
+        cameraConstraint: CameraConstraint.containCenter(bounds: _turkeyBounds),
         backgroundColor: _isDark ? AppColors.night : const Color(0xFFE8E8E6),
         interactionOptions: const InteractionOptions(
           flags: InteractiveFlag.drag |
@@ -117,8 +124,35 @@ class RadarMapView extends StatelessWidget {
               ),
             ],
           ),
-        MarkerLayer(markers: [..._gateMarkers(), ..._cameraMarkers()]),
+        // With the country-wide dataset, thousands of marker widgets would
+        // jank the map when zoomed out — render cheap canvas dots instead
+        // until the user is close enough for individual markers to matter.
+        Builder(
+          builder: (context) {
+            if (MapCamera.of(context).zoom < _markerMinZoom) {
+              return CircleLayer(
+                circles: [
+                  for (final cam in cameras)
+                    CircleMarker(
+                      point: LatLng(cam.lat, cam.lon),
+                      radius: 3,
+                      color: AppColors.red.withValues(alpha: 0.75),
+                    ),
+                ],
+              );
+            }
+            // rotate: keeps speed-limit signs and gate icons upright while
+            // the map itself rotates in the driving chase view.
+            return MarkerLayer(
+              rotate: true,
+              markers: [..._gateMarkers(), ..._cameraMarkers()],
+            );
+          },
+        ),
         if (snapshot != null)
+          // Deliberately NOT counter-rotated: the arrow is rotated by the
+          // geographic heading inside the marker, so when the chase view
+          // rotates the map by -heading the arrow always points up-screen.
           MarkerLayer(
             markers: [
               Marker(

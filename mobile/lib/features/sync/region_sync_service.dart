@@ -8,12 +8,30 @@ class RegionSyncService {
   final AppDatabase _db;
   final RadarApiClient _api;
 
+  static const turkeyWest = 25.66;
+  static const turkeySouth = 35.8;
+  static const turkeyEast = 44.8;
+  static const turkeyNorth = 42.1;
+
   static const bursaBbox = '28.75,39.95,29.55,40.55';
+  static const turkeyBbox = '$turkeyWest,$turkeySouth,$turkeyEast,$turkeyNorth';
 
   Future<int> syncBursa({DateTime? since}) async {
+    return syncRegion(region: 'bursa', bbox: bursaBbox, since: since);
+  }
+
+  Future<int> syncTurkey({DateTime? since}) async {
+    return syncRegion(region: 'turkey', bbox: turkeyBbox, since: since);
+  }
+
+  Future<int> syncRegion({
+    required String region,
+    required String bbox,
+    DateTime? since,
+  }) async {
     final payload = await _api.syncRegion(
-      region: 'bursa',
-      bbox: bursaBbox,
+      region: region,
+      bbox: bbox,
       since: since,
     );
 
@@ -33,7 +51,7 @@ class RegionSyncService {
           ),
           roadName: Value(c['road_name'] as String?),
           cameraType: Value((c['camera_type'] as String?) ?? 'fixed'),
-          regionCode: Value((c['region_code'] as String?) ?? 'bursa'),
+          regionCode: Value((c['region_code'] as String?) ?? region),
           updatedAt: Value(DateTime.now().toUtc()),
         ),
       );
@@ -50,7 +68,7 @@ class RegionSyncService {
           name: Value(c['name'] as String),
           maxspeedKmh: Value(c['maxspeed_kmh'] as int),
           lengthM: Value((c['length_m'] as num).toDouble()),
-          regionCode: Value((c['region_code'] as String?) ?? 'bursa'),
+          regionCode: Value((c['region_code'] as String?) ?? region),
           updatedAt: Value(DateTime.now().toUtc()),
         ),
       );

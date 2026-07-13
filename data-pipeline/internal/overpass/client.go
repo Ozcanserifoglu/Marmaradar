@@ -57,6 +57,7 @@ type overpassMember struct {
 type ImportResult struct {
 	Cameras   []normalize.CameraRecord
 	Relations []overpassElement
+	Nodes     []overpassElement
 }
 
 func (c *Client) Fetch(ctx context.Context) (*ImportResult, error) {
@@ -108,6 +109,9 @@ func (c *Client) fetchFrom(ctx context.Context, endpoint string) (*ImportResult,
 	for _, el := range parsed.Elements {
 		switch el.Type {
 		case "node":
+			if el.Lat != 0 || el.Lon != 0 {
+				result.Nodes = append(result.Nodes, el)
+			}
 			if el.Tags["highway"] != "speed_camera" {
 				continue
 			}

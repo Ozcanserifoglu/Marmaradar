@@ -39,13 +39,3 @@ func ParseMaxspeed(tags map[string]string) *int16 {
 	i := int16(v)
 	return &i
 }
-
-func RegionForPoint(lat, lon float64) string {
-	if lat >= 39.95 && lat <= 40.55 && lon >= 28.75 && lon <= 29.55 {
-		return "bursa"
-	}
-	if lat >= 40.8 && lat <= 41.35 && lon >= 28.4 && lon <= 29.5 {
-		return "istanbul"
-	}
-	return "marmara"
-}

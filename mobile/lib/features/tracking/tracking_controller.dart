@@ -197,7 +197,7 @@ class TrackingController extends ChangeNotifier {
     _status = 'Veri senkronize ediliyor...';
     notifyListeners();
     try {
-      final count = await _sync.syncBursa();
+      final count = await _sync.syncTurkey();
       _status = '$count kayıt senkronize edildi';
       await _loadMapData();
     } catch (e) {

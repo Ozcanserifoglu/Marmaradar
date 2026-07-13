@@ -42,6 +42,29 @@ go run ./cmd/importer -mode json -file data/seed/bursa_corridors.json
 go run ./cmd/importer -mode overpass -region bursa
 ```
 
+### Turkey-wide import (Geofabrik PBF)
+
+Downloads `turkey-latest.osm.pbf` from Geofabrik and imports fixed cameras plus average-speed corridors:
+
+```bash
+# Windows:
+.\scripts\import-turkey.ps1
+# macOS/Linux:
+./scripts/import-turkey.sh
+```
+
+Other import modes:
+
+```bash
+cd data-pipeline
+# Offline PBF (after download):
+go run ./cmd/importer -mode pbf -file data/turkey-latest.osm.pbf -region ""
+# Tiled Overpass fallback (slower, rate-limited):
+go run ./cmd/importer -mode overpass-tiles -region ""
+# Community POI CSV (lat,lon,speed,direction):
+go run ./cmd/importer -mode poi-csv -file path/to/radars.csv
+```
+
 ### Backend (local)
 
 ```bash
