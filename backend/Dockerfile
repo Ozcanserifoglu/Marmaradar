@@ -1,13 +1,11 @@
-# Build context must be the monorepo root:
-#   docker build -f backend/Dockerfile .
+# Build context: backend/ (Render Root Directory, docker compose)
 FROM golang:1.22-alpine AS builder
 WORKDIR /app
 
-COPY backend/go.mod backend/go.sum ./
+COPY go.mod go.sum ./
 RUN go mod download
 
-COPY backend/ ./
-COPY infra/migrations /migrations
+COPY . ./
 
 RUN CGO_ENABLED=0 go build -o /api ./cmd/api
 
@@ -15,7 +13,7 @@ FROM alpine:3.20
 RUN apk add --no-cache ca-certificates
 
 COPY --from=builder /api /api
-COPY --from=builder /migrations /migrations
+COPY migrations /migrations
 
 ENV MIGRATIONS_DIR=/migrations
 EXPOSE 8080

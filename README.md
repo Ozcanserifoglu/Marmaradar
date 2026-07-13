@@ -102,6 +102,27 @@ All client traffic should go through KrakenD, not the Go API directly.
 
 Config lives in [`gateway/config/`](gateway/config/). Rate limits on `/v1/*`: 100 req/s global, 10 req/s per IP.
 
+### Deploy API on Render
+
+The API Dockerfile builds from the `backend/` directory (not the monorepo root). If the build fails with `"/backend": not found`, the Root Directory is wrong.
+
+| Setting | Value |
+|---------|-------|
+| Root Directory | `backend` |
+| Runtime | Docker |
+| Dockerfile Path | `Dockerfile` (default inside `backend/`) |
+| Port | `8080` |
+| Region | Frankfurt |
+
+Required env vars:
+
+| Variable | Value |
+|----------|-------|
+| `DATABASE_URL` | Neon connection string (with password) |
+| `PORT` | `8080` |
+
+Migrations ship inside the image at `/migrations` — no extra volume needed.
+
 ### Deploy gateway on Render
 
 Create a second Web Service (keep the existing Go API service):

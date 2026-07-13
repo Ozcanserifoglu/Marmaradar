@@ -166,7 +166,10 @@ func ResolveDir() (string, error) {
 	}
 
 	candidates := []string{
+		"migrations",
+		"backend/migrations",
 		"infra/migrations",
+		"../migrations",
 		"../infra/migrations",
 		"../../infra/migrations",
 		filepath.Join("..", "..", "infra", "migrations"),
