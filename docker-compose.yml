@@ -21,11 +21,25 @@ services:
     environment:
       DATABASE_URL: postgres://radar:radar@db:5432/radar_alert?sslmode=disable
       PORT: "8080"
-    ports:
-      - "8081:8080"
+    expose:
+      - "8080"
     depends_on:
       db:
         condition: service_healthy
+
+  gateway:
+    image: krakend:2.13
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./gateway/config/krakend.tmpl:/etc/krakend/krakend.tmpl
+      - ./gateway/config/settings/local:/etc/krakend/settings/local
+    environment:
+      FC_ENABLE: "1"
+      FC_SETTINGS: /etc/krakend/settings/local
+    command: ["run", "-c", "/etc/krakend/krakend.tmpl"]
+    depends_on:
+      - api
 
 volumes:
   pgdata:

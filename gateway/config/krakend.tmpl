@@ -1,0 +1,79 @@
+{
+  "$schema": "https://www.krakend.io/schema/v3.json",
+  "version": 3,
+  "name": "radar-alert-gateway",
+  "port": 8080,
+  "timeout": "30s",
+  "cache_ttl": "0s",
+  "endpoints": [
+    {
+      "endpoint": "/health",
+      "method": "GET",
+      "output_encoding": "no-op",
+      "backend": [
+        {
+          "url_pattern": "/health",
+          "encoding": "no-op",
+          "host": {{ marshal .backend.host }}
+        }
+      ]
+    },
+    {
+      "endpoint": "/v1/cameras/nearby",
+      "method": "GET",
+      "output_encoding": "no-op",
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "max_rate": 100,
+          "client_max_rate": 10,
+          "strategy": "ip"
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/v1/cameras/nearby",
+          "encoding": "no-op",
+          "host": {{ marshal .backend.host }}
+        }
+      ]
+    },
+    {
+      "endpoint": "/v1/corridors/nearby",
+      "method": "GET",
+      "output_encoding": "no-op",
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "max_rate": 100,
+          "client_max_rate": 10,
+          "strategy": "ip"
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/v1/corridors/nearby",
+          "encoding": "no-op",
+          "host": {{ marshal .backend.host }}
+        }
+      ]
+    },
+    {
+      "endpoint": "/v1/sync",
+      "method": "GET",
+      "output_encoding": "no-op",
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "max_rate": 100,
+          "client_max_rate": 10,
+          "strategy": "ip"
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/v1/sync",
+          "encoding": "no-op",
+          "host": {{ marshal .backend.host }}
+        }
+      ]
+    }
+  ]
+}

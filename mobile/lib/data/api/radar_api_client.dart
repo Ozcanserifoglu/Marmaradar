@@ -1,17 +1,24 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 class RadarApiClient {
-  RadarApiClient({String? baseUrl}) : baseUrl = baseUrl ?? _defaultBaseUrl;
+  RadarApiClient({String? baseUrl}) : baseUrl = baseUrl ?? _resolveBaseUrl();
 
-  /// Overridable at build time, e.g. for a physical phone on the same Wi-Fi:
-  ///   flutter build apk --dart-define=RADAR_API_URL=http://192.168.1.105:8081
-  /// The fallback 10.0.2.2 only works from the Android emulator.
-  static const _defaultBaseUrl = String.fromEnvironment(
-    'RADAR_API_URL',
-    defaultValue: 'http://10.0.2.2:8081',
-  );
+  static const _productionBaseUrl = 'https://marmaradar-gateway.onrender.com';
+  static const _emulatorBaseUrl = 'http://10.0.2.2:8081';
+
+  /// Override at build time, e.g. for local dev on a physical device:
+  ///   flutter run --dart-define=RADAR_API_URL=http://192.168.1.105:8081
+  ///
+  /// Release builds default to production; debug builds default to the
+  /// Android emulator host (10.0.2.2:8081).
+  static String _resolveBaseUrl() {
+    const fromEnv = String.fromEnvironment('RADAR_API_URL');
+    if (fromEnv.isNotEmpty) return fromEnv;
+    return kReleaseMode ? _productionBaseUrl : _emulatorBaseUrl;
+  }
 
   final String baseUrl;
 

@@ -18,6 +18,18 @@ jobs:
       - run: go build ./...
         working-directory: data-pipeline
 
+  gateway:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate KrakenD config
+        run: |
+          docker run --rm \
+            -v "$PWD/gateway/config:/etc/krakend" \
+            -e FC_ENABLE=1 \
+            -e FC_SETTINGS=/etc/krakend/settings/local \
+            krakend:2.13 check -c /etc/krakend/krakend.tmpl
+
   mobile:
     runs-on: ubuntu-latest
     steps:
