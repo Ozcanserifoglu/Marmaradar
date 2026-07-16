@@ -1,4 +1,4 @@
-import 'package:latlong2/latlong.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 /// Decodes a Google encoded polyline (precision 5) into coordinates.
 /// This is the format produced by PostGIS `ST_AsEncodedPolyline` and OSRM.

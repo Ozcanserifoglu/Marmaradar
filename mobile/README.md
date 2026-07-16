@@ -1,16 +1,21 @@
 # radar_alert
 
-A new Flutter project.
+Flutter client for Radar Alert — speed camera and corridor warnings for Marmara region drivers.
 
-## Getting Started
+## Google Maps API key
 
-This project is a starting point for a Flutter application.
+The tracking map uses the Google Maps SDK. Create a key in Google Cloud with **Maps SDK for Android** and **Maps SDK for iOS** enabled, then restrict it by package (`com.radaralert.radar_alert`) / iOS bundle id.
 
-A few resources to get you started if this is your first Flutter project:
+**Android** — add to `android/local.properties` (gitignored):
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+```properties
+MAPS_API_KEY=your_key_here
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+**iOS** — copy `ios/Flutter/MapsSecrets.xcconfig.example` to `ios/Flutter/MapsSecrets.xcconfig` and set:
+
+```
+MAPS_API_KEY=your_key_here
+```
+
+Without a key the map will not render tiles.

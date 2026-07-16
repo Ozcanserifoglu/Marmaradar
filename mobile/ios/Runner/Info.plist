@@ -45,6 +45,9 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- Google Maps SDK. Set MAPS_API_KEY in ios/Flutter/MapsSecrets.xcconfig. -->
+	<key>GMSApiKey</key>
+	<string>$(MAPS_API_KEY)</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Radar Alert konumunuzu kullanarak yaklaşan hız kameralarını ve hız koridorlarını uyarır.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>

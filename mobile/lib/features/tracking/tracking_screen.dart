@@ -1,10 +1,10 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:latlong2/latlong.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:radar_alert/app.dart';
+import 'package:radar_alert/core/geo/geo_offset.dart';
 import 'package:radar_alert/core/location/background_location_service.dart';
 import 'package:radar_alert/core/theme/app_theme.dart';
 import 'package:radar_alert/features/tracking/widgets/camera_alert_banner.dart';
@@ -24,56 +24,100 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
   /// them or the map would spin while waiting at a light.
   static const _headingMinSpeedMps = 1.5;
 
-  final MapController _mapController = MapController();
+  GoogleMapController? _mapController;
   bool _mapReady = false;
   bool _follow = true;
   bool _centeredOnce = false;
   bool _wasDriving = false;
+  bool _programmaticMove = false;
+  double _currentZoom = 15.5;
   MapStyle _mapStyle = MapStyle.dark;
 
   @override
   void dispose() {
-    _mapController.dispose();
+    _mapController?.dispose();
     super.dispose();
   }
 
-  void _followDriver() {
+  Future<void> _moveCamera(CameraUpdate update) async {
+    final controller = _mapController;
+    if (controller == null) return;
+    _programmaticMove = true;
+    try {
+      await controller.moveCamera(update);
+    } finally {
+      // Allow the platform a beat to deliver move-started for this update
+      // before gesture detection treats the next move as user-driven.
+      Future<void>.delayed(const Duration(milliseconds: 80), () {
+        _programmaticMove = false;
+      });
+    }
+  }
+
+  Future<void> _followDriver() async {
     final controller = ref.read(trackingControllerProvider);
     final snap = controller.lastSnapshot;
-    if (snap == null || !_mapReady) return;
+    if (snap == null || !_mapReady || _mapController == null) return;
 
     final driving = controller.isRunning;
     if (driving != _wasDriving) {
       _wasDriving = driving;
       // Drive ended: settle back to a north-up map.
-      if (!driving) _mapController.rotate(0);
+      if (!driving) {
+        await _moveCamera(
+          CameraUpdate.newCameraPosition(
+            CameraPosition(
+              target: LatLng(snap.lat, snap.lon),
+              zoom: _currentZoom,
+              bearing: 0,
+            ),
+          ),
+        );
+      }
     }
 
     // Always jump to the very first fix so the map opens where the user is,
     // then keep following only while follow mode is on.
     if (!_centeredOnce) {
       _centeredOnce = true;
-      _mapController.move(LatLng(snap.lat, snap.lon), 15.5);
+      _currentZoom = 15.5;
+      await _moveCamera(
+        CameraUpdate.newCameraPosition(
+          CameraPosition(
+            target: LatLng(snap.lat, snap.lon),
+            zoom: 15.5,
+            bearing: 0,
+          ),
+        ),
+      );
       return;
     }
     if (!_follow) return;
 
     if (driving && snap.speedMps >= _headingMinSpeedMps) {
-      _driveCamera(snap);
+      await _driveCamera(snap);
       return;
     }
-    _mapController.move(
-      LatLng(snap.lat, snap.lon),
-      _mapController.camera.zoom < 14 ? 15.5 : _mapController.camera.zoom,
+
+    final zoom = _currentZoom < 14 ? 15.5 : _currentZoom;
+    _currentZoom = zoom;
+    await _moveCamera(
+      CameraUpdate.newCameraPosition(
+        CameraPosition(
+          target: LatLng(snap.lat, snap.lon),
+          zoom: zoom,
+          bearing: 0,
+        ),
+      ),
     );
   }
 
   /// Google Maps-style chase view: the map rotates so the direction of travel
   /// points up, and the camera aims ahead of the car so the driver marker
   /// sits in the lower part of the screen with the road ahead filling it.
-  void _driveCamera(DriverSnapshot snap) {
-    final zoom =
-        _mapController.camera.zoom < 14 ? 16.5 : _mapController.camera.zoom;
+  Future<void> _driveCamera(DriverSnapshot snap) async {
+    final zoom = _currentZoom < 14 ? 16.5 : _currentZoom;
+    _currentZoom = zoom;
 
     // Meters per logical pixel for 256px web-mercator tiles at this
     // zoom/latitude, used to convert the desired screen offset into a
@@ -84,12 +128,20 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
     final lookAheadM =
         MediaQuery.sizeOf(context).height * 0.22 * metersPerPixel;
 
-    final target = const Distance().offset(
+    final target = offsetByMeters(
       LatLng(snap.lat, snap.lon),
       lookAheadM,
       snap.headingDeg,
     );
-    _mapController.moveAndRotate(target, zoom, -snap.headingDeg);
+    await _moveCamera(
+      CameraUpdate.newCameraPosition(
+        CameraPosition(
+          target: target,
+          zoom: zoom,
+          bearing: snap.headingDeg,
+        ),
+      ),
+    );
   }
 
   void _recenter() {
@@ -117,16 +169,18 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
         children: [
           Positioned.fill(
             child: RadarMapView(
-              mapController: _mapController,
               style: _mapStyle,
               snapshot: controller.lastSnapshot,
               cameras: controller.mapCameras,
               corridors: controller.mapCorridors,
               approaching: approaching,
-              onMapReady: () {
+              isProgrammaticMove: () => _programmaticMove,
+              onMapCreated: (mapController) {
+                _mapController = mapController;
                 _mapReady = true;
                 _followDriver();
               },
+              onCameraMoved: (zoom) => _currentZoom = zoom,
               onUserGesture: () {
                 if (_follow) setState(() => _follow = false);
               },
