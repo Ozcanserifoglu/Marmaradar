@@ -37,6 +37,9 @@ class RadarMapView extends StatefulWidget {
     required this.onUserGesture,
     required this.onCameraMoved,
     required this.isProgrammaticMove,
+    this.routePoints,
+    this.destination,
+    this.destinationTitle,
   });
 
   final MapStyle style;
@@ -51,6 +54,11 @@ class RadarMapView extends StatefulWidget {
   /// When true, camera moves come from chase/follow logic — ignore for
   /// breaking follow mode.
   final bool Function() isProgrammaticMove;
+
+  /// Live Directions route (blue). Independent of corridor overlays.
+  final List<LatLng>? routePoints;
+  final LatLng? destination;
+  final String? destinationTitle;
 
   @override
   State<RadarMapView> createState() => _RadarMapViewState();
@@ -75,7 +83,10 @@ class _RadarMapViewState extends State<RadarMapView> {
     if (oldWidget.snapshot != widget.snapshot ||
         oldWidget.cameras != widget.cameras ||
         oldWidget.corridors != widget.corridors ||
-        oldWidget.approaching != widget.approaching) {
+        oldWidget.approaching != widget.approaching ||
+        oldWidget.routePoints != widget.routePoints ||
+        oldWidget.destination != widget.destination ||
+        oldWidget.destinationTitle != widget.destinationTitle) {
       _rebuildOverlays();
     }
   }
@@ -126,6 +137,22 @@ class _RadarMapViewState extends State<RadarMapView> {
           color: AppColors.corridor.withValues(alpha: 0.6),
           patterns: [PatternItem.dot, PatternItem.gap(12)],
           zIndex: 1,
+        ),
+      );
+    }
+
+    final routePoints = widget.routePoints;
+    if (routePoints != null && routePoints.length >= 2) {
+      polylines.add(
+        Polyline(
+          polylineId: const PolylineId('directions_route'),
+          points: routePoints,
+          width: 6,
+          color: AppColors.route.withValues(alpha: 0.95),
+          jointType: JointType.round,
+          startCap: Cap.roundCap,
+          endCap: Cap.roundCap,
+          zIndex: 2,
         ),
       );
     }
@@ -223,6 +250,23 @@ class _RadarMapViewState extends State<RadarMapView> {
           flat: true,
           rotation: snapshot.headingDeg,
           zIndexInt: 10,
+        ),
+      );
+    }
+
+    final destination = widget.destination;
+    if (destination != null) {
+      markers.add(
+        Marker(
+          markerId: const MarkerId('directions_destination'),
+          position: destination,
+          infoWindow: InfoWindow(
+            title: widget.destinationTitle ?? 'Hedef',
+          ),
+          icon: BitmapDescriptor.defaultMarkerWithHue(
+            BitmapDescriptor.hueAzure,
+          ),
+          zIndexInt: 9,
         ),
       );
     }

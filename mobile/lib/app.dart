@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:radar_alert/core/theme/app_theme.dart';
+import 'package:radar_alert/features/directions/directions_controller.dart';
 import 'package:radar_alert/features/tracking/tracking_controller.dart';
 import 'package:radar_alert/features/tracking/tracking_screen.dart';
 
@@ -33,4 +34,9 @@ class RadarAlertApp extends StatelessWidget {
 final trackingControllerProvider =
     ChangeNotifierProvider<TrackingController>((ref) {
   return TrackingController();
+});
+
+final directionsControllerProvider =
+    ChangeNotifierProvider<DirectionsController>((ref) {
+  return DirectionsController();
 });

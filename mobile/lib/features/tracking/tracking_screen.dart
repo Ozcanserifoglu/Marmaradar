@@ -7,6 +7,9 @@ import 'package:radar_alert/app.dart';
 import 'package:radar_alert/core/geo/geo_offset.dart';
 import 'package:radar_alert/core/location/background_location_service.dart';
 import 'package:radar_alert/core/theme/app_theme.dart';
+import 'package:radar_alert/features/directions/directions_controller.dart';
+import 'package:radar_alert/features/directions/widgets/destination_search_bar.dart';
+import 'package:radar_alert/features/directions/widgets/route_info_banner.dart';
 import 'package:radar_alert/features/tracking/widgets/camera_alert_banner.dart';
 import 'package:radar_alert/features/tracking/widgets/corridor_panel.dart';
 import 'package:radar_alert/features/tracking/widgets/drive_panel.dart';
@@ -33,6 +36,9 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
   double _currentZoom = 15.5;
   MapStyle _mapStyle = MapStyle.dark;
 
+  /// Last route length we fitted the camera to (avoid re-fitting on rebuilds).
+  int _fittedRouteLen = 0;
+
   @override
   void dispose() {
     _mapController?.dispose();
@@ -48,6 +54,19 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
     } finally {
       // Allow the platform a beat to deliver move-started for this update
       // before gesture detection treats the next move as user-driven.
+      Future<void>.delayed(const Duration(milliseconds: 80), () {
+        _programmaticMove = false;
+      });
+    }
+  }
+
+  Future<void> _animateCamera(CameraUpdate update) async {
+    final controller = _mapController;
+    if (controller == null) return;
+    _programmaticMove = true;
+    try {
+      await controller.animateCamera(update);
+    } finally {
       Future<void>.delayed(const Duration(milliseconds: 80), () {
         _programmaticMove = false;
       });
@@ -144,6 +163,42 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
     );
   }
 
+  Future<void> _fitRoute(List<LatLng> points) async {
+    if (!_mapReady || points.length < 2) return;
+
+    var minLat = points.first.latitude;
+    var maxLat = points.first.latitude;
+    var minLng = points.first.longitude;
+    var maxLng = points.first.longitude;
+    for (final p in points) {
+      minLat = math.min(minLat, p.latitude);
+      maxLat = math.max(maxLat, p.latitude);
+      minLng = math.min(minLng, p.longitude);
+      maxLng = math.max(maxLng, p.longitude);
+    }
+
+    // Pad degenerate bounds (very short routes) so the camera still zooms.
+    if ((maxLat - minLat).abs() < 0.001) {
+      minLat -= 0.005;
+      maxLat += 0.005;
+    }
+    if ((maxLng - minLng).abs() < 0.001) {
+      minLng -= 0.005;
+      maxLng += 0.005;
+    }
+
+    setState(() => _follow = false);
+    await _animateCamera(
+      CameraUpdate.newLatLngBounds(
+        LatLngBounds(
+          southwest: LatLng(minLat, minLng),
+          northeast: LatLng(maxLat, maxLng),
+        ),
+        72,
+      ),
+    );
+  }
+
   void _recenter() {
     setState(() => _follow = true);
     _followDriver();
@@ -155,11 +210,46 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
     });
   }
 
+  void _onClearSearch() {
+    final directions = ref.read(directionsControllerProvider);
+    if (directions.hasRoute) {
+      directions.clearAll();
+      _fittedRouteLen = 0;
+    } else {
+      directions.clearSearch();
+    }
+  }
+
+  void _onClearRoute() {
+    ref.read(directionsControllerProvider).clearRoute();
+    _fittedRouteLen = 0;
+  }
+
   @override
   Widget build(BuildContext context) {
-    ref.listen(trackingControllerProvider, (previous, next) => _followDriver());
+    ref.listen(trackingControllerProvider, (previous, next) {
+      final snap = next.lastSnapshot;
+      if (snap != null) {
+        ref.read(directionsControllerProvider).setLocationBias(
+              LatLng(snap.lat, snap.lon),
+            );
+      }
+      _followDriver();
+    });
+
+    ref.listen<DirectionsController>(directionsControllerProvider,
+        (previous, next) {
+      if (next.hasRoute && next.routePoints.length != _fittedRouteLen) {
+        _fittedRouteLen = next.routePoints.length;
+        _fitRoute(next.routePoints);
+      }
+      if (!next.hasRoute) {
+        _fittedRouteLen = 0;
+      }
+    });
 
     final controller = ref.watch(trackingControllerProvider);
+    final directions = ref.watch(directionsControllerProvider);
     final approaching = controller.approaching;
     final corridorStatus = controller.corridorStatus;
     final padding = MediaQuery.paddingOf(context);
@@ -174,6 +264,9 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
               cameras: controller.mapCameras,
               corridors: controller.mapCorridors,
               approaching: approaching,
+              routePoints: directions.hasRoute ? directions.routePoints : null,
+              destination: directions.destinationLatLng,
+              destinationTitle: directions.destinationName,
               isProgrammaticMove: () => _programmaticMove,
               onMapCreated: (mapController) {
                 _mapController = mapController;
@@ -187,13 +280,37 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
             ),
           ),
 
-          // Top overlays: alert banner and corridor panel.
+          // Top overlays: search, then alert / corridor / route info.
           Positioned(
             top: padding.top + 12,
             left: 16,
             right: 16,
             child: Column(
               children: [
+                DestinationSearchBar(
+                  query: directions.query,
+                  predictions: directions.predictions,
+                  isSearching: directions.isSearching,
+                  isRouting: directions.isRouting,
+                  errorMessage: directions.errorMessage,
+                  onQueryChanged: (q) {
+                    final snap = controller.lastSnapshot;
+                    if (snap != null) {
+                      directions.setLocationBias(
+                        LatLng(snap.lat, snap.lon),
+                      );
+                    }
+                    directions.onQueryChanged(q);
+                  },
+                  onClear: _onClearSearch,
+                  onPredictionSelected: (prediction) {
+                    FocusScope.of(context).unfocus();
+                    directions.selectPrediction(
+                      prediction,
+                      origin: controller.lastSnapshot,
+                    );
+                  },
+                ),
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 300),
                   switchInCurve: Curves.easeOutBack,
@@ -205,15 +322,28 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                     child: child,
                   ),
                   child: approaching != null
-                      ? CameraAlertBanner(
+                      ? Padding(
                           key: ValueKey(approaching.camera.id),
-                          approaching: approaching,
+                          padding: const EdgeInsets.only(top: 10),
+                          child: CameraAlertBanner(approaching: approaching),
                         )
                       : const SizedBox.shrink(),
                 ),
                 if (corridorStatus != null) ...[
                   const SizedBox(height: 10),
                   CorridorPanel(status: corridorStatus),
+                ],
+                if (directions.hasRoute &&
+                    directions.distanceKm != null &&
+                    directions.durationMin != null) ...[
+                  const SizedBox(height: 10),
+                  RouteInfoBanner(
+                    destinationName:
+                        directions.destinationName ?? 'Hedef',
+                    distanceKm: directions.distanceKm!,
+                    durationMin: directions.durationMin!,
+                    onClear: _onClearRoute,
+                  ),
                 ],
               ],
             ),

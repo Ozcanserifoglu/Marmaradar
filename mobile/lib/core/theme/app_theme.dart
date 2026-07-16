@@ -15,6 +15,9 @@ abstract final class AppColors {
 
   /// Speed corridor road overlay.
   static const corridor = Color(0xFFFF8A00);
+
+  /// Live Directions route overlay (distinct from corridor orange).
+  static const route = Color(0xFF2B7FFF);
 }
 
 ThemeData buildAppTheme() {
