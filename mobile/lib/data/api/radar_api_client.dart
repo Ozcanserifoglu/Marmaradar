@@ -45,7 +45,7 @@ class RadarApiClient {
     String? baseUrl,
     TokenStore? tokenStore,
   })  : baseUrl = baseUrl ?? _resolveBaseUrl(),
-        _tokens = tokenStore ?? TokenStore();
+        _tokens = tokenStore ?? SecureTokenStore();
 
   static const _productionBaseUrl = 'https://marmaradar-gateway.onrender.com';
   static const _emulatorBaseUrl = 'http://10.0.2.2:8081';

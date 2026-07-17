@@ -10,7 +10,7 @@ import 'package:radar_alert/features/directions/directions_controller.dart';
 import 'package:radar_alert/features/tracking/tracking_controller.dart';
 import 'package:radar_alert/features/tracking/tracking_screen.dart';
 
-final _sharedTokenStore = TokenStore();
+final _sharedTokenStore = SecureTokenStore();
 final _sharedApiClient = RadarApiClient(tokenStore: _sharedTokenStore);
 
 class MarmaradarApp extends ConsumerStatefulWidget {
@@ -25,7 +25,11 @@ class _MarmaradarAppState extends ConsumerState<MarmaradarApp> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(authControllerProvider).bootstrap();
+      final auth = ref.read(authControllerProvider);
+      // Skip if a test (or prior call) already finished bootstrap.
+      if (auth.isBooting) {
+        auth.bootstrap();
+      }
     });
   }
 
