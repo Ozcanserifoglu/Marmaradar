@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Radar Alert design language: red / black / white.
+/// Marmaradar design language: red / black / white.
 abstract final class AppColors {
   static const red = Color(0xFFE8262D);
   static const redDark = Color(0xFFB3161C);

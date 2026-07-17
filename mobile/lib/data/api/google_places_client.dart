@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
+import 'package:radar_alert/core/config/maps_api_key.dart';
 import 'package:radar_alert/features/directions/directions_models.dart';
 
 /// Classic Places Autocomplete + Place Details over REST.
@@ -10,7 +11,7 @@ class GooglePlacesClient {
   GooglePlacesClient({
     String? apiKey,
     http.Client? httpClient,
-  })  : apiKey = apiKey ?? _resolveApiKey(),
+  })  : _apiKeyOverride = apiKey,
         _http = httpClient ?? http.Client();
 
   static const _autocompletePath =
@@ -21,18 +22,23 @@ class GooglePlacesClient {
   /// Bias radius (meters) around the driver's current location.
   static const _biasRadiusM = 50000;
 
-  final String apiKey;
+  final String? _apiKeyOverride;
   final http.Client _http;
 
-  static String _resolveApiKey() {
-    const fromEnv = String.fromEnvironment('GOOGLE_MAPS_API_KEY');
-    return fromEnv;
+  Future<String> _apiKey() async {
+    final override = _apiKeyOverride;
+    if (override != null && override.isNotEmpty) {
+      return override;
+    }
+    await MapsApiKey.ensureLoaded();
+    return MapsApiKey.value;
   }
 
   Future<List<PlacePrediction>> autocomplete({
     required String input,
     LatLng? bias,
   }) async {
+    final apiKey = await _apiKey();
     if (apiKey.isEmpty) {
       throw const DirectionsException(
         'Google API anahtarı eksik',
@@ -74,6 +80,7 @@ class GooglePlacesClient {
   }
 
   Future<PlaceResult> details({required String placeId}) async {
+    final apiKey = await _apiKey();
     if (apiKey.isEmpty) {
       throw const DirectionsException(
         'Google API anahtarı eksik',

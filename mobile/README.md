@@ -1,10 +1,10 @@
-# radar_alert
+# Marmaradar (mobile)
 
-Flutter client for Radar Alert — speed camera and corridor warnings for Marmara region drivers.
+Flutter client for Marmaradar — speed camera and corridor warnings for Marmara region drivers.
 
 ## Google Maps API key
 
-The tracking map uses the Google Maps SDK. Destination search and routing also call **Places** (Autocomplete + Details) and **Directions** from Dart over REST.
+The tracking map uses the Google Maps SDK. Destination search and routing also call **Places** (Autocomplete + Details) and **Directions** over REST, using the **same** key.
 
 Create a key in Google Cloud with these APIs enabled:
 
@@ -15,28 +15,32 @@ Create a key in Google Cloud with these APIs enabled:
 
 Restrict the key by Android package (`com.radaralert.radar_alert`) / iOS bundle id (and SHA-1 for Android).
 
-### Native Maps SDK
+### Android
 
-**Android** — add to `android/local.properties` (gitignored):
+Add to `android/local.properties` (gitignored):
 
 ```properties
 MAPS_API_KEY=your_key_here
 ```
 
-**iOS** — copy `ios/Flutter/MapsSecrets.xcconfig.example` to `ios/Flutter/MapsSecrets.xcconfig` and set:
+That value is injected into the Maps SDK manifest entry and exposed to Dart at startup — no extra `--dart-define` is required for a normal `flutter run`.
+
+### iOS
+
+Copy `ios/Flutter/MapsSecrets.xcconfig.example` to `ios/Flutter/MapsSecrets.xcconfig` and set:
 
 ```
 MAPS_API_KEY=your_key_here
 ```
 
-Without a key the map will not render tiles.
+Same key is used for the Maps SDK and Places/Directions REST.
 
-### Places + Directions (Dart)
+### Optional override
 
-Pass the same (or a sibling) key at run/build time so REST clients can call Google:
+For CI or one-off runs you can still pass:
 
 ```bash
-flutter run --dart-define=GOOGLE_MAPS_API_KEY=your_key_here
+flutter run --dart-define=MAPS_API_KEY=your_key_here
 ```
 
-Without `GOOGLE_MAPS_API_KEY`, the destination search bar will report that the API key is missing / denied.
+Without a key the map will not render tiles, and destination search will report that the API key is missing.

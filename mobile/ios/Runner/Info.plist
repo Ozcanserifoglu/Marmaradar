@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Radar Alert</string>
+	<string>Marmaradar</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -13,7 +13,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>radar_alert</string>
+	<string>Marmaradar</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -49,9 +49,9 @@
 	<key>GMSApiKey</key>
 	<string>$(MAPS_API_KEY)</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Radar Alert konumunuzu kullanarak yaklaşan hız kameralarını ve hız koridorlarını uyarır.</string>
+	<string>Marmaradar konumunuzu kullanarak yaklaşan hız kameralarını ve hız koridorlarını uyarır.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Radar Alert arka planda çalışırken de hız kamerası uyarıları verebilmek için sürekli konum erişimine ihtiyaç duyar.</string>
+	<string>Marmaradar arka planda çalışırken de hız kamerası uyarıları verebilmek için sürekli konum erişimine ihtiyaç duyar.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>location</string>

@@ -1,11 +1,11 @@
 {
-    "name": "radar_alert",
-    "short_name": "radar_alert",
+    "name": "Marmaradar",
+    "short_name": "Marmaradar",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Speed camera and corridor warnings for Marmara region drivers.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

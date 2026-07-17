@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.radaralert" "\0"
-            VALUE "FileDescription", "radar_alert" "\0"
+            VALUE "FileDescription", "Marmaradar" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "radar_alert" "\0"
+            VALUE "InternalName", "marmaradar" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 com.radaralert. All rights reserved." "\0"
-            VALUE "OriginalFilename", "radar_alert.exe" "\0"
-            VALUE "ProductName", "radar_alert" "\0"
+            VALUE "OriginalFilename", "marmaradar.exe" "\0"
+            VALUE "ProductName", "Marmaradar" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

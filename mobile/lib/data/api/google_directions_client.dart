@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
+import 'package:radar_alert/core/config/maps_api_key.dart';
 import 'package:radar_alert/core/geo/encoded_polyline.dart';
 import 'package:radar_alert/features/directions/directions_models.dart';
 
@@ -11,24 +12,29 @@ class GoogleDirectionsClient {
   GoogleDirectionsClient({
     String? apiKey,
     http.Client? httpClient,
-  })  : apiKey = apiKey ?? _resolveApiKey(),
+  })  : _apiKeyOverride = apiKey,
         _http = httpClient ?? http.Client();
 
   static const _path = '/maps/api/directions/json';
   static const _timeout = Duration(seconds: 20);
 
-  final String apiKey;
+  final String? _apiKeyOverride;
   final http.Client _http;
 
-  static String _resolveApiKey() {
-    const fromEnv = String.fromEnvironment('GOOGLE_MAPS_API_KEY');
-    return fromEnv;
+  Future<String> _apiKey() async {
+    final override = _apiKeyOverride;
+    if (override != null && override.isNotEmpty) {
+      return override;
+    }
+    await MapsApiKey.ensureLoaded();
+    return MapsApiKey.value;
   }
 
   Future<RouteResult> route({
     required LatLng origin,
     required LatLng destination,
   }) async {
+    final apiKey = await _apiKey();
     if (apiKey.isEmpty) {
       throw const DirectionsException(
         'Google API anahtarı eksik',

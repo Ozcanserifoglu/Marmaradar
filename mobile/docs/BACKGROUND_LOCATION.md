@@ -10,7 +10,7 @@
 
 1. Install debug build on a physical Android device (Samsung/Xiaomi/Redmi preferred — aggressive battery killers).
 2. Grant **Always** location + notification permissions.
-3. Disable battery optimization for Radar Alert (Settings → Apps → Radar Alert → Battery → Unrestricted).
+3. Disable battery optimization for Marmaradar (Settings → Apps → Marmaradar → Battery → Unrestricted).
 4. Start tracking, open Google Maps navigation, turn screen off.
 5. Drive or simulate route through known Bursa EDS points.
 6. Log every 15 minutes: is foreground notification visible? Are GPS updates arriving?

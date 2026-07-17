@@ -6,8 +6,8 @@ import 'package:radar_alert/features/directions/directions_controller.dart';
 import 'package:radar_alert/features/tracking/tracking_controller.dart';
 import 'package:radar_alert/features/tracking/tracking_screen.dart';
 
-class RadarAlertApp extends StatelessWidget {
-  const RadarAlertApp({super.key});
+class MarmaradarApp extends StatelessWidget {
+  const MarmaradarApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +22,7 @@ class RadarAlertApp extends StatelessWidget {
 
     return ProviderScope(
       child: MaterialApp(
-        title: 'Radar Alert',
+        title: 'Marmaradar',
         debugShowCheckedModeBanner: false,
         theme: buildAppTheme(),
         home: const TrackingScreen(),

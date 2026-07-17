@@ -152,7 +152,7 @@ class BackgroundLocationService {
             // (common on emulators and de-Googled devices).
             forceLocationManager: forceLocationManager,
             foregroundNotificationConfig: const ForegroundNotificationConfig(
-              notificationTitle: 'Radar Alert aktif',
+              notificationTitle: 'Marmaradar aktif',
               notificationText: 'Hız kamerası uyarıları arka planda çalışıyor',
               enableWakeLock: true,
             ),

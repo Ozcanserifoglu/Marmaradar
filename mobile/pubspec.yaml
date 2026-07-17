@@ -1,5 +1,5 @@
 name: radar_alert
-description: Radar Alert - speed camera and corridor warnings for Marmara region drivers.
+description: Marmaradar - speed camera and corridor warnings for Marmara region drivers.
 publish_to: 'none'
 version: 1.0.0+1
 

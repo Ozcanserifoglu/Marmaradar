@@ -11,7 +11,7 @@
     <!-- usesCleartextTraffic: the dev backend is plain HTTP on the local
          network; remove this once the API is served over HTTPS. -->
     <application
-        android:label="Radar Alert"
+        android:label="Marmaradar"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="true">
