@@ -8,6 +8,7 @@ import 'package:radar_alert/data/local/app_database.dart';
 import 'package:radar_alert/features/alerts/alert_engine.dart';
 import 'package:radar_alert/features/corridors/corridor_tracker.dart';
 import 'package:radar_alert/features/sync/region_sync_service.dart';
+import 'package:radar_alert/features/tracking/drive_recorder.dart';
 
 /// Live proximity state for the closest camera ahead of the driver.
 class ApproachingCamera {
@@ -54,8 +55,10 @@ class TrackingController extends ChangeNotifier {
         _location = locationService ?? BackgroundLocationService(),
         _alerts = AlertEngine(),
         _corridors = CorridorTracker(),
-        _player = alertPlayer ?? AlertPlayer() {
-    _sync = RegionSyncService(_db, apiClient ?? RadarApiClient());
+        _player = alertPlayer ?? AlertPlayer(),
+        _api = apiClient ?? RadarApiClient() {
+    _sync = RegionSyncService(_db, _api);
+    _recorder = DriveRecorder(db: _db, api: _api);
     _loadMapData();
     _initLocation();
   }
@@ -66,7 +69,9 @@ class TrackingController extends ChangeNotifier {
 
   final BackgroundLocationService _location;
   final AppDatabase _db;
+  final RadarApiClient _api;
   late final RegionSyncService _sync;
+  late final DriveRecorder _recorder;
   final AlertEngine _alerts;
   final CorridorTracker _corridors;
   final AlertPlayer _player;
@@ -85,6 +90,7 @@ class TrackingController extends ChangeNotifier {
   ApproachingCamera? _approaching;
   List<CachedCamera> _mapCameras = const [];
   List<CachedCorridorWithGates> _mapCorridors = const [];
+  DriveUploadStatus _driveUploadStatus = DriveUploadStatus.idle;
 
   bool get isRunning => _running;
   bool get isSyncing => _syncing;
@@ -96,6 +102,7 @@ class TrackingController extends ChangeNotifier {
   ApproachingCamera? get approaching => _approaching;
   List<CachedCamera> get mapCameras => _mapCameras;
   List<CachedCorridorWithGates> get mapCorridors => _mapCorridors;
+  DriveUploadStatus get driveUploadStatus => _driveUploadStatus;
 
   double get speedKmh => (_lastSnapshot?.speedMps ?? 0) * 3.6;
 
@@ -229,6 +236,8 @@ class TrackingController extends ChangeNotifier {
     await _location.stopIdleWatch();
     await _player.init();
     await _loadMapData();
+    await _recorder.begin();
+    _driveUploadStatus = DriveUploadStatus.recording;
     _running = true;
     _autoStarted = auto;
     _status = auto ? 'Sürüş algılandı — takip başladı' : 'Takip aktif';
@@ -253,18 +262,38 @@ class TrackingController extends ChangeNotifier {
     _autoStarted = false;
     _autoSuppressed = true;
     _movingFixCount = 0;
-    _status = _autoDrive
-        ? 'Durduruldu — sürüş algılanınca yeniden başlar'
-        : 'Durduruldu';
     _approaching = null;
     _alerts.reset();
     _corridors.reset();
+
+    _driveUploadStatus = DriveUploadStatus.uploading;
+    _status = 'Sürüş kaydı gönderiliyor...';
+    notifyListeners();
+
+    final result = await _recorder.finish();
+    _driveUploadStatus = result;
+    switch (result) {
+      case DriveUploadStatus.uploaded:
+        _status = 'Sürüş kaydedildi';
+      case DriveUploadStatus.tooShort:
+        _status = _autoDrive
+            ? 'Durduruldu — sürüş çok kısa, kayıt yok'
+            : 'Durduruldu — sürüş çok kısa';
+      case DriveUploadStatus.failed:
+        _status =
+            'Kayıt yüklenemedi${_recorder.lastError != null ? ': ${_recorder.lastError}' : ''}';
+      default:
+        _status = _autoDrive
+            ? 'Durduruldu — sürüş algılanınca yeniden başlar'
+            : 'Durduruldu';
+    }
     notifyListeners();
     await _startIdleWatch();
   }
 
   Future<void> _onLocation(DriverSnapshot snap) async {
     _lastSnapshot = snap;
+    await _recorder.maybeAppend(snap);
 
     final cameras = await _db.camerasNear(snap.lat, snap.lon, 1500);
     _updateApproaching(snap, cameras);

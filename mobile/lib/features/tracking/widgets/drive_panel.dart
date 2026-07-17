@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:radar_alert/app.dart';
 import 'package:radar_alert/core/theme/app_theme.dart';
 import 'package:radar_alert/features/tracking/tracking_controller.dart';
 
 /// Bottom control dock: live speed, status and the main actions.
-class DrivePanel extends StatelessWidget {
+class DrivePanel extends ConsumerWidget {
   const DrivePanel({super.key, required this.controller});
 
   final TrackingController controller;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final running = controller.isRunning;
     final hasFix = controller.lastSnapshot != null;
 
@@ -89,6 +91,10 @@ class DrivePanel extends StatelessWidget {
           Row(
             children: [
               _SyncButton(controller: controller),
+              const SizedBox(width: 12),
+              _LogoutButton(
+                onLogout: () => ref.read(authControllerProvider).logout(),
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: FilledButton.icon(
@@ -241,6 +247,30 @@ class _SyncButton extends StatelessWidget {
                 ),
               )
             : const Icon(Icons.cloud_sync, size: 24),
+      ),
+    );
+  }
+}
+
+class _LogoutButton extends StatelessWidget {
+  const _LogoutButton({required this.onLogout});
+
+  final VoidCallback onLogout;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 56,
+      height: 56,
+      child: OutlinedButton(
+        onPressed: onLogout,
+        style: OutlinedButton.styleFrom(
+          padding: EdgeInsets.zero,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+        child: const Icon(Icons.logout, size: 22),
       ),
     );
   }

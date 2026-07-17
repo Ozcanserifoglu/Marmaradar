@@ -73,5 +73,24 @@ ThemeData buildAppTheme() {
       contentTextStyle: TextStyle(color: AppColors.white),
       behavior: SnackBarBehavior.floating,
     ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: AppColors.surfaceHigh,
+      labelStyle: const TextStyle(color: AppColors.whiteMuted),
+      prefixIconColor: AppColors.whiteMuted,
+      suffixIconColor: AppColors.whiteMuted,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: AppColors.outline),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: AppColors.outline),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: AppColors.red, width: 1.5),
+      ),
+    ),
   );
 }

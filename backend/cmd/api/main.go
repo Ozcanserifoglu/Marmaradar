@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/radar-alert/backend/internal/auth"
 	"github.com/radar-alert/backend/internal/config"
 	"github.com/radar-alert/backend/internal/db"
 	"github.com/radar-alert/backend/internal/db/migrate"
@@ -51,7 +52,13 @@ func main() {
 	}
 	slog.Info("database migrations complete")
 
+	jwtMgr := auth.NewJWTManager(cfg.JWTSecret, cfg.AccessTokenTTL, cfg.RefreshTokenTTL)
 	geo := service.NewGeoService(pool)
+	authSvc := service.NewAuthService(pool, jwtMgr)
+	driveSvc := service.NewDriveService(pool)
+
+	authHandler := handler.NewAuthHandler(authSvc)
+	driveHandler := handler.NewDriveHandler(driveSvc)
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
@@ -68,6 +75,15 @@ func main() {
 		r.Get("/cameras/nearby", handler.NewCameraHandler(geo).Nearby)
 		r.Get("/corridors/nearby", handler.NewCorridorHandler(geo).Nearby)
 		r.Get("/sync", handler.NewSyncHandler(geo).Delta)
+
+		r.Post("/auth/register", authHandler.Register)
+		r.Post("/auth/login", authHandler.Login)
+		r.Post("/auth/refresh", authHandler.Refresh)
+
+		r.Group(func(r chi.Router) {
+			r.Use(auth.Middleware(jwtMgr))
+			r.Post("/drives", driveHandler.Create)
+		})
 	})
 
 	slog.Info("starting api server", "port", cfg.Port)

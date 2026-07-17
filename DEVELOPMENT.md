@@ -149,4 +149,4 @@ The Flutter app uses `geolocator` with an Android foreground service notificatio
 
 ## Security
 
-This repo is public. Production secrets (`DATABASE_URL`, signing keys) must live in Render/Neon dashboards and local `.env` files only — never in git. See [SECURITY.md](SECURITY.md).
+This repo is public. Production secrets (`DATABASE_URL`, `JWT_SECRET`, signing keys) must live in Render/Neon dashboards and local `.env` files only — never in git. See [SECURITY.md](SECURITY.md).

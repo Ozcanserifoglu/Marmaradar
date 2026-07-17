@@ -52,20 +52,53 @@ class CachedCorridorGates extends Table {
   IntColumn get directionDeg => integer().nullable()();
 }
 
-@DriftDatabase(tables: [CachedCameras, CachedCorridors, CachedCorridorGates])
+/// Local drive session awaiting upload (or already uploaded).
+class LocalDrives extends Table {
+  TextColumn get id => text()();
+  DateTimeColumn get startedAt => dateTime()();
+  DateTimeColumn get endedAt => dateTime().nullable()();
+  /// recording | pending_upload | uploaded
+  TextColumn get status => text()();
+  TextColumn get remoteId => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+class LocalDrivePoints extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get driveId => text().references(LocalDrives, #id)();
+  RealColumn get lat => real()();
+  RealColumn get lon => real()();
+  RealColumn get speedMps => real()();
+  DateTimeColumn get recordedAt => dateTime()();
+  IntColumn get sequence => integer()();
+}
+
+@DriftDatabase(tables: [
+  CachedCameras,
+  CachedCorridors,
+  CachedCorridorGates,
+  LocalDrives,
+  LocalDrivePoints,
+])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onUpgrade: (m, from, to) async {
           if (from < 2) {
             await m.addColumn(cachedCorridors, cachedCorridors.polyline);
+          }
+          if (from < 3) {
+            await m.createTable(localDrives);
+            await m.createTable(localDrivePoints);
           }
         },
       );
@@ -111,6 +144,41 @@ class AppDatabase extends _$AppDatabase {
     for (final gate in gates) {
       await into(cachedCorridorGates).insert(gate);
     }
+  }
+
+  Future<void> insertDrive(LocalDrivesCompanion row) async {
+    await into(localDrives).insert(row);
+  }
+
+  Future<void> updateDrive(LocalDrivesCompanion row) async {
+    await (update(localDrives)..where((d) => d.id.equals(row.id.value)))
+        .write(row);
+  }
+
+  Future<void> insertDrivePoint(LocalDrivePointsCompanion row) async {
+    await into(localDrivePoints).insert(row);
+  }
+
+  Future<List<LocalDrivePoint>> pointsForDrive(String driveId) {
+    return (select(localDrivePoints)
+          ..where((p) => p.driveId.equals(driveId))
+          ..orderBy([(p) => OrderingTerm.asc(p.sequence)]))
+        .get();
+  }
+
+  Future<int> pointCountForDrive(String driveId) async {
+    final count = localDrivePoints.id.count();
+    final query = selectOnly(localDrivePoints)
+      ..addColumns([count])
+      ..where(localDrivePoints.driveId.equals(driveId));
+    final row = await query.getSingle();
+    return row.read(count) ?? 0;
+  }
+
+  Future<void> deleteDriveCascade(String driveId) async {
+    await (delete(localDrivePoints)..where((p) => p.driveId.equals(driveId)))
+        .go();
+    await (delete(localDrives)..where((d) => d.id.equals(driveId))).go();
   }
 }
 

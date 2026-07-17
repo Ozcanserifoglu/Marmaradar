@@ -1624,6 +1624,818 @@ class CachedCorridorGatesCompanion extends UpdateCompanion<CachedCorridorGate> {
   }
 }
 
+class $LocalDrivesTable extends LocalDrives
+    with TableInfo<$LocalDrivesTable, LocalDrive> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LocalDrivesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _startedAtMeta = const VerificationMeta(
+    'startedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> startedAt = GeneratedColumn<DateTime>(
+    'started_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _endedAtMeta = const VerificationMeta(
+    'endedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> endedAt = GeneratedColumn<DateTime>(
+    'ended_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _remoteIdMeta = const VerificationMeta(
+    'remoteId',
+  );
+  @override
+  late final GeneratedColumn<String> remoteId = GeneratedColumn<String>(
+    'remote_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    startedAt,
+    endedAt,
+    status,
+    remoteId,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'local_drives';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LocalDrive> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('started_at')) {
+      context.handle(
+        _startedAtMeta,
+        startedAt.isAcceptableOrUnknown(data['started_at']!, _startedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_startedAtMeta);
+    }
+    if (data.containsKey('ended_at')) {
+      context.handle(
+        _endedAtMeta,
+        endedAt.isAcceptableOrUnknown(data['ended_at']!, _endedAtMeta),
+      );
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_statusMeta);
+    }
+    if (data.containsKey('remote_id')) {
+      context.handle(
+        _remoteIdMeta,
+        remoteId.isAcceptableOrUnknown(data['remote_id']!, _remoteIdMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LocalDrive map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LocalDrive(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      startedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}started_at'],
+      )!,
+      endedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}ended_at'],
+      ),
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      remoteId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}remote_id'],
+      ),
+    );
+  }
+
+  @override
+  $LocalDrivesTable createAlias(String alias) {
+    return $LocalDrivesTable(attachedDatabase, alias);
+  }
+}
+
+class LocalDrive extends DataClass implements Insertable<LocalDrive> {
+  final String id;
+  final DateTime startedAt;
+  final DateTime? endedAt;
+
+  /// recording | pending_upload | uploaded
+  final String status;
+  final String? remoteId;
+  const LocalDrive({
+    required this.id,
+    required this.startedAt,
+    this.endedAt,
+    required this.status,
+    this.remoteId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['started_at'] = Variable<DateTime>(startedAt);
+    if (!nullToAbsent || endedAt != null) {
+      map['ended_at'] = Variable<DateTime>(endedAt);
+    }
+    map['status'] = Variable<String>(status);
+    if (!nullToAbsent || remoteId != null) {
+      map['remote_id'] = Variable<String>(remoteId);
+    }
+    return map;
+  }
+
+  LocalDrivesCompanion toCompanion(bool nullToAbsent) {
+    return LocalDrivesCompanion(
+      id: Value(id),
+      startedAt: Value(startedAt),
+      endedAt: endedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(endedAt),
+      status: Value(status),
+      remoteId: remoteId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(remoteId),
+    );
+  }
+
+  factory LocalDrive.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LocalDrive(
+      id: serializer.fromJson<String>(json['id']),
+      startedAt: serializer.fromJson<DateTime>(json['startedAt']),
+      endedAt: serializer.fromJson<DateTime?>(json['endedAt']),
+      status: serializer.fromJson<String>(json['status']),
+      remoteId: serializer.fromJson<String?>(json['remoteId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'startedAt': serializer.toJson<DateTime>(startedAt),
+      'endedAt': serializer.toJson<DateTime?>(endedAt),
+      'status': serializer.toJson<String>(status),
+      'remoteId': serializer.toJson<String?>(remoteId),
+    };
+  }
+
+  LocalDrive copyWith({
+    String? id,
+    DateTime? startedAt,
+    Value<DateTime?> endedAt = const Value.absent(),
+    String? status,
+    Value<String?> remoteId = const Value.absent(),
+  }) => LocalDrive(
+    id: id ?? this.id,
+    startedAt: startedAt ?? this.startedAt,
+    endedAt: endedAt.present ? endedAt.value : this.endedAt,
+    status: status ?? this.status,
+    remoteId: remoteId.present ? remoteId.value : this.remoteId,
+  );
+  LocalDrive copyWithCompanion(LocalDrivesCompanion data) {
+    return LocalDrive(
+      id: data.id.present ? data.id.value : this.id,
+      startedAt: data.startedAt.present ? data.startedAt.value : this.startedAt,
+      endedAt: data.endedAt.present ? data.endedAt.value : this.endedAt,
+      status: data.status.present ? data.status.value : this.status,
+      remoteId: data.remoteId.present ? data.remoteId.value : this.remoteId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalDrive(')
+          ..write('id: $id, ')
+          ..write('startedAt: $startedAt, ')
+          ..write('endedAt: $endedAt, ')
+          ..write('status: $status, ')
+          ..write('remoteId: $remoteId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, startedAt, endedAt, status, remoteId);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LocalDrive &&
+          other.id == this.id &&
+          other.startedAt == this.startedAt &&
+          other.endedAt == this.endedAt &&
+          other.status == this.status &&
+          other.remoteId == this.remoteId);
+}
+
+class LocalDrivesCompanion extends UpdateCompanion<LocalDrive> {
+  final Value<String> id;
+  final Value<DateTime> startedAt;
+  final Value<DateTime?> endedAt;
+  final Value<String> status;
+  final Value<String?> remoteId;
+  final Value<int> rowid;
+  const LocalDrivesCompanion({
+    this.id = const Value.absent(),
+    this.startedAt = const Value.absent(),
+    this.endedAt = const Value.absent(),
+    this.status = const Value.absent(),
+    this.remoteId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LocalDrivesCompanion.insert({
+    required String id,
+    required DateTime startedAt,
+    this.endedAt = const Value.absent(),
+    required String status,
+    this.remoteId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       startedAt = Value(startedAt),
+       status = Value(status);
+  static Insertable<LocalDrive> custom({
+    Expression<String>? id,
+    Expression<DateTime>? startedAt,
+    Expression<DateTime>? endedAt,
+    Expression<String>? status,
+    Expression<String>? remoteId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (startedAt != null) 'started_at': startedAt,
+      if (endedAt != null) 'ended_at': endedAt,
+      if (status != null) 'status': status,
+      if (remoteId != null) 'remote_id': remoteId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LocalDrivesCompanion copyWith({
+    Value<String>? id,
+    Value<DateTime>? startedAt,
+    Value<DateTime?>? endedAt,
+    Value<String>? status,
+    Value<String?>? remoteId,
+    Value<int>? rowid,
+  }) {
+    return LocalDrivesCompanion(
+      id: id ?? this.id,
+      startedAt: startedAt ?? this.startedAt,
+      endedAt: endedAt ?? this.endedAt,
+      status: status ?? this.status,
+      remoteId: remoteId ?? this.remoteId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (startedAt.present) {
+      map['started_at'] = Variable<DateTime>(startedAt.value);
+    }
+    if (endedAt.present) {
+      map['ended_at'] = Variable<DateTime>(endedAt.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (remoteId.present) {
+      map['remote_id'] = Variable<String>(remoteId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalDrivesCompanion(')
+          ..write('id: $id, ')
+          ..write('startedAt: $startedAt, ')
+          ..write('endedAt: $endedAt, ')
+          ..write('status: $status, ')
+          ..write('remoteId: $remoteId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $LocalDrivePointsTable extends LocalDrivePoints
+    with TableInfo<$LocalDrivePointsTable, LocalDrivePoint> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LocalDrivePointsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _driveIdMeta = const VerificationMeta(
+    'driveId',
+  );
+  @override
+  late final GeneratedColumn<String> driveId = GeneratedColumn<String>(
+    'drive_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES local_drives (id)',
+    ),
+  );
+  static const VerificationMeta _latMeta = const VerificationMeta('lat');
+  @override
+  late final GeneratedColumn<double> lat = GeneratedColumn<double>(
+    'lat',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _lonMeta = const VerificationMeta('lon');
+  @override
+  late final GeneratedColumn<double> lon = GeneratedColumn<double>(
+    'lon',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _speedMpsMeta = const VerificationMeta(
+    'speedMps',
+  );
+  @override
+  late final GeneratedColumn<double> speedMps = GeneratedColumn<double>(
+    'speed_mps',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _recordedAtMeta = const VerificationMeta(
+    'recordedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> recordedAt = GeneratedColumn<DateTime>(
+    'recorded_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sequenceMeta = const VerificationMeta(
+    'sequence',
+  );
+  @override
+  late final GeneratedColumn<int> sequence = GeneratedColumn<int>(
+    'sequence',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    driveId,
+    lat,
+    lon,
+    speedMps,
+    recordedAt,
+    sequence,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'local_drive_points';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LocalDrivePoint> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('drive_id')) {
+      context.handle(
+        _driveIdMeta,
+        driveId.isAcceptableOrUnknown(data['drive_id']!, _driveIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_driveIdMeta);
+    }
+    if (data.containsKey('lat')) {
+      context.handle(
+        _latMeta,
+        lat.isAcceptableOrUnknown(data['lat']!, _latMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_latMeta);
+    }
+    if (data.containsKey('lon')) {
+      context.handle(
+        _lonMeta,
+        lon.isAcceptableOrUnknown(data['lon']!, _lonMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_lonMeta);
+    }
+    if (data.containsKey('speed_mps')) {
+      context.handle(
+        _speedMpsMeta,
+        speedMps.isAcceptableOrUnknown(data['speed_mps']!, _speedMpsMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_speedMpsMeta);
+    }
+    if (data.containsKey('recorded_at')) {
+      context.handle(
+        _recordedAtMeta,
+        recordedAt.isAcceptableOrUnknown(data['recorded_at']!, _recordedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_recordedAtMeta);
+    }
+    if (data.containsKey('sequence')) {
+      context.handle(
+        _sequenceMeta,
+        sequence.isAcceptableOrUnknown(data['sequence']!, _sequenceMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sequenceMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LocalDrivePoint map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LocalDrivePoint(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      driveId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}drive_id'],
+      )!,
+      lat: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}lat'],
+      )!,
+      lon: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}lon'],
+      )!,
+      speedMps: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}speed_mps'],
+      )!,
+      recordedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}recorded_at'],
+      )!,
+      sequence: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sequence'],
+      )!,
+    );
+  }
+
+  @override
+  $LocalDrivePointsTable createAlias(String alias) {
+    return $LocalDrivePointsTable(attachedDatabase, alias);
+  }
+}
+
+class LocalDrivePoint extends DataClass implements Insertable<LocalDrivePoint> {
+  final int id;
+  final String driveId;
+  final double lat;
+  final double lon;
+  final double speedMps;
+  final DateTime recordedAt;
+  final int sequence;
+  const LocalDrivePoint({
+    required this.id,
+    required this.driveId,
+    required this.lat,
+    required this.lon,
+    required this.speedMps,
+    required this.recordedAt,
+    required this.sequence,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['drive_id'] = Variable<String>(driveId);
+    map['lat'] = Variable<double>(lat);
+    map['lon'] = Variable<double>(lon);
+    map['speed_mps'] = Variable<double>(speedMps);
+    map['recorded_at'] = Variable<DateTime>(recordedAt);
+    map['sequence'] = Variable<int>(sequence);
+    return map;
+  }
+
+  LocalDrivePointsCompanion toCompanion(bool nullToAbsent) {
+    return LocalDrivePointsCompanion(
+      id: Value(id),
+      driveId: Value(driveId),
+      lat: Value(lat),
+      lon: Value(lon),
+      speedMps: Value(speedMps),
+      recordedAt: Value(recordedAt),
+      sequence: Value(sequence),
+    );
+  }
+
+  factory LocalDrivePoint.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LocalDrivePoint(
+      id: serializer.fromJson<int>(json['id']),
+      driveId: serializer.fromJson<String>(json['driveId']),
+      lat: serializer.fromJson<double>(json['lat']),
+      lon: serializer.fromJson<double>(json['lon']),
+      speedMps: serializer.fromJson<double>(json['speedMps']),
+      recordedAt: serializer.fromJson<DateTime>(json['recordedAt']),
+      sequence: serializer.fromJson<int>(json['sequence']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'driveId': serializer.toJson<String>(driveId),
+      'lat': serializer.toJson<double>(lat),
+      'lon': serializer.toJson<double>(lon),
+      'speedMps': serializer.toJson<double>(speedMps),
+      'recordedAt': serializer.toJson<DateTime>(recordedAt),
+      'sequence': serializer.toJson<int>(sequence),
+    };
+  }
+
+  LocalDrivePoint copyWith({
+    int? id,
+    String? driveId,
+    double? lat,
+    double? lon,
+    double? speedMps,
+    DateTime? recordedAt,
+    int? sequence,
+  }) => LocalDrivePoint(
+    id: id ?? this.id,
+    driveId: driveId ?? this.driveId,
+    lat: lat ?? this.lat,
+    lon: lon ?? this.lon,
+    speedMps: speedMps ?? this.speedMps,
+    recordedAt: recordedAt ?? this.recordedAt,
+    sequence: sequence ?? this.sequence,
+  );
+  LocalDrivePoint copyWithCompanion(LocalDrivePointsCompanion data) {
+    return LocalDrivePoint(
+      id: data.id.present ? data.id.value : this.id,
+      driveId: data.driveId.present ? data.driveId.value : this.driveId,
+      lat: data.lat.present ? data.lat.value : this.lat,
+      lon: data.lon.present ? data.lon.value : this.lon,
+      speedMps: data.speedMps.present ? data.speedMps.value : this.speedMps,
+      recordedAt: data.recordedAt.present
+          ? data.recordedAt.value
+          : this.recordedAt,
+      sequence: data.sequence.present ? data.sequence.value : this.sequence,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalDrivePoint(')
+          ..write('id: $id, ')
+          ..write('driveId: $driveId, ')
+          ..write('lat: $lat, ')
+          ..write('lon: $lon, ')
+          ..write('speedMps: $speedMps, ')
+          ..write('recordedAt: $recordedAt, ')
+          ..write('sequence: $sequence')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, driveId, lat, lon, speedMps, recordedAt, sequence);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LocalDrivePoint &&
+          other.id == this.id &&
+          other.driveId == this.driveId &&
+          other.lat == this.lat &&
+          other.lon == this.lon &&
+          other.speedMps == this.speedMps &&
+          other.recordedAt == this.recordedAt &&
+          other.sequence == this.sequence);
+}
+
+class LocalDrivePointsCompanion extends UpdateCompanion<LocalDrivePoint> {
+  final Value<int> id;
+  final Value<String> driveId;
+  final Value<double> lat;
+  final Value<double> lon;
+  final Value<double> speedMps;
+  final Value<DateTime> recordedAt;
+  final Value<int> sequence;
+  const LocalDrivePointsCompanion({
+    this.id = const Value.absent(),
+    this.driveId = const Value.absent(),
+    this.lat = const Value.absent(),
+    this.lon = const Value.absent(),
+    this.speedMps = const Value.absent(),
+    this.recordedAt = const Value.absent(),
+    this.sequence = const Value.absent(),
+  });
+  LocalDrivePointsCompanion.insert({
+    this.id = const Value.absent(),
+    required String driveId,
+    required double lat,
+    required double lon,
+    required double speedMps,
+    required DateTime recordedAt,
+    required int sequence,
+  }) : driveId = Value(driveId),
+       lat = Value(lat),
+       lon = Value(lon),
+       speedMps = Value(speedMps),
+       recordedAt = Value(recordedAt),
+       sequence = Value(sequence);
+  static Insertable<LocalDrivePoint> custom({
+    Expression<int>? id,
+    Expression<String>? driveId,
+    Expression<double>? lat,
+    Expression<double>? lon,
+    Expression<double>? speedMps,
+    Expression<DateTime>? recordedAt,
+    Expression<int>? sequence,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (driveId != null) 'drive_id': driveId,
+      if (lat != null) 'lat': lat,
+      if (lon != null) 'lon': lon,
+      if (speedMps != null) 'speed_mps': speedMps,
+      if (recordedAt != null) 'recorded_at': recordedAt,
+      if (sequence != null) 'sequence': sequence,
+    });
+  }
+
+  LocalDrivePointsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? driveId,
+    Value<double>? lat,
+    Value<double>? lon,
+    Value<double>? speedMps,
+    Value<DateTime>? recordedAt,
+    Value<int>? sequence,
+  }) {
+    return LocalDrivePointsCompanion(
+      id: id ?? this.id,
+      driveId: driveId ?? this.driveId,
+      lat: lat ?? this.lat,
+      lon: lon ?? this.lon,
+      speedMps: speedMps ?? this.speedMps,
+      recordedAt: recordedAt ?? this.recordedAt,
+      sequence: sequence ?? this.sequence,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (driveId.present) {
+      map['drive_id'] = Variable<String>(driveId.value);
+    }
+    if (lat.present) {
+      map['lat'] = Variable<double>(lat.value);
+    }
+    if (lon.present) {
+      map['lon'] = Variable<double>(lon.value);
+    }
+    if (speedMps.present) {
+      map['speed_mps'] = Variable<double>(speedMps.value);
+    }
+    if (recordedAt.present) {
+      map['recorded_at'] = Variable<DateTime>(recordedAt.value);
+    }
+    if (sequence.present) {
+      map['sequence'] = Variable<int>(sequence.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalDrivePointsCompanion(')
+          ..write('id: $id, ')
+          ..write('driveId: $driveId, ')
+          ..write('lat: $lat, ')
+          ..write('lon: $lon, ')
+          ..write('speedMps: $speedMps, ')
+          ..write('recordedAt: $recordedAt, ')
+          ..write('sequence: $sequence')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -1633,6 +2445,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   );
   late final $CachedCorridorGatesTable cachedCorridorGates =
       $CachedCorridorGatesTable(this);
+  late final $LocalDrivesTable localDrives = $LocalDrivesTable(this);
+  late final $LocalDrivePointsTable localDrivePoints = $LocalDrivePointsTable(
+    this,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1641,6 +2457,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     cachedCameras,
     cachedCorridors,
     cachedCorridorGates,
+    localDrives,
+    localDrivePoints,
   ];
 }
 
@@ -2714,6 +3532,676 @@ typedef $$CachedCorridorGatesTableProcessedTableManager =
       CachedCorridorGate,
       PrefetchHooks Function({bool corridorId})
     >;
+typedef $$LocalDrivesTableCreateCompanionBuilder =
+    LocalDrivesCompanion Function({
+      required String id,
+      required DateTime startedAt,
+      Value<DateTime?> endedAt,
+      required String status,
+      Value<String?> remoteId,
+      Value<int> rowid,
+    });
+typedef $$LocalDrivesTableUpdateCompanionBuilder =
+    LocalDrivesCompanion Function({
+      Value<String> id,
+      Value<DateTime> startedAt,
+      Value<DateTime?> endedAt,
+      Value<String> status,
+      Value<String?> remoteId,
+      Value<int> rowid,
+    });
+
+final class $$LocalDrivesTableReferences
+    extends BaseReferences<_$AppDatabase, $LocalDrivesTable, LocalDrive> {
+  $$LocalDrivesTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$LocalDrivePointsTable, List<LocalDrivePoint>>
+  _localDrivePointsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.localDrivePoints,
+    aliasName: $_aliasNameGenerator(
+      db.localDrives.id,
+      db.localDrivePoints.driveId,
+    ),
+  );
+
+  $$LocalDrivePointsTableProcessedTableManager get localDrivePointsRefs {
+    final manager = $$LocalDrivePointsTableTableManager(
+      $_db,
+      $_db.localDrivePoints,
+    ).filter((f) => f.driveId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _localDrivePointsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$LocalDrivesTableFilterComposer
+    extends Composer<_$AppDatabase, $LocalDrivesTable> {
+  $$LocalDrivesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get startedAt => $composableBuilder(
+    column: $table.startedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get endedAt => $composableBuilder(
+    column: $table.endedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get remoteId => $composableBuilder(
+    column: $table.remoteId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  Expression<bool> localDrivePointsRefs(
+    Expression<bool> Function($$LocalDrivePointsTableFilterComposer f) f,
+  ) {
+    final $$LocalDrivePointsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.localDrivePoints,
+      getReferencedColumn: (t) => t.driveId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$LocalDrivePointsTableFilterComposer(
+            $db: $db,
+            $table: $db.localDrivePoints,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$LocalDrivesTableOrderingComposer
+    extends Composer<_$AppDatabase, $LocalDrivesTable> {
+  $$LocalDrivesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get startedAt => $composableBuilder(
+    column: $table.startedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get endedAt => $composableBuilder(
+    column: $table.endedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get remoteId => $composableBuilder(
+    column: $table.remoteId,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$LocalDrivesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $LocalDrivesTable> {
+  $$LocalDrivesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get startedAt =>
+      $composableBuilder(column: $table.startedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get endedAt =>
+      $composableBuilder(column: $table.endedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get remoteId =>
+      $composableBuilder(column: $table.remoteId, builder: (column) => column);
+
+  Expression<T> localDrivePointsRefs<T extends Object>(
+    Expression<T> Function($$LocalDrivePointsTableAnnotationComposer a) f,
+  ) {
+    final $$LocalDrivePointsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.localDrivePoints,
+      getReferencedColumn: (t) => t.driveId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$LocalDrivePointsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.localDrivePoints,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$LocalDrivesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $LocalDrivesTable,
+          LocalDrive,
+          $$LocalDrivesTableFilterComposer,
+          $$LocalDrivesTableOrderingComposer,
+          $$LocalDrivesTableAnnotationComposer,
+          $$LocalDrivesTableCreateCompanionBuilder,
+          $$LocalDrivesTableUpdateCompanionBuilder,
+          (LocalDrive, $$LocalDrivesTableReferences),
+          LocalDrive,
+          PrefetchHooks Function({bool localDrivePointsRefs})
+        > {
+  $$LocalDrivesTableTableManager(_$AppDatabase db, $LocalDrivesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LocalDrivesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$LocalDrivesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$LocalDrivesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<DateTime> startedAt = const Value.absent(),
+                Value<DateTime?> endedAt = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<String?> remoteId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => LocalDrivesCompanion(
+                id: id,
+                startedAt: startedAt,
+                endedAt: endedAt,
+                status: status,
+                remoteId: remoteId,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required DateTime startedAt,
+                Value<DateTime?> endedAt = const Value.absent(),
+                required String status,
+                Value<String?> remoteId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => LocalDrivesCompanion.insert(
+                id: id,
+                startedAt: startedAt,
+                endedAt: endedAt,
+                status: status,
+                remoteId: remoteId,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$LocalDrivesTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({localDrivePointsRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [
+                if (localDrivePointsRefs) db.localDrivePoints,
+              ],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (localDrivePointsRefs)
+                    await $_getPrefetchedData<
+                      LocalDrive,
+                      $LocalDrivesTable,
+                      LocalDrivePoint
+                    >(
+                      currentTable: table,
+                      referencedTable: $$LocalDrivesTableReferences
+                          ._localDrivePointsRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$LocalDrivesTableReferences(
+                            db,
+                            table,
+                            p0,
+                          ).localDrivePointsRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.driveId == item.id),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$LocalDrivesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $LocalDrivesTable,
+      LocalDrive,
+      $$LocalDrivesTableFilterComposer,
+      $$LocalDrivesTableOrderingComposer,
+      $$LocalDrivesTableAnnotationComposer,
+      $$LocalDrivesTableCreateCompanionBuilder,
+      $$LocalDrivesTableUpdateCompanionBuilder,
+      (LocalDrive, $$LocalDrivesTableReferences),
+      LocalDrive,
+      PrefetchHooks Function({bool localDrivePointsRefs})
+    >;
+typedef $$LocalDrivePointsTableCreateCompanionBuilder =
+    LocalDrivePointsCompanion Function({
+      Value<int> id,
+      required String driveId,
+      required double lat,
+      required double lon,
+      required double speedMps,
+      required DateTime recordedAt,
+      required int sequence,
+    });
+typedef $$LocalDrivePointsTableUpdateCompanionBuilder =
+    LocalDrivePointsCompanion Function({
+      Value<int> id,
+      Value<String> driveId,
+      Value<double> lat,
+      Value<double> lon,
+      Value<double> speedMps,
+      Value<DateTime> recordedAt,
+      Value<int> sequence,
+    });
+
+final class $$LocalDrivePointsTableReferences
+    extends
+        BaseReferences<_$AppDatabase, $LocalDrivePointsTable, LocalDrivePoint> {
+  $$LocalDrivePointsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $LocalDrivesTable _driveIdTable(_$AppDatabase db) =>
+      db.localDrives.createAlias(
+        $_aliasNameGenerator(db.localDrivePoints.driveId, db.localDrives.id),
+      );
+
+  $$LocalDrivesTableProcessedTableManager get driveId {
+    final $_column = $_itemColumn<String>('drive_id')!;
+
+    final manager = $$LocalDrivesTableTableManager(
+      $_db,
+      $_db.localDrives,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_driveIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$LocalDrivePointsTableFilterComposer
+    extends Composer<_$AppDatabase, $LocalDrivePointsTable> {
+  $$LocalDrivePointsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get lat => $composableBuilder(
+    column: $table.lat,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get lon => $composableBuilder(
+    column: $table.lon,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get speedMps => $composableBuilder(
+    column: $table.speedMps,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get recordedAt => $composableBuilder(
+    column: $table.recordedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sequence => $composableBuilder(
+    column: $table.sequence,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$LocalDrivesTableFilterComposer get driveId {
+    final $$LocalDrivesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.driveId,
+      referencedTable: $db.localDrives,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$LocalDrivesTableFilterComposer(
+            $db: $db,
+            $table: $db.localDrives,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$LocalDrivePointsTableOrderingComposer
+    extends Composer<_$AppDatabase, $LocalDrivePointsTable> {
+  $$LocalDrivePointsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get lat => $composableBuilder(
+    column: $table.lat,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get lon => $composableBuilder(
+    column: $table.lon,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get speedMps => $composableBuilder(
+    column: $table.speedMps,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get recordedAt => $composableBuilder(
+    column: $table.recordedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sequence => $composableBuilder(
+    column: $table.sequence,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$LocalDrivesTableOrderingComposer get driveId {
+    final $$LocalDrivesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.driveId,
+      referencedTable: $db.localDrives,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$LocalDrivesTableOrderingComposer(
+            $db: $db,
+            $table: $db.localDrives,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$LocalDrivePointsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $LocalDrivePointsTable> {
+  $$LocalDrivePointsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<double> get lat =>
+      $composableBuilder(column: $table.lat, builder: (column) => column);
+
+  GeneratedColumn<double> get lon =>
+      $composableBuilder(column: $table.lon, builder: (column) => column);
+
+  GeneratedColumn<double> get speedMps =>
+      $composableBuilder(column: $table.speedMps, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get recordedAt => $composableBuilder(
+    column: $table.recordedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get sequence =>
+      $composableBuilder(column: $table.sequence, builder: (column) => column);
+
+  $$LocalDrivesTableAnnotationComposer get driveId {
+    final $$LocalDrivesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.driveId,
+      referencedTable: $db.localDrives,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$LocalDrivesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.localDrives,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$LocalDrivePointsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $LocalDrivePointsTable,
+          LocalDrivePoint,
+          $$LocalDrivePointsTableFilterComposer,
+          $$LocalDrivePointsTableOrderingComposer,
+          $$LocalDrivePointsTableAnnotationComposer,
+          $$LocalDrivePointsTableCreateCompanionBuilder,
+          $$LocalDrivePointsTableUpdateCompanionBuilder,
+          (LocalDrivePoint, $$LocalDrivePointsTableReferences),
+          LocalDrivePoint,
+          PrefetchHooks Function({bool driveId})
+        > {
+  $$LocalDrivePointsTableTableManager(
+    _$AppDatabase db,
+    $LocalDrivePointsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LocalDrivePointsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$LocalDrivePointsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$LocalDrivePointsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> driveId = const Value.absent(),
+                Value<double> lat = const Value.absent(),
+                Value<double> lon = const Value.absent(),
+                Value<double> speedMps = const Value.absent(),
+                Value<DateTime> recordedAt = const Value.absent(),
+                Value<int> sequence = const Value.absent(),
+              }) => LocalDrivePointsCompanion(
+                id: id,
+                driveId: driveId,
+                lat: lat,
+                lon: lon,
+                speedMps: speedMps,
+                recordedAt: recordedAt,
+                sequence: sequence,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String driveId,
+                required double lat,
+                required double lon,
+                required double speedMps,
+                required DateTime recordedAt,
+                required int sequence,
+              }) => LocalDrivePointsCompanion.insert(
+                id: id,
+                driveId: driveId,
+                lat: lat,
+                lon: lon,
+                speedMps: speedMps,
+                recordedAt: recordedAt,
+                sequence: sequence,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$LocalDrivePointsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({driveId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (driveId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.driveId,
+                                referencedTable:
+                                    $$LocalDrivePointsTableReferences
+                                        ._driveIdTable(db),
+                                referencedColumn:
+                                    $$LocalDrivePointsTableReferences
+                                        ._driveIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$LocalDrivePointsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $LocalDrivePointsTable,
+      LocalDrivePoint,
+      $$LocalDrivePointsTableFilterComposer,
+      $$LocalDrivePointsTableOrderingComposer,
+      $$LocalDrivePointsTableAnnotationComposer,
+      $$LocalDrivePointsTableCreateCompanionBuilder,
+      $$LocalDrivePointsTableUpdateCompanionBuilder,
+      (LocalDrivePoint, $$LocalDrivePointsTableReferences),
+      LocalDrivePoint,
+      PrefetchHooks Function({bool driveId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -2724,4 +4212,8 @@ class $AppDatabaseManager {
       $$CachedCorridorsTableTableManager(_db, _db.cachedCorridors);
   $$CachedCorridorGatesTableTableManager get cachedCorridorGates =>
       $$CachedCorridorGatesTableTableManager(_db, _db.cachedCorridorGates);
+  $$LocalDrivesTableTableManager get localDrives =>
+      $$LocalDrivesTableTableManager(_db, _db.localDrives);
+  $$LocalDrivePointsTableTableManager get localDrivePoints =>
+      $$LocalDrivePointsTableTableManager(_db, _db.localDrivePoints);
 }
