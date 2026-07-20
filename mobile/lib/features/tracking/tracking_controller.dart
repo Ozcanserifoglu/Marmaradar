@@ -266,11 +266,16 @@ class TrackingController extends ChangeNotifier {
     _alerts.reset();
     _corridors.reset();
 
-    _driveUploadStatus = DriveUploadStatus.uploading;
-    _status = 'Sürüş kaydı gönderiliyor...';
+    final canUpload = await _api.tokenStore.hasSession;
+    if (canUpload) {
+      _driveUploadStatus = DriveUploadStatus.uploading;
+      _status = 'Sürüş kaydı gönderiliyor...';
+    } else {
+      _status = 'Sürüş sonlandırılıyor...';
+    }
     notifyListeners();
 
-    final result = await _recorder.finish();
+    final result = await _recorder.finish(upload: canUpload);
     _driveUploadStatus = result;
     switch (result) {
       case DriveUploadStatus.uploaded:
@@ -279,6 +284,8 @@ class TrackingController extends ChangeNotifier {
         _status = _autoDrive
             ? 'Durduruldu — sürüş çok kısa, kayıt yok'
             : 'Durduruldu — sürüş çok kısa';
+      case DriveUploadStatus.needsAuth:
+        _status = 'Sürüş tamamlandı — kaydetmek için giriş yapın';
       case DriveUploadStatus.failed:
         _status =
             'Kayıt yüklenemedi${_recorder.lastError != null ? ': ${_recorder.lastError}' : ''}';
@@ -289,6 +296,69 @@ class TrackingController extends ChangeNotifier {
     }
     notifyListeners();
     await _startIdleWatch();
+  }
+
+  /// Debug-only: writes a short fake GPS trail and ends the drive so the
+  /// save / login prompt can be exercised without physically moving.
+  Future<void> simulateShortDrive() async {
+    if (!kDebugMode) return;
+    if (_running) {
+      await stop();
+    }
+
+    final baseLat = _lastSnapshot?.lat ?? 41.0082;
+    final baseLon = _lastSnapshot?.lon ?? 28.9784;
+
+    await _location.stopIdleWatch();
+    await _player.init();
+    await _loadMapData();
+    await _recorder.begin();
+    _driveUploadStatus = DriveUploadStatus.recording;
+    _running = true;
+    _autoStarted = false;
+    _status = 'Simüle sürüş kaydediliyor...';
+    notifyListeners();
+
+    final origin = DateTime.now().toUtc();
+    // 6 points, ~33 m and 6 s apart — well above the recorder thresholds.
+    for (var i = 0; i < 6; i++) {
+      final snap = DriverSnapshot(
+        lat: baseLat + i * 0.0003,
+        lon: baseLon + i * 0.0001,
+        speedMps: 11.0,
+        headingDeg: 45,
+        recordedAt: origin.add(Duration(seconds: i * 6)),
+      );
+      await _onLocation(snap);
+    }
+
+    await stop();
+  }
+
+  /// Uploads a drive that was left pending after a guest session.
+  Future<void> uploadPendingDrive() async {
+    if (!_recorder.hasPendingUpload) return;
+
+    _driveUploadStatus = DriveUploadStatus.uploading;
+    _status = 'Sürüş kaydı gönderiliyor...';
+    notifyListeners();
+
+    final result = await _recorder.uploadPending();
+    _driveUploadStatus = result;
+    switch (result) {
+      case DriveUploadStatus.uploaded:
+        _status = 'Sürüş kaydedildi';
+      case DriveUploadStatus.tooShort:
+        _status = 'Sürüş çok kısa, kayıt yok';
+      case DriveUploadStatus.failed:
+        _status =
+            'Kayıt yüklenemedi${_recorder.lastError != null ? ': ${_recorder.lastError}' : ''}';
+      default:
+        _status = _autoDrive
+            ? 'Durduruldu — sürüş algılanınca yeniden başlar'
+            : 'Durduruldu';
+    }
+    notifyListeners();
   }
 
   Future<void> _onLocation(DriverSnapshot snap) async {

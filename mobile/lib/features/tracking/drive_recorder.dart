@@ -13,6 +13,8 @@ enum DriveUploadStatus {
   uploaded,
   failed,
   tooShort,
+  /// Drive ended with enough points, but cloud save needs a signed-in account.
+  needsAuth,
 }
 
 /// Samples GPS during an active drive (20 m or 5 s) into Drift, then uploads
@@ -32,15 +34,18 @@ class DriveRecorder {
   final _uuid = const Uuid();
 
   String? _activeDriveId;
+  String? _pendingUploadDriveId;
   DriverSnapshot? _lastStored;
   int _sequence = 0;
   DriveUploadStatus _uploadStatus = DriveUploadStatus.idle;
   String? _lastError;
 
   String? get activeDriveId => _activeDriveId;
+  String? get pendingUploadDriveId => _pendingUploadDriveId;
   DriveUploadStatus get uploadStatus => _uploadStatus;
   String? get lastError => _lastError;
   bool get isRecording => _activeDriveId != null;
+  bool get hasPendingUpload => _pendingUploadDriveId != null;
 
   Future<void> begin() async {
     if (_activeDriveId != null) return;
@@ -88,8 +93,9 @@ class DriveRecorder {
     _lastStored = snap;
   }
 
-  /// Ends the local session and uploads when there are enough points.
-  Future<DriveUploadStatus> finish() async {
+  /// Ends the local session and uploads when [upload] is true and there are
+  /// enough points. When [upload] is false, keeps the drive pending for later.
+  Future<DriveUploadStatus> finish({bool upload = true}) async {
     final driveId = _activeDriveId;
     if (driveId == null) {
       _uploadStatus = DriveUploadStatus.idle;
@@ -112,10 +118,55 @@ class DriveRecorder {
 
     if (points.length < 2) {
       await _db.deleteDriveCascade(driveId);
+      _pendingUploadDriveId = null;
       _uploadStatus = DriveUploadStatus.tooShort;
       return _uploadStatus;
     }
 
+    if (!upload) {
+      _pendingUploadDriveId = driveId;
+      _uploadStatus = DriveUploadStatus.needsAuth;
+      _lastError = null;
+      return _uploadStatus;
+    }
+
+    return _uploadDrive(driveId, endedAt, points);
+  }
+
+  /// Uploads a drive left pending after a guest session ended.
+  Future<DriveUploadStatus> uploadPending() async {
+    final driveId = _pendingUploadDriveId;
+    if (driveId == null) {
+      _uploadStatus = DriveUploadStatus.idle;
+      return _uploadStatus;
+    }
+
+    final drive = await (_db.select(_db.localDrives)
+          ..where((d) => d.id.equals(driveId)))
+        .getSingleOrNull();
+    if (drive == null) {
+      _pendingUploadDriveId = null;
+      _uploadStatus = DriveUploadStatus.idle;
+      return _uploadStatus;
+    }
+
+    final endedAt = drive.endedAt ?? DateTime.now().toUtc();
+    final points = await _db.pointsForDrive(driveId);
+    if (points.length < 2) {
+      await _db.deleteDriveCascade(driveId);
+      _pendingUploadDriveId = null;
+      _uploadStatus = DriveUploadStatus.tooShort;
+      return _uploadStatus;
+    }
+
+    return _uploadDrive(driveId, endedAt, points);
+  }
+
+  Future<DriveUploadStatus> _uploadDrive(
+    String driveId,
+    DateTime endedAt,
+    List<LocalDrivePoint> points,
+  ) async {
     final drive = await (_db.select(_db.localDrives)
           ..where((d) => d.id.equals(driveId)))
         .getSingle();
@@ -144,12 +195,15 @@ class DriveRecorder {
         ),
       );
       await _db.deleteDriveCascade(driveId);
+      _pendingUploadDriveId = null;
       _uploadStatus = DriveUploadStatus.uploaded;
       _lastError = null;
     } on ApiException catch (e) {
+      _pendingUploadDriveId = driveId;
       _uploadStatus = DriveUploadStatus.failed;
       _lastError = e.message;
     } catch (e) {
+      _pendingUploadDriveId = driveId;
       _uploadStatus = DriveUploadStatus.failed;
       _lastError = e.toString();
     }

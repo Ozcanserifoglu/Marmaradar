@@ -41,6 +41,53 @@ class MapMarkerIcons {
         });
       });
 
+  /// Top-down car used for drive replay. Points up (north); the marker's
+  /// [Marker.rotation] applies the travel heading.
+  static Future<BitmapDescriptor> car() => _cached('car', () {
+        return _paint(46, (canvas, size) {
+          final center = Offset(size / 2, size / 2);
+          // Soft glow so the car stands out over the route line.
+          canvas.drawCircle(
+            center,
+            size / 2 - 2,
+            Paint()
+              ..color = AppColors.red.withValues(alpha: 0.35)
+              ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
+          );
+
+          final body = RRect.fromRectAndRadius(
+            Rect.fromCenter(
+              center: center,
+              width: size * 0.42,
+              height: size * 0.7,
+            ),
+            Radius.circular(size * 0.14),
+          );
+          canvas.drawRRect(body, Paint()..color = AppColors.red);
+          canvas.drawRRect(
+            body,
+            Paint()
+              ..color = AppColors.white
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 2.5,
+          );
+
+          // Windshield near the front (top) to convey direction.
+          final windshield = RRect.fromRectAndRadius(
+            Rect.fromCenter(
+              center: center.translate(0, -size * 0.16),
+              width: size * 0.3,
+              height: size * 0.16,
+            ),
+            Radius.circular(size * 0.05),
+          );
+          canvas.drawRRect(
+            windshield,
+            Paint()..color = AppColors.white.withValues(alpha: 0.9),
+          );
+        });
+      });
+
   static Future<BitmapDescriptor> cameraDot() => _cached('dot', () {
         return _paint(16, (canvas, size) {
           canvas.drawCircle(

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/radar-alert/backend/internal/auth"
 	"github.com/radar-alert/backend/internal/service"
 )
@@ -39,6 +40,73 @@ func (h *DriveHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusCreated, result)
+}
+
+func (h *DriveHandler) List(w http.ResponseWriter, r *http.Request) {
+	userID, ok := auth.UserIDFromContext(r.Context())
+	if !ok {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return
+	}
+
+	drives, err := h.drives.List(r.Context(), userID)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, drives)
+}
+
+func (h *DriveHandler) Detail(w http.ResponseWriter, r *http.Request) {
+	userID, ok := auth.UserIDFromContext(r.Context())
+	if !ok {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return
+	}
+
+	driveID := chi.URLParam(r, "id")
+	detail, err := h.drives.Get(r.Context(), userID, driveID)
+	if err != nil {
+		if errors.Is(err, service.ErrDriveNotFound) {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "drive not found"})
+			return
+		}
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, detail)
+}
+
+func (h *DriveHandler) Rename(w http.ResponseWriter, r *http.Request) {
+	userID, ok := auth.UserIDFromContext(r.Context())
+	if !ok {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return
+	}
+
+	var body struct {
+		Name string `json:"name"`
+	}
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&body); err != nil {
+		writeBadRequest(w, "invalid JSON body")
+		return
+	}
+
+	driveID := chi.URLParam(r, "id")
+	if err := h.drives.Rename(r.Context(), userID, driveID, body.Name); err != nil {
+		switch {
+		case errors.Is(err, service.ErrDriveNotFound):
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "drive not found"})
+		case errors.Is(err, service.ErrInvalidName):
+			writeBadRequest(w, "invalid drive name")
+		default:
+			writeError(w, err)
+		}
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func writeDriveError(w http.ResponseWriter, err error) {

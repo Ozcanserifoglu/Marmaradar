@@ -52,6 +52,8 @@
 	<string>Marmaradar konumunuzu kullanarak yaklaşan hız kameralarını ve hız koridorlarını uyarır.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Marmaradar arka planda çalışırken de hız kamerası uyarıları verebilmek için sürekli konum erişimine ihtiyaç duyar.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Sürüş kaydı videolarını galerinize kaydetmek için fotoğraf kitaplığına erişim gerekir.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>location</string>

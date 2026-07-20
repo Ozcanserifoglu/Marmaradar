@@ -154,6 +154,66 @@
           "host": {{ marshal .backend.host }}
         }
       ]
+    },
+    {
+      "endpoint": "/v1/drives",
+      "method": "GET",
+      "output_encoding": "no-op",
+      "input_headers": ["Authorization"],
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "max_rate": 100,
+          "client_max_rate": 10,
+          "strategy": "ip"
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/v1/drives",
+          "encoding": "no-op",
+          "host": {{ marshal .backend.host }}
+        }
+      ]
+    },
+    {
+      "endpoint": "/v1/drives/{id}",
+      "method": "GET",
+      "output_encoding": "no-op",
+      "input_headers": ["Authorization"],
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "max_rate": 100,
+          "client_max_rate": 10,
+          "strategy": "ip"
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/v1/drives/{id}",
+          "encoding": "no-op",
+          "host": {{ marshal .backend.host }}
+        }
+      ]
+    },
+    {
+      "endpoint": "/v1/drives/{id}",
+      "method": "PATCH",
+      "output_encoding": "no-op",
+      "input_headers": ["Authorization", "Content-Type"],
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "max_rate": 50,
+          "client_max_rate": 5,
+          "strategy": "ip"
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/v1/drives/{id}",
+          "encoding": "no-op",
+          "host": {{ marshal .backend.host }}
+        }
+      ]
     }
   ]
 }

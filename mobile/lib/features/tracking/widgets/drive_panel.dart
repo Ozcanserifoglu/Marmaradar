@@ -1,7 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:radar_alert/app.dart';
 import 'package:radar_alert/core/theme/app_theme.dart';
+import 'package:radar_alert/features/auth/auth_screen.dart';
+import 'package:radar_alert/features/drives/drives_history_screen.dart';
 import 'package:radar_alert/features/tracking/tracking_controller.dart';
 
 /// Bottom control dock: live speed, status and the main actions.
@@ -14,6 +17,7 @@ class DrivePanel extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final running = controller.isRunning;
     final hasFix = controller.lastSnapshot != null;
+    final authenticated = ref.watch(authControllerProvider).isAuthenticated;
 
     return Container(
       padding: EdgeInsets.fromLTRB(
@@ -69,6 +73,8 @@ class DrivePanel extends ConsumerWidget {
                           ),
                         ),
                         const Spacer(),
+                        const _HistoryButton(),
+                        const SizedBox(width: 8),
                         _AutoDriveToggle(controller: controller),
                       ],
                     ),
@@ -92,7 +98,16 @@ class DrivePanel extends ConsumerWidget {
             children: [
               _SyncButton(controller: controller),
               const SizedBox(width: 12),
-              _LogoutButton(
+              _AccountButton(
+                authenticated: authenticated,
+                onLogin: () async {
+                  final ok = await showAuthModal(context);
+                  if (ok && context.mounted) {
+                    await ref
+                        .read(trackingControllerProvider)
+                        .uploadPendingDrive();
+                  }
+                },
                 onLogout: () => ref.read(authControllerProvider).logout(),
               ),
               const SizedBox(width: 12),
@@ -112,6 +127,52 @@ class DrivePanel extends ConsumerWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _HistoryButton extends ConsumerWidget {
+  const _HistoryButton();
+
+  Future<void> _open(BuildContext context, WidgetRef ref) async {
+    final authenticated = ref.read(authControllerProvider).isAuthenticated;
+    if (!authenticated) {
+      await showAuthModal(context);
+    }
+    if (!context.mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const DrivesHistoryScreen()),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return InkWell(
+      onTap: () => _open(context, ref),
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceHigh,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.outline),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            Icon(Icons.history, size: 14, color: AppColors.whiteMuted),
+            SizedBox(width: 5),
+            Text(
+              'Sürüşlerim',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: AppColors.whiteMuted,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -229,32 +290,43 @@ class _SyncButton extends StatelessWidget {
     return SizedBox(
       width: 56,
       height: 56,
-      child: OutlinedButton(
-        onPressed: controller.isSyncing ? null : controller.syncData,
-        style: OutlinedButton.styleFrom(
-          padding: EdgeInsets.zero,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+      child: GestureDetector(
+        onLongPress: kDebugMode && !controller.isSyncing
+            ? () => controller.simulateShortDrive()
+            : null,
+        child: OutlinedButton(
+          onPressed: controller.isSyncing ? null : controller.syncData,
+          style: OutlinedButton.styleFrom(
+            padding: EdgeInsets.zero,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
           ),
+          child: controller.isSyncing
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.white,
+                  ),
+                )
+              : const Icon(Icons.cloud_sync, size: 24),
         ),
-        child: controller.isSyncing
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: AppColors.white,
-                ),
-              )
-            : const Icon(Icons.cloud_sync, size: 24),
       ),
     );
   }
 }
 
-class _LogoutButton extends StatelessWidget {
-  const _LogoutButton({required this.onLogout});
+class _AccountButton extends StatelessWidget {
+  const _AccountButton({
+    required this.authenticated,
+    required this.onLogin,
+    required this.onLogout,
+  });
 
+  final bool authenticated;
+  final VoidCallback onLogin;
   final VoidCallback onLogout;
 
   @override
@@ -263,14 +335,17 @@ class _LogoutButton extends StatelessWidget {
       width: 56,
       height: 56,
       child: OutlinedButton(
-        onPressed: onLogout,
+        onPressed: authenticated ? onLogout : onLogin,
         style: OutlinedButton.styleFrom(
           padding: EdgeInsets.zero,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
         ),
-        child: const Icon(Icons.logout, size: 22),
+        child: Icon(
+          authenticated ? Icons.logout : Icons.login,
+          size: 22,
+        ),
       ),
     );
   }

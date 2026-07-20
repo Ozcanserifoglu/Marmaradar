@@ -83,6 +83,9 @@ func main() {
 		r.Group(func(r chi.Router) {
 			r.Use(auth.Middleware(jwtMgr))
 			r.Post("/drives", driveHandler.Create)
+			r.Get("/drives", driveHandler.List)
+			r.Get("/drives/{id}", driveHandler.Detail)
+			r.Patch("/drives/{id}", driveHandler.Rename)
 		})
 	})
 

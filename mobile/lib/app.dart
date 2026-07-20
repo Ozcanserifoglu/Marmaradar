@@ -5,8 +5,8 @@ import 'package:radar_alert/core/theme/app_theme.dart';
 import 'package:radar_alert/data/api/radar_api_client.dart';
 import 'package:radar_alert/data/auth/token_store.dart';
 import 'package:radar_alert/features/auth/auth_controller.dart';
-import 'package:radar_alert/features/auth/auth_screen.dart';
 import 'package:radar_alert/features/directions/directions_controller.dart';
+import 'package:radar_alert/features/drives/drives_controller.dart';
 import 'package:radar_alert/features/tracking/tracking_controller.dart';
 import 'package:radar_alert/features/tracking/tracking_screen.dart';
 
@@ -46,16 +46,11 @@ class _MarmaradarAppState extends ConsumerState<MarmaradarApp> {
 
     final auth = ref.watch(authControllerProvider);
 
-    Widget home;
-    if (auth.isBooting) {
-      home = const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    } else if (!auth.isAuthenticated) {
-      home = const AuthScreen();
-    } else {
-      home = const TrackingScreen();
-    }
+    final Widget home = auth.isBooting
+        ? const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          )
+        : const TrackingScreen();
 
     return MaterialApp(
       title: 'Marmaradar',
@@ -92,4 +87,9 @@ final trackingControllerProvider =
 final directionsControllerProvider =
     ChangeNotifierProvider<DirectionsController>((ref) {
   return DirectionsController();
+});
+
+final drivesControllerProvider =
+    ChangeNotifierProvider<DrivesController>((ref) {
+  return DrivesController(apiClient: _sharedApiClient);
 });

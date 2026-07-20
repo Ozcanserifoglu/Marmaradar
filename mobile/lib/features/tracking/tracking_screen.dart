@@ -7,9 +7,11 @@ import 'package:radar_alert/app.dart';
 import 'package:radar_alert/core/geo/geo_offset.dart';
 import 'package:radar_alert/core/location/background_location_service.dart';
 import 'package:radar_alert/core/theme/app_theme.dart';
+import 'package:radar_alert/features/auth/auth_screen.dart';
 import 'package:radar_alert/features/directions/directions_controller.dart';
 import 'package:radar_alert/features/directions/widgets/destination_search_bar.dart';
 import 'package:radar_alert/features/directions/widgets/route_info_banner.dart';
+import 'package:radar_alert/features/tracking/drive_recorder.dart';
 import 'package:radar_alert/features/tracking/widgets/camera_alert_banner.dart';
 import 'package:radar_alert/features/tracking/widgets/corridor_panel.dart';
 import 'package:radar_alert/features/tracking/widgets/drive_panel.dart';
@@ -225,6 +227,35 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
     _fittedRouteLen = 0;
   }
 
+  Future<void> _promptSaveDrive() async {
+    if (!mounted) return;
+    final shouldLogin = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Sürüşü kaydet'),
+        content: const Text(
+          'Sürüşünü buluta kaydetmek için giriş yapman gerekiyor.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Şimdi değil'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Giriş yap'),
+          ),
+        ],
+      ),
+    );
+    if (shouldLogin != true || !mounted) return;
+
+    final signedIn = await showAuthModal(context);
+    if (!signedIn || !mounted) return;
+
+    await ref.read(trackingControllerProvider).uploadPendingDrive();
+  }
+
   @override
   Widget build(BuildContext context) {
     ref.listen(trackingControllerProvider, (previous, next) {
@@ -235,6 +266,15 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
             );
       }
       _followDriver();
+
+      final becameNeedsAuth = previous?.driveUploadStatus !=
+              DriveUploadStatus.needsAuth &&
+          next.driveUploadStatus == DriveUploadStatus.needsAuth;
+      if (becameNeedsAuth) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _promptSaveDrive();
+        });
+      }
     });
 
     ref.listen<DirectionsController>(directionsControllerProvider,

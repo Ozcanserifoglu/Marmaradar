@@ -3,8 +3,25 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:radar_alert/app.dart';
 import 'package:radar_alert/core/theme/app_theme.dart';
 
+/// Opens [AuthScreen] as a dismissible full-screen modal.
+///
+/// Returns `true` if the user signed in successfully, otherwise `false`
+/// (dismissed or failed without leaving authenticated).
+Future<bool> showAuthModal(BuildContext context) async {
+  final result = await Navigator.of(context).push<bool>(
+    MaterialPageRoute(
+      fullscreenDialog: true,
+      builder: (_) => const AuthScreen(asModal: true),
+    ),
+  );
+  return result ?? false;
+}
+
 class AuthScreen extends ConsumerStatefulWidget {
-  const AuthScreen({super.key});
+  const AuthScreen({super.key, this.asModal = false});
+
+  /// When true, shows a close control and pops the route on success.
+  final bool asModal;
 
   @override
   ConsumerState<AuthScreen> createState() => _AuthScreenState();
@@ -27,10 +44,12 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     final auth = ref.read(authControllerProvider);
     final email = _emailCtrl.text.trim();
     final password = _passwordCtrl.text;
-    if (_registerMode) {
-      await auth.register(email, password);
-    } else {
-      await auth.login(email, password);
+    final ok = _registerMode
+        ? await auth.register(email, password)
+        : await auth.login(email, password);
+    if (!ok || !mounted) return;
+    if (widget.asModal) {
+      Navigator.of(context).pop(true);
     }
   }
 
@@ -39,6 +58,18 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     final auth = ref.watch(authControllerProvider);
 
     return Scaffold(
+      appBar: widget.asModal
+          ? AppBar(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              leading: IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: auth.isBusy
+                    ? null
+                    : () => Navigator.of(context).pop(false),
+              ),
+            )
+          : null,
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(

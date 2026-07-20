@@ -136,6 +136,59 @@ class RadarApiClient {
     return resp;
   }
 
+  /// Authenticated GET with a single refresh-and-retry on 401. Unlike
+  /// [_getWithRetry] this attaches the Bearer token; used for user-scoped
+  /// endpoints such as drive history.
+  Future<http.Response> _getAuthed(
+    Uri uri, {
+    bool retryOnUnauthorized = true,
+  }) async {
+    final headers = <String, String>{'Accept': 'application/json'};
+    final access = await _tokens.accessToken;
+    if (access != null && access.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $access';
+    }
+
+    final resp =
+        await http.get(uri, headers: headers).timeout(const Duration(seconds: 30));
+
+    if (resp.statusCode == 401 && retryOnUnauthorized) {
+      final refreshed = await _tryRefresh();
+      if (refreshed) {
+        return _getAuthed(uri, retryOnUnauthorized: false);
+      }
+    }
+    return resp;
+  }
+
+  /// Authenticated PATCH with a single refresh-and-retry on 401.
+  Future<http.Response> _patchJson(
+    Uri uri,
+    Map<String, dynamic> body, {
+    bool retryOnUnauthorized = true,
+  }) async {
+    final headers = <String, String>{
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
+    final access = await _tokens.accessToken;
+    if (access != null && access.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $access';
+    }
+
+    final resp = await http
+        .patch(uri, headers: headers, body: jsonEncode(body))
+        .timeout(const Duration(seconds: 30));
+
+    if (resp.statusCode == 401 && retryOnUnauthorized) {
+      final refreshed = await _tryRefresh();
+      if (refreshed) {
+        return _patchJson(uri, body, retryOnUnauthorized: false);
+      }
+    }
+    return resp;
+  }
+
   Future<bool> _tryRefresh() async {
     final refresh = await _tokens.refreshToken;
     if (refresh == null || refresh.isEmpty) return false;
@@ -212,6 +265,36 @@ class RadarApiClient {
     return DriveUploadResult.fromJson(
       jsonDecode(resp.body) as Map<String, dynamic>,
     );
+  }
+
+  Future<List<DriveSummary>> fetchDrives() async {
+    final uri = Uri.parse('$baseUrl/v1/drives');
+    final resp = await _getAuthed(uri);
+    if (resp.statusCode != 200) {
+      throw ApiException('drives', resp.statusCode, null, resp.body);
+    }
+    final list = jsonDecode(resp.body) as List<dynamic>;
+    return list
+        .cast<Map<String, dynamic>>()
+        .map(DriveSummary.fromJson)
+        .toList();
+  }
+
+  Future<DriveDetail> fetchDrive(String id) async {
+    final uri = Uri.parse('$baseUrl/v1/drives/$id');
+    final resp = await _getAuthed(uri);
+    if (resp.statusCode != 200) {
+      throw ApiException('drives/$id', resp.statusCode, null, resp.body);
+    }
+    return DriveDetail.fromJson(jsonDecode(resp.body) as Map<String, dynamic>);
+  }
+
+  Future<void> renameDrive(String id, String name) async {
+    final uri = Uri.parse('$baseUrl/v1/drives/$id');
+    final resp = await _patchJson(uri, {'name': name});
+    if (resp.statusCode != 204 && resp.statusCode != 200) {
+      throw ApiException('drives/$id', resp.statusCode, null, resp.body);
+    }
   }
 
   Future<List<Map<String, dynamic>>> fetchCamerasNearby({
