@@ -249,14 +249,20 @@ class RadarApiClient {
     required DateTime startedAt,
     required DateTime endedAt,
     required List<DrivePointPayload> points,
+    String? name,
   }) async {
+    final body = <String, dynamic>{
+      'started_at': startedAt.toUtc().toIso8601String(),
+      'ended_at': endedAt.toUtc().toIso8601String(),
+      'points': points.map((p) => p.toJson()).toList(),
+    };
+    final trimmedName = name?.trim();
+    if (trimmedName != null && trimmedName.isNotEmpty) {
+      body['name'] = trimmedName;
+    }
     final resp = await _postJson(
       '/v1/drives',
-      {
-        'started_at': startedAt.toUtc().toIso8601String(),
-        'ended_at': endedAt.toUtc().toIso8601String(),
-        'points': points.map((p) => p.toJson()).toList(),
-      },
+      body,
       auth: true,
     );
     if (resp.statusCode != 201 && resp.statusCode != 200) {

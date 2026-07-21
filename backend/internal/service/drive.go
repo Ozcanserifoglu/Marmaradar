@@ -5,12 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/radar-alert/backend/internal/client/roads"
 )
 
 const maxDrivePoints = 50000
@@ -30,10 +32,17 @@ type DrivePoint struct {
 	RecordedAt time.Time `json:"recorded_at"`
 }
 
+// SnappedPoint is a road-aligned coordinate without telemetry.
+type SnappedPoint struct {
+	Lat float64 `json:"lat"`
+	Lon float64 `json:"lon"`
+}
+
 type CreateDriveInput struct {
 	StartedAt time.Time    `json:"started_at"`
 	EndedAt   time.Time    `json:"ended_at"`
 	Points    []DrivePoint `json:"points"`
+	Name      *string      `json:"name"`
 }
 
 type DriveResult struct {
@@ -53,15 +62,17 @@ type DriveSummary struct {
 
 type DriveDetail struct {
 	DriveSummary
-	Points []DrivePoint `json:"points"`
+	Points        []DrivePoint   `json:"points"`
+	SnappedPoints []SnappedPoint `json:"snapped_points,omitempty"`
 }
 
 type DriveService struct {
-	pool *pgxpool.Pool
+	pool  *pgxpool.Pool
+	roads *roads.Client
 }
 
-func NewDriveService(pool *pgxpool.Pool) *DriveService {
-	return &DriveService{pool: pool}
+func NewDriveService(pool *pgxpool.Pool, roadsClient *roads.Client) *DriveService {
+	return &DriveService{pool: pool, roads: roadsClient}
 }
 
 func (s *DriveService) Create(ctx context.Context, userID uuid.UUID, in CreateDriveInput) (*DriveResult, error) {
@@ -69,7 +80,31 @@ func (s *DriveService) Create(ctx context.Context, userID uuid.UUID, in CreateDr
 		return nil, err
 	}
 
-	wkt, err := buildLineStringWKT(in.Points)
+	namePtr, err := normalizeDriveNamePtr(in.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	pathPoints := drivePointsToLatLng(in.Points)
+	var snappedJSON []byte
+
+	if s.roads != nil && s.roads.Enabled() {
+		snapped, snapErr := s.roads.SnapToRoads(ctx, pathPoints)
+		if snapErr != nil {
+			slog.Warn("drive snap-to-road failed; storing raw path",
+				"error", snapErr,
+				"point_count", len(in.Points),
+			)
+		} else {
+			pathPoints = snapped
+			snappedJSON, err = json.Marshal(latLngToSnappedPoints(snapped))
+			if err != nil {
+				return nil, fmt.Errorf("marshal snapped points: %w", err)
+			}
+		}
+	}
+
+	wkt, err := buildLineStringWKTFromLatLng(pathPoints)
 	if err != nil {
 		return nil, err
 	}
@@ -79,23 +114,30 @@ func (s *DriveService) Create(ctx context.Context, userID uuid.UUID, in CreateDr
 		return nil, fmt.Errorf("marshal points: %w", err)
 	}
 
+	var snappedArg any
+	if len(snappedJSON) > 0 {
+		snappedArg = string(snappedJSON)
+	}
+
 	var (
 		id      uuid.UUID
 		lengthM float64
 	)
 	err = s.pool.QueryRow(ctx, `
-		INSERT INTO drives (user_id, path, points, started_at, ended_at, length_m, point_count)
+		INSERT INTO drives (user_id, path, points, snapped_points, started_at, ended_at, length_m, point_count, name)
 		VALUES (
 			$1,
 			ST_GeogFromText($2),
 			$3::jsonb,
-			$4,
+			$4::jsonb,
 			$5,
+			$6,
 			ST_Length(ST_GeogFromText($2)),
-			$6
+			$7,
+			$8
 		)
 		RETURNING id, length_m
-	`, userID, wkt, string(pointsJSON), in.StartedAt, in.EndedAt, len(in.Points)).Scan(&id, &lengthM)
+	`, userID, wkt, string(pointsJSON), snappedArg, in.StartedAt, in.EndedAt, len(in.Points), namePtr).Scan(&id, &lengthM)
 	if err != nil {
 		return nil, fmt.Errorf("insert drive: %w", err)
 	}
@@ -145,12 +187,13 @@ func (s *DriveService) Get(ctx context.Context, userID uuid.UUID, driveID string
 	}
 
 	var (
-		detail     DriveDetail
-		rowID      uuid.UUID
-		pointsJSON []byte
+		detail      DriveDetail
+		rowID       uuid.UUID
+		pointsJSON  []byte
+		snappedJSON []byte
 	)
 	err = s.pool.QueryRow(ctx, `
-		SELECT id, name, started_at, ended_at, length_m, point_count, points
+		SELECT id, name, started_at, ended_at, length_m, point_count, points, snapped_points
 		FROM drives
 		WHERE id = $1 AND user_id = $2
 	`, id, userID).Scan(
@@ -161,6 +204,7 @@ func (s *DriveService) Get(ctx context.Context, userID uuid.UUID, driveID string
 		&detail.LengthM,
 		&detail.PointCount,
 		&pointsJSON,
+		&snappedJSON,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -178,10 +222,32 @@ func (s *DriveService) Get(ctx context.Context, userID uuid.UUID, driveID string
 	if detail.Points == nil {
 		detail.Points = make([]DrivePoint, 0)
 	}
+
+	if len(snappedJSON) > 0 {
+		if err := json.Unmarshal(snappedJSON, &detail.SnappedPoints); err != nil {
+			return nil, fmt.Errorf("unmarshal snapped points: %w", err)
+		}
+	}
+
 	return &detail, nil
 }
 
 const maxDriveNameLen = 120
+
+// normalizeDriveNamePtr trims a name pointer. Blank becomes nil; over-long returns ErrInvalidName.
+func normalizeDriveNamePtr(name *string) (*string, error) {
+	if name == nil {
+		return nil, nil
+	}
+	trimmed := strings.TrimSpace(*name)
+	if len([]rune(trimmed)) > maxDriveNameLen {
+		return nil, ErrInvalidName
+	}
+	if trimmed == "" {
+		return nil, nil
+	}
+	return &trimmed, nil
+}
 
 // Rename sets (or clears, when blank) the display name of a user's drive.
 func (s *DriveService) Rename(ctx context.Context, userID uuid.UUID, driveID, name string) error {
@@ -190,14 +256,9 @@ func (s *DriveService) Rename(ctx context.Context, userID uuid.UUID, driveID, na
 		return ErrDriveNotFound
 	}
 
-	trimmed := strings.TrimSpace(name)
-	if len([]rune(trimmed)) > maxDriveNameLen {
-		return ErrInvalidName
-	}
-
-	var namePtr *string
-	if trimmed != "" {
-		namePtr = &trimmed
+	namePtr, err := normalizeDriveNamePtr(&name)
+	if err != nil {
+		return err
 	}
 
 	tag, err := s.pool.Exec(ctx, `
@@ -233,7 +294,26 @@ func validateDrive(in CreateDriveInput) error {
 	return nil
 }
 
-func buildLineStringWKT(points []DrivePoint) (string, error) {
+func drivePointsToLatLng(points []DrivePoint) []roads.LatLng {
+	out := make([]roads.LatLng, len(points))
+	for i, p := range points {
+		out[i] = roads.LatLng{Lat: p.Lat, Lon: p.Lon}
+	}
+	return out
+}
+
+func latLngToSnappedPoints(points []roads.LatLng) []SnappedPoint {
+	out := make([]SnappedPoint, len(points))
+	for i, p := range points {
+		out[i] = SnappedPoint{Lat: p.Lat, Lon: p.Lon}
+	}
+	return out
+}
+
+func buildLineStringWKTFromLatLng(points []roads.LatLng) (string, error) {
+	if len(points) < 2 {
+		return "", errors.New("at least 2 points required for linestring")
+	}
 	var b strings.Builder
 	b.WriteString("LINESTRING(")
 	for i, p := range points {

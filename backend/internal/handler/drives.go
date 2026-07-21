@@ -114,6 +114,7 @@ func writeDriveError(w http.ResponseWriter, err error) {
 	case errors.Is(err, service.ErrTooFewPoints),
 		errors.Is(err, service.ErrTooManyPoints),
 		errors.Is(err, service.ErrInvalidDrive),
+		errors.Is(err, service.ErrInvalidName),
 		strings.Contains(err.Error(), "ended_at"),
 		strings.Contains(err.Error(), "coordinates"):
 		writeBadRequest(w, err.Error())

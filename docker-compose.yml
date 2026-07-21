@@ -24,6 +24,7 @@ services:
       DATABASE_URL: postgres://radar:radar@db:5432/radar_alert?sslmode=disable
       PORT: "8080"
       MIGRATIONS_DIR: /migrations
+      GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY:-}
     expose:
       - "8080"
     depends_on:

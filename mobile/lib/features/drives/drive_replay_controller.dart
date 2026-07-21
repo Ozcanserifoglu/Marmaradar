@@ -5,23 +5,36 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:radar_alert/core/geo/bearing.dart';
 import 'package:radar_alert/data/api/auth_models.dart';
 
-/// Animates a car along a recorded drive's GPS trail (Strava-style replay).
+/// Animates a car along a recorded drive's trail (Strava-style replay).
 ///
-/// The recorded timestamps drive the *relative* pacing (the car slows where
-/// the driver slowed), but the whole trail is compressed into a watchable
-/// [_basePlaybackMs] window, scaled by the chosen [speed] multiplier.
+/// Raw [points] drive relative pacing and speed HUD. Optional [displayRoute]
+/// (road-snapped geometry) is used for the polyline and car position so the
+/// marker stays on the smoothed path.
 class DriveReplayController extends ChangeNotifier {
-  DriveReplayController(List<DrivePoint> points)
-      : _points = List.unmodifiable(points) {
+  DriveReplayController(
+    List<DrivePoint> points, {
+    List<LatLng>? displayRoute,
+  })  : _points = List.unmodifiable(points),
+        _route = List.unmodifiable(
+          displayRoute != null && displayRoute.length >= 2
+              ? displayRoute
+              : points.map((p) => LatLng(p.lat, p.lon)),
+        ) {
     _buildTimeline();
+    _buildRouteDistances();
   }
 
   final List<DrivePoint> _points;
+  final List<LatLng> _route;
 
   /// Cumulative timeline offsets (ms) matching [_points]; when the drive has
   /// no meaningful timestamps this falls back to even index spacing.
   final List<double> _offsets = [];
   double _total = 0;
+
+  /// Cumulative geodesic distance (m) along [_route].
+  final List<double> _routeCumDist = [];
+  double _routeLengthM = 0;
 
   static const double _basePlaybackMs = 28000;
   static const List<double> speedOptions = [1, 2, 4];
@@ -38,15 +51,12 @@ class DriveReplayController extends ChangeNotifier {
   double get speed => _speed;
   double get progress => _progress;
   bool get isFinished => _progress >= 1;
-  bool get canPlay => _points.length >= 2;
+  bool get canPlay => _points.length >= 2 && _route.length >= 2;
 
-  List<LatLng> get routePoints =>
-      _points.map((p) => LatLng(p.lat, p.lon)).toList(growable: false);
+  List<LatLng> get routePoints => _route;
 
-  LatLng? get start =>
-      _points.isEmpty ? null : LatLng(_points.first.lat, _points.first.lon);
-  LatLng? get end =>
-      _points.isEmpty ? null : LatLng(_points.last.lat, _points.last.lon);
+  LatLng? get start => _route.isEmpty ? null : _route.first;
+  LatLng? get end => _route.isEmpty ? null : _route.last;
 
   void _buildTimeline() {
     _offsets.clear();
@@ -74,6 +84,24 @@ class DriveReplayController extends ChangeNotifier {
         );
     }
     _total = _offsets.last;
+  }
+
+  void _buildRouteDistances() {
+    _routeCumDist.clear();
+    _routeLengthM = 0;
+    if (_route.isEmpty) return;
+    _routeCumDist.add(0);
+    for (var i = 1; i < _route.length; i++) {
+      final a = _route[i - 1];
+      final b = _route[i];
+      _routeLengthM += haversineM(
+        a.latitude,
+        a.longitude,
+        b.latitude,
+        b.longitude,
+      );
+      _routeCumDist.add(_routeLengthM);
+    }
   }
 
   void togglePlay() => _playing ? pause() : play();
@@ -121,33 +149,33 @@ class DriveReplayController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Interpolated position at the current [_progress].
+  /// Interpolated position along the display route at the current [_progress].
   LatLng? get carPosition {
-    final seg = _segmentAt(_progress);
+    final seg = _routeSegmentAt(_progress);
     if (seg == null) return null;
     final (a, b, t) = seg;
     return LatLng(
-      _points[a].lat + (_points[b].lat - _points[a].lat) * t,
-      _points[a].lon + (_points[b].lon - _points[a].lon) * t,
+      _route[a].latitude + (_route[b].latitude - _route[a].latitude) * t,
+      _route[a].longitude + (_route[b].longitude - _route[a].longitude) * t,
     );
   }
 
-  /// Travel heading (degrees) at the current [_progress].
+  /// Travel heading (degrees) along the display route at the current [_progress].
   double get carHeading {
-    final seg = _segmentAt(_progress);
+    final seg = _routeSegmentAt(_progress);
     if (seg == null) return 0;
     final (a, b, _) = seg;
     return bearingDeg(
-      _points[a].lat,
-      _points[a].lon,
-      _points[b].lat,
-      _points[b].lon,
+      _route[a].latitude,
+      _route[a].longitude,
+      _route[b].latitude,
+      _route[b].longitude,
     );
   }
 
-  /// Interpolated speed (m/s) at the current [_progress].
+  /// Interpolated speed (m/s) from raw telemetry at the current [_progress].
   double get carSpeedMps {
-    final seg = _segmentAt(_progress);
+    final seg = _rawSegmentAt(_progress);
     if (seg == null) return 0;
     final (a, b, t) = seg;
     return _points[a].speedMps + (_points[b].speedMps - _points[a].speedMps) * t;
@@ -155,7 +183,7 @@ class DriveReplayController extends ChangeNotifier {
 
   /// Wall-clock timestamp represented by the current [_progress].
   DateTime? get currentTime {
-    final seg = _segmentAt(_progress);
+    final seg = _rawSegmentAt(_progress);
     if (seg == null) return null;
     final (a, b, t) = seg;
     final ms = _points[a].recordedAt.millisecondsSinceEpoch +
@@ -165,13 +193,30 @@ class DriveReplayController extends ChangeNotifier {
     return DateTime.fromMillisecondsSinceEpoch(ms.round());
   }
 
+  /// Segment along the display polyline by distance fraction matching [fraction].
+  (int, int, double)? _routeSegmentAt(double fraction) {
+    if (_route.length < 2) return null;
+    if (_routeLengthM <= 0) return (0, 1, 0);
+    final target = fraction.clamp(0.0, 1.0) * _routeLengthM;
+    for (var i = 0; i < _routeCumDist.length - 1; i++) {
+      final lo = _routeCumDist[i];
+      final hi = _routeCumDist[i + 1];
+      if (target <= hi) {
+        final span = hi - lo;
+        final t = span <= 0 ? 0.0 : (target - lo) / span;
+        return (i, i + 1, t.clamp(0.0, 1.0));
+      }
+    }
+    final n = _route.length;
+    return (n - 2, n - 1, 1);
+  }
+
   /// Returns the bounding index pair and the interpolation factor for a
-  /// timeline [fraction], or null if there are too few points.
-  (int, int, double)? _segmentAt(double fraction) {
+  /// timeline [fraction] over raw points, or null if there are too few points.
+  (int, int, double)? _rawSegmentAt(double fraction) {
     if (_points.length < 2) return null;
     if (_total <= 0) return (0, 1, 0);
     final target = fraction.clamp(0.0, 1.0) * _total;
-    // Linear scan is fine: drives cap at a few thousand points.
     for (var i = 0; i < _offsets.length - 1; i++) {
       final lo = _offsets[i];
       final hi = _offsets[i + 1];

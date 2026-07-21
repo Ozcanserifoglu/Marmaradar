@@ -133,22 +133,53 @@ class DrivePoint {
   }
 }
 
+/// Road-snapped coordinate without telemetry (from Roads API).
+class SnappedPoint {
+  const SnappedPoint({
+    required this.lat,
+    required this.lon,
+  });
+
+  final double lat;
+  final double lon;
+
+  factory SnappedPoint.fromJson(Map<String, dynamic> json) {
+    return SnappedPoint(
+      lat: (json['lat'] as num).toDouble(),
+      lon: (json['lon'] as num).toDouble(),
+    );
+  }
+}
+
 /// A recorded drive with its full point trail, from `GET /v1/drives/{id}`.
 class DriveDetail {
   const DriveDetail({
     required this.summary,
     required this.points,
+    this.snappedPoints = const [],
   });
 
   final DriveSummary summary;
   final List<DrivePoint> points;
+  final List<SnappedPoint> snappedPoints;
+
+  /// Geometry for map polyline / car path: snapped when available, else raw.
+  List<SnappedPoint> get displayPoints {
+    if (snappedPoints.length >= 2) return snappedPoints;
+    return [
+      for (final p in points) SnappedPoint(lat: p.lat, lon: p.lon),
+    ];
+  }
 
   factory DriveDetail.fromJson(Map<String, dynamic> json) {
     final rawPoints = (json['points'] as List<dynamic>? ?? const [])
         .cast<Map<String, dynamic>>();
+    final snapped = (json['snapped_points'] as List<dynamic>? ?? const [])
+        .cast<Map<String, dynamic>>();
     return DriveDetail(
       summary: DriveSummary.fromJson(json),
       points: rawPoints.map(DrivePoint.fromJson).toList(),
+      snappedPoints: snapped.map(SnappedPoint.fromJson).toList(),
     );
   }
 }

@@ -72,6 +72,7 @@ class _DriveDetailScreenState extends ConsumerState<DriveDetailScreen> {
     try {
       path = await DriveVideoExporter.export(
         points: detail.points,
+        displayPoints: detail.displayPoints,
         title: driveDisplayName(_effectiveName, detail.summary.startedAt),
         lengthM: detail.summary.lengthM,
         duration: detail.summary.duration,
@@ -135,7 +136,12 @@ class _DriveDetailScreenState extends ConsumerState<DriveDetailScreen> {
   }
 
   DriveReplayController _controllerFor(DriveDetail detail) {
-    return _replay ??= DriveReplayController(detail.points);
+    return _replay ??= DriveReplayController(
+      detail.points,
+      displayRoute: [
+        for (final p in detail.displayPoints) LatLng(p.lat, p.lon),
+      ],
+    );
   }
 
   Future<void> _fitToRoute(List<LatLng> points) async {

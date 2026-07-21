@@ -15,6 +15,7 @@
 |--------|------------------|
 | Neon `DATABASE_URL` (with real password) | Render → API service → Environment |
 | `JWT_SECRET` (signs access tokens) | Render → API service → Environment |
+| `GOOGLE_MAPS_API_KEY` (Roads snap-to-road on the API) | Render → API service → Environment |
 | Render deploy keys / API tokens | Render dashboard only |
 | Android signing keystore (`.jks`, `key.properties`) | Local machine / CI secrets |
 | Firebase `google-services.json` | Not used yet; keep out of git if added |

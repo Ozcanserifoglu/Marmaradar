@@ -57,23 +57,25 @@ class DrivePanel extends ConsumerWidget {
                   children: [
                     Row(
                       children: [
-                        Text(
-                          running
-                              ? 'TAKİP AKTİF'
-                              : controller.autoDriveEnabled
-                                  ? 'SÜRÜŞ BEKLENİYOR'
-                                  : 'TAKİP KAPALI',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 1.2,
-                            color: running
-                                ? AppColors.success
-                                : AppColors.whiteMuted,
+                        Expanded(
+                          child: Text(
+                            running
+                                ? 'TAKİP AKTİF'
+                                : controller.autoDriveEnabled
+                                    ? 'SÜRÜŞ BEKLENİYOR'
+                                    : 'TAKİP KAPALI',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 1.2,
+                              color: running
+                                  ? AppColors.success
+                                  : AppColors.whiteMuted,
+                            ),
                           ),
                         ),
-                        const Spacer(),
-                        const _HistoryButton(),
                         const SizedBox(width: 8),
                         _AutoDriveToggle(controller: controller),
                       ],
@@ -97,6 +99,8 @@ class DrivePanel extends ConsumerWidget {
           Row(
             children: [
               _SyncButton(controller: controller),
+              const SizedBox(width: 12),
+              const _HistoryButton(),
               const SizedBox(width: 12),
               _AccountButton(
                 authenticated: authenticated,
@@ -148,31 +152,18 @@ class _HistoryButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return InkWell(
-      onTap: () => _open(context, ref),
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceHigh,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.outline),
+    return SizedBox(
+      width: 56,
+      height: 56,
+      child: OutlinedButton(
+        onPressed: () => _open(context, ref),
+        style: OutlinedButton.styleFrom(
+          padding: EdgeInsets.zero,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: const [
-            Icon(Icons.history, size: 14, color: AppColors.whiteMuted),
-            SizedBox(width: 5),
-            Text(
-              'Sürüşlerim',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: AppColors.whiteMuted,
-              ),
-            ),
-          ],
-        ),
+        child: const Icon(Icons.history, size: 24),
       ),
     );
   }

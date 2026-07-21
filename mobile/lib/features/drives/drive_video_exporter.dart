@@ -29,21 +29,31 @@ class DriveVideoExporter {
 
   /// Encodes the drive to an MP4 and returns the output file path.
   /// [onProgress] is called with a 0..1 fraction as frames are written.
+  ///
+  /// [displayPoints] is the road-snapped (or raw fallback) geometry for the
+  /// route line and car path. [points] is required for validation / API parity
+  /// with the live replay (raw telemetry retained on the server).
   static Future<String> export({
     required List<DrivePoint> points,
+    required List<SnappedPoint> displayPoints,
     required String title,
     required double lengthM,
     required Duration duration,
     void Function(double progress)? onProgress,
   }) async {
-    if (points.length < 2) {
+    final route = displayPoints.length >= 2
+        ? displayPoints
+        : [
+            for (final p in points) SnappedPoint(lat: p.lat, lon: p.lon),
+          ];
+    if (route.length < 2 || points.length < 2) {
       throw StateError('Not enough points to render a video.');
     }
 
-    final projector = _RouteProjector(points, size.toDouble(), size * 0.14);
-    final timeline = _Timeline(points);
+    final projector = _RouteProjector(route, size.toDouble(), size * 0.14);
+    final routeSampler = _RouteSampler(route);
     final projected = [
-      for (final p in points) projector.project(p.lat, p.lon),
+      for (final p in route) projector.project(p.lat, p.lon),
     ];
 
     final dir = await getTemporaryDirectory();
@@ -71,8 +81,7 @@ class DriveVideoExporter {
             : 1.0;
         final rgba = await _renderFrame(
           projected: projected,
-          timeline: timeline,
-          points: points,
+          routeSampler: routeSampler,
           projector: projector,
           travelFraction: travel.clamp(0.0, 1.0),
           title: title,
@@ -92,8 +101,7 @@ class DriveVideoExporter {
 
   static Future<Uint8List> _renderFrame({
     required List<Offset> projected,
-    required _Timeline timeline,
-    required List<DrivePoint> points,
+    required _RouteSampler routeSampler,
     required _RouteProjector projector,
     required double travelFraction,
     required String title,
@@ -123,7 +131,7 @@ class DriveVideoExporter {
         ..strokeCap = StrokeCap.round,
     );
 
-    final head = timeline.at(travelFraction);
+    final head = routeSampler.at(travelFraction);
     final headOffset = projector.project(head.lat, head.lon);
 
     // Traveled portion (bright).
@@ -260,7 +268,7 @@ class DriveVideoExporter {
 
 /// Projects lat/lon into square canvas pixel coordinates, preserving aspect.
 class _RouteProjector {
-  _RouteProjector(List<DrivePoint> points, double size, double pad) {
+  _RouteProjector(List<SnappedPoint> points, double size, double pad) {
     var minLat = points.first.lat, maxLat = points.first.lat;
     var minLon = points.first.lon, maxLon = points.first.lon;
     for (final p in points) {
@@ -314,42 +322,41 @@ class _HeadSample {
   final double headingDeg;
 }
 
-/// Time-based interpolation over recorded points (mirrors the live replay).
-class _Timeline {
-  _Timeline(this._points) {
-    final base = _points.first.recordedAt.millisecondsSinceEpoch;
-    var last = 0.0;
-    var monotonic = true;
-    for (final p in _points) {
-      final off = (p.recordedAt.millisecondsSinceEpoch - base).toDouble();
-      if (off < last) monotonic = false;
-      _offsets.add(off);
-      last = off;
+/// Samples a position along [route] by cumulative geodesic distance fraction.
+class _RouteSampler {
+  _RouteSampler(this._route) {
+    _cum.add(0);
+    var total = 0.0;
+    for (var i = 1; i < _route.length; i++) {
+      final a = _route[i - 1];
+      final b = _route[i];
+      total += haversineM(a.lat, a.lon, b.lat, b.lon);
+      _cum.add(total);
     }
-    if (!monotonic || _offsets.last <= 0) {
-      _offsets
-        ..clear()
-        ..addAll(List.generate(_points.length, (i) => i.toDouble()));
-    }
-    _total = _offsets.last;
+    _total = total;
   }
 
-  final List<DrivePoint> _points;
-  final List<double> _offsets = [];
+  final List<SnappedPoint> _route;
+  final List<double> _cum = [];
   double _total = 0;
 
   _HeadSample at(double fraction) {
-    if (_points.length < 2) {
-      final p = _points.first;
+    if (_route.length < 2) {
+      final p = _route.first;
       return _HeadSample(0, p.lat, p.lon, 0);
     }
+    if (_total <= 0) {
+      final a = _route[0];
+      final b = _route[1];
+      return _HeadSample(0, a.lat, a.lon, bearingDeg(a.lat, a.lon, b.lat, b.lon));
+    }
     final target = fraction.clamp(0.0, 1.0) * _total;
-    for (var i = 0; i < _offsets.length - 1; i++) {
-      if (target <= _offsets[i + 1]) {
-        final span = _offsets[i + 1] - _offsets[i];
-        final t = span <= 0 ? 0.0 : (target - _offsets[i]) / span;
-        final a = _points[i];
-        final b = _points[i + 1];
+    for (var i = 0; i < _cum.length - 1; i++) {
+      if (target <= _cum[i + 1]) {
+        final span = _cum[i + 1] - _cum[i];
+        final t = span <= 0 ? 0.0 : (target - _cum[i]) / span;
+        final a = _route[i];
+        final b = _route[i + 1];
         return _HeadSample(
           i,
           a.lat + (b.lat - a.lat) * t,
@@ -358,9 +365,9 @@ class _Timeline {
         );
       }
     }
-    final n = _points.length;
-    final a = _points[n - 2];
-    final b = _points[n - 1];
+    final n = _route.length;
+    final a = _route[n - 2];
+    final b = _route[n - 1];
     return _HeadSample(n - 2, b.lat, b.lon, bearingDeg(a.lat, a.lon, b.lat, b.lon));
   }
 }

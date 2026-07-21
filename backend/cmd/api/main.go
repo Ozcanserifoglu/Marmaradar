@@ -9,6 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/radar-alert/backend/internal/auth"
+	"github.com/radar-alert/backend/internal/client/roads"
 	"github.com/radar-alert/backend/internal/config"
 	"github.com/radar-alert/backend/internal/db"
 	"github.com/radar-alert/backend/internal/db/migrate"
@@ -55,7 +56,13 @@ func main() {
 	jwtMgr := auth.NewJWTManager(cfg.JWTSecret, cfg.AccessTokenTTL, cfg.RefreshTokenTTL)
 	geo := service.NewGeoService(pool)
 	authSvc := service.NewAuthService(pool, jwtMgr)
-	driveSvc := service.NewDriveService(pool)
+	roadsClient := roads.NewClient(cfg.GoogleMapsAPIKey)
+	if roadsClient.Enabled() {
+		slog.Info("roads snap-to-road enabled")
+	} else {
+		slog.Info("roads snap-to-road disabled; set GOOGLE_MAPS_API_KEY to enable")
+	}
+	driveSvc := service.NewDriveService(pool, roadsClient)
 
 	authHandler := handler.NewAuthHandler(authSvc)
 	driveHandler := handler.NewDriveHandler(driveSvc)

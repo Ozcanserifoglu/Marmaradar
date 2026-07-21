@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:radar_alert/core/geo/bearing.dart';
 import 'package:radar_alert/core/location/background_location_service.dart';
 import 'package:radar_alert/data/api/auth_models.dart';
+import 'package:radar_alert/data/api/google_geocoding_client.dart';
 import 'package:radar_alert/data/api/radar_api_client.dart';
 import 'package:radar_alert/data/local/app_database.dart';
 import 'package:uuid/uuid.dart';
@@ -23,14 +24,17 @@ class DriveRecorder {
   DriveRecorder({
     required AppDatabase db,
     required RadarApiClient api,
+    GoogleGeocodingClient? geocoding,
   })  : _db = db,
-        _api = api;
+        _api = api,
+        _geocoding = geocoding ?? GoogleGeocodingClient();
 
   static const sampleDistanceM = 20.0;
   static const sampleInterval = Duration(seconds: 5);
 
   final AppDatabase _db;
   final RadarApiClient _api;
+  final GoogleGeocodingClient _geocoding;
   final _uuid = const Uuid();
 
   String? _activeDriveId;
@@ -173,9 +177,16 @@ class DriveRecorder {
 
     _uploadStatus = DriveUploadStatus.uploading;
     try {
+      final first = points.first;
+      final name = await _geocoding.reverseGeocodeDriveTitle(
+        lat: first.lat,
+        lon: first.lon,
+      );
+
       final result = await _api.uploadDrive(
         startedAt: drive.startedAt,
         endedAt: endedAt,
+        name: name,
         points: points
             .map(
               (p) => DrivePointPayload(

@@ -19,6 +19,9 @@ mobile/pubspec.lock
 .cursor/
 *.iml
 
+# Cursor AI Rules
+.cursorrules
+
 # OS
 .DS_Store
 Thumbs.db
