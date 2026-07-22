@@ -303,6 +303,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
               snapshot: controller.lastSnapshot,
               cameras: controller.mapCameras,
               corridors: controller.mapCorridors,
+              amenities: controller.mapAmenities,
               approaching: approaching,
               routePoints: directions.hasRoute ? directions.routePoints : null,
               destination: directions.destinationLatLng,

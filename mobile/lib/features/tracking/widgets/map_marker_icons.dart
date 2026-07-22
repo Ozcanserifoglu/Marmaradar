@@ -163,6 +163,71 @@ class MapMarkerIcons {
     });
   }
 
+  /// Compact fuel-pump marker for gas stations (below camera z-index).
+  static Future<BitmapDescriptor> gasStation() => _cached('amenity_gas', () {
+        return _paint(28, (canvas, size) {
+          final center = Offset(size / 2, size / 2);
+          final radius = size / 2 - 1;
+          canvas.drawCircle(center, radius, Paint()..color = AppColors.route);
+          canvas.drawCircle(
+            center,
+            radius,
+            Paint()
+              ..color = AppColors.white
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 2,
+          );
+          // Pump body
+          final body = RRect.fromRectAndRadius(
+            Rect.fromCenter(
+              center: center.translate(-1, 1),
+              width: size * 0.28,
+              height: size * 0.42,
+            ),
+            const Radius.circular(2),
+          );
+          canvas.drawRRect(body, Paint()..color = AppColors.white);
+          // Hose hook
+          canvas.drawCircle(
+            center.translate(size * 0.18, -size * 0.05),
+            size * 0.07,
+            Paint()..color = AppColors.white,
+          );
+        });
+      });
+
+  /// Compact rest-stop marker (bed / rest glyph).
+  static Future<BitmapDescriptor> restStop() => _cached('amenity_rest', () {
+        return _paint(28, (canvas, size) {
+          final center = Offset(size / 2, size / 2);
+          final radius = size / 2 - 1;
+          canvas.drawCircle(center, radius, Paint()..color = AppColors.warning);
+          canvas.drawCircle(
+            center,
+            radius,
+            Paint()
+              ..color = AppColors.night
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 2,
+          );
+          // Simple building roof triangle + base
+          final roof = Path()
+            ..moveTo(center.dx, center.dy - size * 0.22)
+            ..lineTo(center.dx + size * 0.2, center.dy - size * 0.02)
+            ..lineTo(center.dx - size * 0.2, center.dy - size * 0.02)
+            ..close();
+          canvas.drawPath(roof, Paint()..color = AppColors.night);
+          canvas.drawRect(
+            Rect.fromCenter(
+              center: center.translate(0, size * 0.1),
+              width: size * 0.32,
+              height: size * 0.2,
+            ),
+            Paint()..color = AppColors.night,
+          );
+        });
+      });
+
   static Future<BitmapDescriptor> gate({required bool isEntry}) {
     final key = isEntry ? 'gate_in' : 'gate_out';
     return _cached(key, () {

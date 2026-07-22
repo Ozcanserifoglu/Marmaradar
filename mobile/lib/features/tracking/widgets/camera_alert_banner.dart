@@ -113,6 +113,15 @@ class _CameraAlertBannerState extends State<CameraAlertBanner>
                   height: 1,
                 ),
               ),
+              const SizedBox(height: 2),
+              Text(
+                '~${a.ttaSec.round()} sn',
+                style: TextStyle(
+                  color: AppColors.white.withValues(alpha: 0.85),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               if (limit != null) ...[
                 const SizedBox(height: 4),
                 _LimitSign(limit: limit),

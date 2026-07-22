@@ -15,7 +15,7 @@ type Config struct {
 	JWTSecret        string `envconfig:"JWT_SECRET" default:"dev-only-change-me-in-production"`
 	AccessTokenTTL   int    `envconfig:"ACCESS_TOKEN_TTL" default:"900"`     // seconds
 	RefreshTokenTTL  int    `envconfig:"REFRESH_TOKEN_TTL" default:"2592000"` // seconds (30d)
-	GoogleMapsAPIKey string `envconfig:"GOOGLE_MAPS_API_KEY"`                 // optional; enables Roads snap-to-road
+	GoogleMapsAPIKey string `envconfig:"GOOGLE_MAPS_API_KEY"`                 // optional; enables Roads snap + Distance Matrix ETA
 }
 
 func Load() Config {

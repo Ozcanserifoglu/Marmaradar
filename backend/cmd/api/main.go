@@ -9,6 +9,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/radar-alert/backend/internal/auth"
+	"github.com/radar-alert/backend/internal/client/distancematrix"
+	"github.com/radar-alert/backend/internal/client/places"
 	"github.com/radar-alert/backend/internal/client/roads"
 	"github.com/radar-alert/backend/internal/config"
 	"github.com/radar-alert/backend/internal/db"
@@ -62,10 +64,26 @@ func main() {
 	} else {
 		slog.Info("roads snap-to-road disabled; set GOOGLE_MAPS_API_KEY to enable")
 	}
+	matrixClient := distancematrix.NewClient(cfg.GoogleMapsAPIKey)
+	if matrixClient.Enabled() {
+		slog.Info("distance matrix eta enabled")
+	} else {
+		slog.Info("distance matrix eta disabled; set GOOGLE_MAPS_API_KEY to enable")
+	}
+	placesClient := places.NewClient(cfg.GoogleMapsAPIKey)
+	if placesClient.Enabled() {
+		slog.Info("places amenities enabled")
+	} else {
+		slog.Info("places amenities disabled; set GOOGLE_MAPS_API_KEY to enable")
+	}
 	driveSvc := service.NewDriveService(pool, roadsClient)
+	etaSvc := service.NewEtaService(pool, matrixClient)
+	amenitiesSvc := service.NewAmenitiesService(placesClient)
 
 	authHandler := handler.NewAuthHandler(authSvc)
 	driveHandler := handler.NewDriveHandler(driveSvc)
+	etaHandler := handler.NewEtaHandler(etaSvc)
+	amenitiesHandler := handler.NewAmenitiesHandler(amenitiesSvc)
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
@@ -93,6 +111,8 @@ func main() {
 			r.Get("/drives", driveHandler.List)
 			r.Get("/drives/{id}", driveHandler.Detail)
 			r.Patch("/drives/{id}", driveHandler.Rename)
+			r.Post("/eta/cameras", etaHandler.Cameras)
+			r.Post("/amenities/cells", amenitiesHandler.Cells)
 		})
 	})
 

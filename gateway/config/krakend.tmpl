@@ -214,6 +214,46 @@
           "host": {{ marshal .backend.host }}
         }
       ]
+    },
+    {
+      "endpoint": "/v1/eta/cameras",
+      "method": "POST",
+      "output_encoding": "no-op",
+      "input_headers": ["Authorization", "Content-Type"],
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "max_rate": 60,
+          "client_max_rate": 6,
+          "strategy": "ip"
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/v1/eta/cameras",
+          "encoding": "no-op",
+          "host": {{ marshal .backend.host }}
+        }
+      ]
+    },
+    {
+      "endpoint": "/v1/amenities/cells",
+      "method": "POST",
+      "output_encoding": "no-op",
+      "input_headers": ["Authorization", "Content-Type"],
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "max_rate": 60,
+          "client_max_rate": 6,
+          "strategy": "ip"
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/v1/amenities/cells",
+          "encoding": "no-op",
+          "host": {{ marshal .backend.host }}
+        }
+      ]
     }
   ]
 }

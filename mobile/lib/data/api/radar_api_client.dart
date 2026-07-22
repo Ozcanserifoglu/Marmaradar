@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:radar_alert/data/api/auth_models.dart';
 import 'package:radar_alert/data/auth/token_store.dart';
+import 'package:radar_alert/features/alerts/road_eta_models.dart';
+import 'package:radar_alert/features/amenities/amenity_models.dart';
 
 /// HTTP failure that survived all retries. [statusCode] is null when the
 /// request never reached the server (no connectivity, DNS failure, ...).
@@ -110,6 +112,7 @@ class RadarApiClient {
     Map<String, dynamic> body, {
     bool auth = false,
     bool retryOnUnauthorized = true,
+    Duration timeout = const Duration(seconds: 60),
   }) async {
     final uri = Uri.parse('$baseUrl$path');
     final headers = <String, String>{
@@ -125,12 +128,18 @@ class RadarApiClient {
 
     final resp = await http
         .post(uri, headers: headers, body: jsonEncode(body))
-        .timeout(const Duration(seconds: 60));
+        .timeout(timeout);
 
     if (resp.statusCode == 401 && auth && retryOnUnauthorized) {
       final refreshed = await _tryRefresh();
       if (refreshed) {
-        return _postJson(path, body, auth: true, retryOnUnauthorized: false);
+        return _postJson(
+          path,
+          body,
+          auth: true,
+          retryOnUnauthorized: false,
+          timeout: timeout,
+        );
       }
     }
     return resp;
@@ -337,5 +346,54 @@ class RadarApiClient {
     final uri = Uri.parse('$baseUrl/v1/sync').replace(queryParameters: params);
     final resp = await _getWithRetry(uri, 'sync');
     return jsonDecode(resp.body) as Map<String, dynamic>;
+  }
+
+  /// Road distance + duration for nearby cameras via Distance Matrix proxy.
+  Future<List<RoadEtaResult>> fetchCameraEtas({
+    required double originLat,
+    required double originLon,
+    required List<RoadEtaDestination> destinations,
+  }) async {
+    final resp = await _postJson(
+      '/v1/eta/cameras',
+      {
+        'origin': {'lat': originLat, 'lon': originLon},
+        'destinations': destinations.map((d) => d.toJson()).toList(),
+      },
+      auth: true,
+      timeout: RoadEtaConstants.requestTimeout,
+    );
+    if (resp.statusCode != 200) {
+      throw ApiException('eta/cameras', resp.statusCode, null, resp.body);
+    }
+    final list = jsonDecode(resp.body) as List<dynamic>;
+    return list
+        .cast<Map<String, dynamic>>()
+        .map(RoadEtaResult.fromJson)
+        .toList();
+  }
+
+  /// Route amenities for spatial cells via Places Nearby proxy.
+  Future<List<AmenityPlace>> fetchAmenityCells({
+    required List<AmenityCellRef> cells,
+    List<String> types = AmenityConstants.defaultTypes,
+  }) async {
+    final resp = await _postJson(
+      '/v1/amenities/cells',
+      {
+        'cells': cells.map((c) => c.toJson()).toList(),
+        'types': types,
+      },
+      auth: true,
+      timeout: AmenityConstants.requestTimeout,
+    );
+    if (resp.statusCode != 200) {
+      throw ApiException('amenities/cells', resp.statusCode, null, resp.body);
+    }
+    final list = jsonDecode(resp.body) as List<dynamic>;
+    return list
+        .cast<Map<String, dynamic>>()
+        .map(AmenityPlace.fromJson)
+        .toList();
   }
 }

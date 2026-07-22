@@ -77,6 +77,10 @@ class DrivePanel extends ConsumerWidget {
                           ),
                         ),
                         const SizedBox(width: 8),
+                        if (running) ...[
+                          _AmenitiesToggle(controller: controller),
+                          const SizedBox(width: 6),
+                        ],
                         _AutoDriveToggle(controller: controller),
                       ],
                     ),
@@ -164,6 +168,43 @@ class _HistoryButton extends ConsumerWidget {
           ),
         ),
         child: const Icon(Icons.history, size: 24),
+      ),
+    );
+  }
+}
+
+class _AmenitiesToggle extends StatelessWidget {
+  const _AmenitiesToggle({required this.controller});
+
+  final TrackingController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final on = controller.amenitiesVisible;
+    return Tooltip(
+      message: on ? 'Durakları gizle' : 'Durakları göster',
+      child: InkWell(
+        onTap: () => controller.setAmenitiesVisible(!on),
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          width: 36,
+          height: 28,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: on
+                ? AppColors.route.withValues(alpha: 0.2)
+                : AppColors.surfaceHigh,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: on ? AppColors.route : AppColors.outline,
+            ),
+          ),
+          child: Icon(
+            Icons.local_gas_station,
+            size: 16,
+            color: on ? AppColors.route : AppColors.whiteMuted,
+          ),
+        ),
       ),
     );
   }

@@ -4,8 +4,10 @@ import 'package:radar_alert/core/geo/encoded_polyline.dart';
 import 'package:radar_alert/core/location/background_location_service.dart';
 import 'package:radar_alert/core/theme/app_theme.dart';
 import 'package:radar_alert/data/local/app_database.dart';
+import 'package:radar_alert/features/amenities/amenity_models.dart';
 import 'package:radar_alert/features/corridors/corridor_tracker.dart';
 import 'package:radar_alert/features/tracking/tracking_controller.dart';
+import 'package:radar_alert/features/tracking/widgets/amenity_detail_sheet.dart';
 import 'package:radar_alert/features/tracking/widgets/camera_detail_sheet.dart';
 import 'package:radar_alert/features/tracking/widgets/map_marker_icons.dart';
 
@@ -23,6 +25,9 @@ final _turkeyBounds = LatLngBounds(
 /// instead of full marker icons.
 const _markerMinZoom = 10.0;
 
+/// Amenity markers need tighter zoom to stay useful and uncluttered.
+const _amenityMinZoom = AmenityConstants.minZoom;
+
 enum MapStyle { dark, light }
 
 class RadarMapView extends StatefulWidget {
@@ -37,6 +42,7 @@ class RadarMapView extends StatefulWidget {
     required this.onUserGesture,
     required this.onCameraMoved,
     required this.isProgrammaticMove,
+    this.amenities = const [],
     this.routePoints,
     this.destination,
     this.destinationTitle,
@@ -47,6 +53,7 @@ class RadarMapView extends StatefulWidget {
   final List<CachedCamera> cameras;
   final List<CachedCorridorWithGates> corridors;
   final ApproachingCamera? approaching;
+  final List<AmenityPlace> amenities;
   final void Function(GoogleMapController controller) onMapCreated;
   final VoidCallback onUserGesture;
   final ValueChanged<double> onCameraMoved;
@@ -84,6 +91,7 @@ class _RadarMapViewState extends State<RadarMapView> {
         oldWidget.cameras != widget.cameras ||
         oldWidget.corridors != widget.corridors ||
         oldWidget.approaching != widget.approaching ||
+        oldWidget.amenities != widget.amenities ||
         oldWidget.routePoints != widget.routePoints ||
         oldWidget.destination != widget.destination ||
         oldWidget.destinationTitle != widget.destinationTitle) {
@@ -271,6 +279,28 @@ class _RadarMapViewState extends State<RadarMapView> {
       );
     }
 
+    if (zoom >= _amenityMinZoom && widget.amenities.isNotEmpty) {
+      final gasIcon = await MapMarkerIcons.gasStation();
+      final restIcon = await MapMarkerIcons.restStop();
+      if (gen != _overlayGen) return;
+      for (final place in widget.amenities) {
+        final isGas = place.category == AmenityCategory.gasStation;
+        markers.add(
+          Marker(
+            markerId: MarkerId('amenity_${place.placeId}'),
+            position: LatLng(place.lat, place.lon),
+            icon: isGas ? gasIcon : restIcon,
+            anchor: const Offset(0.5, 0.5),
+            zIndexInt: 1,
+            consumeTapEvents: true,
+            onTap: () {
+              if (mounted) showAmenityDetailSheet(context, place);
+            },
+          ),
+        );
+      }
+    }
+
     if (!mounted || gen != _overlayGen) return;
     setState(() {
       _markers = markers;
@@ -307,11 +337,13 @@ class _RadarMapViewState extends State<RadarMapView> {
         }
       },
       onCameraMove: (position) {
-        final crossed =
+        final crossedCamera =
             (_zoom < _markerMinZoom) != (position.zoom < _markerMinZoom);
+        final crossedAmenity =
+            (_zoom < _amenityMinZoom) != (position.zoom < _amenityMinZoom);
         _zoom = position.zoom;
         widget.onCameraMoved(position.zoom);
-        if (crossed) _rebuildOverlays();
+        if (crossedCamera || crossedAmenity) _rebuildOverlays();
       },
     );
   }
