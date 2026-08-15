@@ -32,8 +32,6 @@ class CachedCorridors extends Table {
   RealColumn get lengthM => real()();
   TextColumn get regionCode => text().withDefault(const Constant('bursa'))();
 
-  /// Road-following geometry as a Google encoded polyline (precision 5).
-  /// Null for corridors the server hasn't enriched with route geometry.
   TextColumn get polyline => text().nullable()();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 
@@ -52,12 +50,10 @@ class CachedCorridorGates extends Table {
   IntColumn get directionDeg => integer().nullable()();
 }
 
-/// Local drive session awaiting upload (or already uploaded).
 class LocalDrives extends Table {
   TextColumn get id => text()();
   DateTimeColumn get startedAt => dateTime()();
   DateTimeColumn get endedAt => dateTime().nullable()();
-  /// recording | pending_upload | uploaded
   TextColumn get status => text()();
   TextColumn get remoteId => text().nullable()();
 

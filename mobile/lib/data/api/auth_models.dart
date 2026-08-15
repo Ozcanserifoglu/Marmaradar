@@ -66,7 +66,6 @@ class DrivePointPayload {
       };
 }
 
-/// One recorded drive as returned by `GET /v1/drives`.
 class DriveSummary {
   const DriveSummary({
     required this.id,
@@ -109,7 +108,6 @@ class DriveSummary {
   }
 }
 
-/// A single GPS sample within a recorded drive.
 class DrivePoint {
   const DrivePoint({
     required this.lat,
@@ -133,7 +131,6 @@ class DrivePoint {
   }
 }
 
-/// Road-snapped coordinate without telemetry (from Roads API).
 class SnappedPoint {
   const SnappedPoint({
     required this.lat,
@@ -151,7 +148,6 @@ class SnappedPoint {
   }
 }
 
-/// A recorded drive with its full point trail, from `GET /v1/drives/{id}`.
 class DriveDetail {
   const DriveDetail({
     required this.summary,
@@ -163,7 +159,6 @@ class DriveDetail {
   final List<DrivePoint> points;
   final List<SnappedPoint> snappedPoints;
 
-  /// Geometry for map polyline / car path: snapped when available, else raw.
   List<SnappedPoint> get displayPoints {
     if (snappedPoints.length >= 2) return snappedPoints;
     return [

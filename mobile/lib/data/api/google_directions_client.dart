@@ -7,7 +7,6 @@ import 'package:radar_alert/core/config/maps_api_key.dart';
 import 'package:radar_alert/core/geo/encoded_polyline.dart';
 import 'package:radar_alert/features/directions/directions_models.dart';
 
-/// Google Directions API over REST (driving mode, overview polyline).
 class GoogleDirectionsClient {
   GoogleDirectionsClient({
     String? apiKey,
@@ -107,7 +106,6 @@ class GoogleDirectionsClient {
     );
   }
 
-  /// Exposed for unit tests — parses a Directions JSON body into [RouteResult].
   static RouteResult parseRouteResponse(Map<String, dynamic> json) {
     final status = json['status'] as String? ?? 'UNKNOWN';
     if (status != 'OK') {

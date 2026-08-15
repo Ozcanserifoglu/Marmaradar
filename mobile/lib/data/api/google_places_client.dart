@@ -6,7 +6,6 @@ import 'package:http/http.dart' as http;
 import 'package:radar_alert/core/config/maps_api_key.dart';
 import 'package:radar_alert/features/directions/directions_models.dart';
 
-/// Classic Places Autocomplete + Place Details over REST.
 class GooglePlacesClient {
   GooglePlacesClient({
     String? apiKey,
@@ -19,7 +18,6 @@ class GooglePlacesClient {
   static const _detailsPath = '/maps/api/place/details/json';
   static const _timeout = Duration(seconds: 15);
 
-  /// Bias radius (meters) around the driver's current location.
   static const _biasRadiusM = 50000;
 
   final String? _apiKeyOverride;

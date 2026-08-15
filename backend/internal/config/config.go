@@ -13,9 +13,9 @@ type Config struct {
 	Port             string `envconfig:"PORT" default:"8080"`
 	MigrationsDir    string `envconfig:"MIGRATIONS_DIR"`
 	JWTSecret        string `envconfig:"JWT_SECRET" default:"dev-only-change-me-in-production"`
-	AccessTokenTTL   int    `envconfig:"ACCESS_TOKEN_TTL" default:"900"`     // seconds
-	RefreshTokenTTL  int    `envconfig:"REFRESH_TOKEN_TTL" default:"2592000"` // seconds (30d)
-	GoogleMapsAPIKey string `envconfig:"GOOGLE_MAPS_API_KEY"`                 // optional; enables Roads snap + Distance Matrix ETA
+	AccessTokenTTL   int    `envconfig:"ACCESS_TOKEN_TTL" default:"900"`
+	RefreshTokenTTL  int    `envconfig:"REFRESH_TOKEN_TTL" default:"2592000"`
+	GoogleMapsAPIKey string `envconfig:"GOOGLE_MAPS_API_KEY"`
 }
 
 func Load() Config {

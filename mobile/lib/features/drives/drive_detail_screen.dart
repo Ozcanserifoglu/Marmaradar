@@ -100,7 +100,6 @@ class _DriveDetailScreenState extends ConsumerState<DriveDetailScreen> {
       await Gal.putVideo(path);
       _snack('Galeriye kaydedildi');
     } catch (_) {
-      // Gallery save failed (e.g. permission denied); still offer sharing.
     }
 
     if (!mounted) return;
@@ -115,7 +114,6 @@ class _DriveDetailScreenState extends ConsumerState<DriveDetailScreen> {
         ),
       );
     } catch (_) {
-      // User dismissed the share sheet or sharing is unavailable.
     }
   }
 

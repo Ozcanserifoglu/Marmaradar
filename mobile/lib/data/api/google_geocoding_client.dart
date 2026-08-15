@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:radar_alert/core/config/maps_api_key.dart';
 
-/// Reverse geocoding via the Google Geocoding REST API.
 class GoogleGeocodingClient {
   GoogleGeocodingClient({
     String? apiKey,
@@ -28,8 +27,6 @@ class GoogleGeocodingClient {
     return MapsApiKey.value;
   }
 
-  /// Returns a Turkish drive title like "İnegöl, Bursa Sürüşü", or null when
-  /// geocoding fails / yields nothing useful.
   Future<String?> reverseGeocodeDriveTitle({
     required double lat,
     required double lon,
@@ -71,10 +68,6 @@ class GoogleGeocodingClient {
   }
 }
 
-/// Builds "{place}, {region} Sürüşü" from Geocoding address_components.
-///
-/// Prefer locality, then administrative_area_level_2 for [place];
-/// administrative_area_level_1 for [region].
 String? formatDriveLocationName(List<dynamic> components) {
   String? place;
   String? region;

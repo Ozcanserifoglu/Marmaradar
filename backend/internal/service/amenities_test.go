@@ -68,7 +68,6 @@ func TestAmenitiesCellsCacheHit(t *testing.T) {
 	if len(second) != 1 {
 		t.Fatalf("want cached 1 place, got %d", len(second))
 	}
-	// gas_station only → one Nearby call on miss; rest_stop not requested.
 	if calls.Load() != 1 {
 		t.Fatalf("want 1 google call (cache hit), got %d", calls.Load())
 	}

@@ -4,8 +4,6 @@ import 'package:radar_alert/app.dart';
 import 'package:radar_alert/core/theme/app_theme.dart';
 import 'package:radar_alert/data/api/radar_api_client.dart';
 
-/// Shows a dialog to rename a drive. Returns the new name on success
-/// (empty string means the name was cleared), or null if cancelled/failed.
 Future<String?> showRenameDriveDialog(
   BuildContext context,
   WidgetRef ref, {

@@ -31,12 +31,10 @@ class DirectionsController extends ChangeNotifier {
   int? _durationSec;
   String? _errorMessage;
 
-  /// Increments on each autocomplete request so stale responses are ignored.
   int _searchGen = 0;
   int _routeGen = 0;
   Timer? _debounceTimer;
 
-  /// Last known GPS used to bias autocomplete; updated by the screen.
   LatLng? _locationBias;
 
   String get query => _query;
@@ -115,7 +113,7 @@ class DirectionsController extends ChangeNotifier {
     required DriverSnapshot? origin,
   }) async {
     _debounceTimer?.cancel();
-    _searchGen++; // cancel in-flight autocomplete
+    _searchGen++;
     final gen = ++_routeGen;
 
     _query = prediction.description;
@@ -151,7 +149,6 @@ class DirectionsController extends ChangeNotifier {
       if (gen != _routeGen) return;
       _errorMessage = e.message;
       if (e.isMissingGps) {
-        // already handled above
       }
     } catch (e) {
       if (gen != _routeGen) return;
@@ -230,7 +227,6 @@ class DirectionsController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Clears both the search field and any active route.
   void clearAll() {
     _debounceTimer?.cancel();
     _searchGen++;

@@ -1,32 +1,22 @@
-/// Shared constants and models for drive-time route amenities.
 class AmenityConstants {
   AmenityConstants._();
 
-  /// Spatial grid cell size in degrees (≈ 2 km).
   static const cellDeg = 0.02;
 
-  /// Prefetch this many cells ahead along heading (plus current).
   static const lookAheadCells = 2;
 
-  /// Max cells per proxy request.
   static const maxCellsPerRequest = 3;
 
-  /// Max amenity markers drawn on the map at once.
   static const maxVisibleMarkers = 15;
 
-  /// Hide amenity markers below this map zoom.
   static const minZoom = 12.0;
 
-  /// Ahead-cone distance used when selecting visible markers.
   static const aheadRadiusM = 5000.0;
 
-  /// Heading cone half-angle for "ahead" selection.
   static const aheadToleranceDeg = 60;
 
-  /// Network timeout for the amenities proxy (fail soft).
   static const requestTimeout = Duration(seconds: 8);
 
-  /// Back off after a total failure before retrying.
   static const failureCooldown = Duration(seconds: 30);
 
   static const defaultTypes = ['gas_station', 'rest_stop'];
@@ -52,7 +42,6 @@ enum AmenityCategory {
   }
 }
 
-/// One place from POST /v1/amenities/cells.
 class AmenityPlace {
   const AmenityPlace({
     required this.placeId,
@@ -88,7 +77,6 @@ class AmenityPlace {
   }
 }
 
-/// Cell coordinates for the amenities proxy request.
 class AmenityCellRef {
   const AmenityCellRef({
     required this.latIndex,
@@ -112,7 +100,6 @@ class AmenityCellRef {
     );
   }
 
-  /// Cell center in WGS84.
   ({double lat, double lon}) get center {
     final lat = (latIndex + 0.5) * AmenityConstants.cellDeg;
     final lon = (lonIndex + 0.5) * AmenityConstants.cellDeg;
@@ -120,7 +107,6 @@ class AmenityCellRef {
   }
 }
 
-/// Session cache entry for one fetched cell.
 class CachedAmenityCell {
   const CachedAmenityCell({
     required this.cellKey,

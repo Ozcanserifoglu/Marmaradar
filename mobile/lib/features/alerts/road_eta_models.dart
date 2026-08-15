@@ -1,29 +1,21 @@
-/// Shared constants and models for two-tier road distance / ETA.
 class RoadEtaConstants {
   RoadEtaConstants._();
 
-  /// Drift / local bbox query radius (Tier 0).
   static const localQueryRadiusM = 5000.0;
 
-  /// Straight-line distance at which Distance Matrix may be requested.
   static const matrixGateRadiusM = 4000.0;
 
-  /// Max destinations per Matrix proxy call.
   static const maxDestinations = 3;
 
-  /// Client cache TTL before a refresh is allowed.
   static const cacheTtl = Duration(seconds: 25);
 
-  /// Force refresh after the user has moved this far from the fetch origin.
   static const moveThresholdM = 250.0;
 
-  /// Network timeout for the ETA proxy (fail soft quickly).
   static const requestTimeout = Duration(seconds: 5);
 }
 
 enum RoadEtaSource { haversine, matrix }
 
-/// One camera's road metrics from the backend Distance Matrix proxy.
 class RoadEtaResult {
   const RoadEtaResult({
     required this.cameraId,
@@ -49,7 +41,6 @@ class RoadEtaResult {
   }
 }
 
-/// Destination payload for POST /v1/eta/cameras.
 class RoadEtaDestination {
   const RoadEtaDestination({
     required this.cameraId,
@@ -68,7 +59,6 @@ class RoadEtaDestination {
       };
 }
 
-/// Cached Matrix snapshot plus the origin where it was measured.
 class CachedRoadEta {
   const CachedRoadEta({
     required this.cameraId,

@@ -40,14 +40,11 @@ class RouteResult {
   int get durationMin => (durationSec / 60).round().clamp(1, 9999);
 }
 
-/// Failure from Places / Directions REST (or a local guard such as missing GPS).
 class DirectionsException implements Exception {
   const DirectionsException(this.message, {this.status, this.cause});
 
-  /// User-facing Turkish message when possible.
   final String message;
 
-  /// Google API `status` when available (e.g. `ZERO_RESULTS`).
   final String? status;
 
   final Object? cause;

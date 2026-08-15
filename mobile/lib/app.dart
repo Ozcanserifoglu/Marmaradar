@@ -26,7 +26,6 @@ class _MarmaradarAppState extends ConsumerState<MarmaradarApp> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final auth = ref.read(authControllerProvider);
-      // Skip if a test (or prior call) already finished bootstrap.
       if (auth.isBooting) {
         auth.bootstrap();
       }
@@ -61,7 +60,6 @@ class _MarmaradarAppState extends ConsumerState<MarmaradarApp> {
   }
 }
 
-/// Root widget that provides Riverpod scope around [MarmaradarApp].
 class MarmaradarRoot extends StatelessWidget {
   const MarmaradarRoot({super.key});
 

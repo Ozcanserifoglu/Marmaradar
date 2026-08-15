@@ -18,27 +18,23 @@ const (
 	maxDestinations = 3
 )
 
-// LatLng is a geographic coordinate.
 type LatLng struct {
 	Lat float64
 	Lon float64
 }
 
-// Element is one origin→destination result from Distance Matrix.
 type Element struct {
 	DistanceM   float64
 	DurationSec float64
 	Status      string
 }
 
-// Client calls the Google Maps Distance Matrix API.
 type Client struct {
 	apiKey     string
 	endpoint   string
 	httpClient *http.Client
 }
 
-// NewClient returns a Distance Matrix client. An empty apiKey disables calls.
 func NewClient(apiKey string) *Client {
 	return &Client{
 		apiKey:   strings.TrimSpace(apiKey),
@@ -49,7 +45,6 @@ func NewClient(apiKey string) *Client {
 	}
 }
 
-// Enabled reports whether an API key is configured.
 func (c *Client) Enabled() bool {
 	return c != nil && c.apiKey != ""
 }
@@ -77,8 +72,6 @@ type matrixValue struct {
 	Value int64  `json:"value"`
 }
 
-// DrivingDistances returns road distance and duration from origin to each
-// destination (max 3). Element order matches the destinations slice.
 func (c *Client) DrivingDistances(ctx context.Context, origin LatLng, destinations []LatLng) ([]Element, error) {
 	if !c.Enabled() {
 		return nil, fmt.Errorf("distance matrix api key not configured")

@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:radar_alert/core/theme/app_theme.dart';
 
-/// Builds and caches [BitmapDescriptor]s for map markers painted with Canvas.
 class MapMarkerIcons {
   MapMarkerIcons._();
 
@@ -30,7 +29,6 @@ class MapMarkerIcons {
               ..style = PaintingStyle.stroke
               ..strokeWidth = 3,
           );
-          // Arrow pointing up (north); Marker.rotation applies heading.
           final path = Path()
             ..moveTo(center.dx, center.dy - 11)
             ..lineTo(center.dx + 8, center.dy + 8)
@@ -41,12 +39,9 @@ class MapMarkerIcons {
         });
       });
 
-  /// Top-down car used for drive replay. Points up (north); the marker's
-  /// [Marker.rotation] applies the travel heading.
   static Future<BitmapDescriptor> car() => _cached('car', () {
         return _paint(46, (canvas, size) {
           final center = Offset(size / 2, size / 2);
-          // Soft glow so the car stands out over the route line.
           canvas.drawCircle(
             center,
             size / 2 - 2,
@@ -72,7 +67,6 @@ class MapMarkerIcons {
               ..strokeWidth = 2.5,
           );
 
-          // Windshield near the front (top) to convey direction.
           final windshield = RRect.fromRectAndRadius(
             Rect.fromCenter(
               center: center.translate(0, -size * 0.16),
@@ -143,7 +137,6 @@ class MapMarkerIcons {
             Offset(0, (size - paragraph.height) / 2),
           );
         } else {
-          // Simple camera glyph: rounded body + lens.
           final body = RRect.fromRectAndRadius(
             Rect.fromCenter(
               center: center.translate(0, 1),
@@ -163,7 +156,6 @@ class MapMarkerIcons {
     });
   }
 
-  /// Compact fuel-pump marker for gas stations (below camera z-index).
   static Future<BitmapDescriptor> gasStation() => _cached('amenity_gas', () {
         return _paint(28, (canvas, size) {
           final center = Offset(size / 2, size / 2);
@@ -177,7 +169,6 @@ class MapMarkerIcons {
               ..style = PaintingStyle.stroke
               ..strokeWidth = 2,
           );
-          // Pump body
           final body = RRect.fromRectAndRadius(
             Rect.fromCenter(
               center: center.translate(-1, 1),
@@ -187,7 +178,6 @@ class MapMarkerIcons {
             const Radius.circular(2),
           );
           canvas.drawRRect(body, Paint()..color = AppColors.white);
-          // Hose hook
           canvas.drawCircle(
             center.translate(size * 0.18, -size * 0.05),
             size * 0.07,
@@ -196,7 +186,6 @@ class MapMarkerIcons {
         });
       });
 
-  /// Compact rest-stop marker (bed / rest glyph).
   static Future<BitmapDescriptor> restStop() => _cached('amenity_rest', () {
         return _paint(28, (canvas, size) {
           final center = Offset(size / 2, size / 2);
@@ -210,7 +199,6 @@ class MapMarkerIcons {
               ..style = PaintingStyle.stroke
               ..strokeWidth = 2,
           );
-          // Simple building roof triangle + base
           final roof = Path()
             ..moveTo(center.dx, center.dy - size * 0.22)
             ..lineTo(center.dx + size * 0.2, center.dy - size * 0.02)
@@ -254,7 +242,6 @@ class MapMarkerIcons {
           ..strokeWidth = 2.2
           ..strokeCap = StrokeCap.round;
         if (isEntry) {
-          // Arrow into circle (login).
           canvas.drawLine(
             Offset(center.dx - 5, center.dy),
             Offset(center.dx + 4, center.dy),
@@ -271,7 +258,6 @@ class MapMarkerIcons {
             paint,
           );
         } else {
-          // Arrow out of circle (logout).
           canvas.drawLine(
             Offset(center.dx - 4, center.dy),
             Offset(center.dx + 5, center.dy),
@@ -325,7 +311,6 @@ class MapMarkerIcons {
   }
 }
 
-/// Dark basemap: roads stay lighter than land; POIs stay visible like light mode.
 const googleMapsDarkStyleJson = '''
 [
   {"elementType":"geometry","stylers":[{"color":"#121216"}]},

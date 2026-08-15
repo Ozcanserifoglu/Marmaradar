@@ -35,8 +35,6 @@ class BackgroundLocationService {
   StreamSubscription<Position>? _sub;
   StreamSubscription<Position>? _idleSub;
 
-  /// Foreground ("while in use") permission — enough to show the user on the
-  /// map and detect driving while the app is open.
   Future<bool> ensureBasicPermission() async {
     if (!await Geolocator.isLocationServiceEnabled()) {
       return false;
@@ -68,8 +66,6 @@ class BackgroundLocationService {
         perm == LocationPermission.whileInUse;
   }
 
-  /// One-shot position for centering the map on launch. Uses the last known
-  /// fix when available (instant), otherwise waits for a fresh one.
   Future<DriverSnapshot?> currentSnapshot() async {
     try {
       final last = await Geolocator.getLastKnownPosition();
@@ -82,8 +78,6 @@ class BackgroundLocationService {
     }
   }
 
-  /// Lightweight position stream used while not driving: keeps the map
-  /// marker fresh and feeds drive auto-detection. No foreground service.
   Future<void> startIdleWatch(
     LocationCallback onUpdate, {
     void Function(Object error)? onError,
@@ -147,9 +141,6 @@ class BackgroundLocationService {
             accuracy: LocationAccuracy.bestForNavigation,
             distanceFilter: 5,
             intervalDuration: const Duration(seconds: 1),
-            // Fallback path: bypass Google Play services (fused provider)
-            // when its settings check wrongly reports location as disabled
-            // (common on emulators and de-Googled devices).
             forceLocationManager: forceLocationManager,
             foregroundNotificationConfig: const ForegroundNotificationConfig(
               notificationTitle: 'Marmaradar aktif',
@@ -178,6 +169,7 @@ class BackgroundLocationService {
     );
   }
 
+  // Bypass fused provider when it wrongly reports location disabled (emulators / de-Googled).
   bool _canFallBack(Object error, bool alreadyForced) {
     return !alreadyForced &&
         defaultTargetPlatform == TargetPlatform.android &&

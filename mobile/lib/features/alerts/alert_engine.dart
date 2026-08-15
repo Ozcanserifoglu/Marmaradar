@@ -2,7 +2,6 @@ import 'package:radar_alert/core/geo/bearing.dart';
 import 'package:radar_alert/core/location/background_location_service.dart';
 import 'package:radar_alert/data/local/app_database.dart';
 
-/// Optional road metrics from Distance Matrix (preferred over haversine TTA).
 typedef RoadMetricsLookup = ({double distanceM, double durationSec})? Function(
   int cameraId,
 );

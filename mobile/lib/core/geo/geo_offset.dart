@@ -2,7 +2,6 @@ import 'dart:math' as math;
 
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
-/// Returns a point [meters] away from [from] along [bearingDeg] (0 = north).
 LatLng offsetByMeters(LatLng from, double meters, double bearingDeg) {
   const earthRadiusM = 6371000.0;
   final bearing = bearingDeg * math.pi / 180;

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:radar_alert/core/theme/app_theme.dart';
 import 'package:radar_alert/features/tracking/tracking_controller.dart';
 
-/// Shown while inside an average-speed corridor: running average vs limit.
 class CorridorPanel extends StatelessWidget {
   const CorridorPanel({super.key, required this.status});
 

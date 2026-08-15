@@ -5,11 +5,6 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:radar_alert/core/geo/bearing.dart';
 import 'package:radar_alert/data/api/auth_models.dart';
 
-/// Animates a car along a recorded drive's trail (Strava-style replay).
-///
-/// Raw [points] drive relative pacing and speed HUD. Optional [displayRoute]
-/// (road-snapped geometry) is used for the polyline and car position so the
-/// marker stays on the smoothed path.
 class DriveReplayController extends ChangeNotifier {
   DriveReplayController(
     List<DrivePoint> points, {
@@ -27,12 +22,9 @@ class DriveReplayController extends ChangeNotifier {
   final List<DrivePoint> _points;
   final List<LatLng> _route;
 
-  /// Cumulative timeline offsets (ms) matching [_points]; when the drive has
-  /// no meaningful timestamps this falls back to even index spacing.
   final List<double> _offsets = [];
   double _total = 0;
 
-  /// Cumulative geodesic distance (m) along [_route].
   final List<double> _routeCumDist = [];
   double _routeLengthM = 0;
 
@@ -44,7 +36,6 @@ class DriveReplayController extends ChangeNotifier {
   bool _playing = false;
   double _speed = 1;
 
-  /// 0..1 fraction along the timeline.
   double _progress = 0;
 
   bool get isPlaying => _playing;
@@ -75,7 +66,6 @@ class DriveReplayController extends ChangeNotifier {
       last = off;
       cursor = off;
     }
-    // Fall back to even spacing if timestamps are missing/backwards/zero-span.
     if (!monotonic || cursor <= 0) {
       _offsets
         ..clear()
@@ -149,7 +139,6 @@ class DriveReplayController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Interpolated position along the display route at the current [_progress].
   LatLng? get carPosition {
     final seg = _routeSegmentAt(_progress);
     if (seg == null) return null;
@@ -160,7 +149,6 @@ class DriveReplayController extends ChangeNotifier {
     );
   }
 
-  /// Travel heading (degrees) along the display route at the current [_progress].
   double get carHeading {
     final seg = _routeSegmentAt(_progress);
     if (seg == null) return 0;
@@ -173,7 +161,6 @@ class DriveReplayController extends ChangeNotifier {
     );
   }
 
-  /// Interpolated speed (m/s) from raw telemetry at the current [_progress].
   double get carSpeedMps {
     final seg = _rawSegmentAt(_progress);
     if (seg == null) return 0;
@@ -181,7 +168,6 @@ class DriveReplayController extends ChangeNotifier {
     return _points[a].speedMps + (_points[b].speedMps - _points[a].speedMps) * t;
   }
 
-  /// Wall-clock timestamp represented by the current [_progress].
   DateTime? get currentTime {
     final seg = _rawSegmentAt(_progress);
     if (seg == null) return null;
@@ -193,7 +179,6 @@ class DriveReplayController extends ChangeNotifier {
     return DateTime.fromMillisecondsSinceEpoch(ms.round());
   }
 
-  /// Segment along the display polyline by distance fraction matching [fraction].
   (int, int, double)? _routeSegmentAt(double fraction) {
     if (_route.length < 2) return null;
     if (_routeLengthM <= 0) return (0, 1, 0);
@@ -211,8 +196,6 @@ class DriveReplayController extends ChangeNotifier {
     return (n - 2, n - 1, 1);
   }
 
-  /// Returns the bounding index pair and the interpolation factor for a
-  /// timeline [fraction] over raw points, or null if there are too few points.
   (int, int, double)? _rawSegmentAt(double fraction) {
     if (_points.length < 2) return null;
     if (_total <= 0) return (0, 1, 0);

@@ -1,15 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:radar_alert/data/api/auth_models.dart';
 import 'package:radar_alert/data/auth/token_store.dart';
 import 'package:radar_alert/features/alerts/road_eta_models.dart';
 import 'package:radar_alert/features/amenities/amenity_models.dart';
 
-/// HTTP failure that survived all retries. [statusCode] is null when the
-/// request never reached the server (no connectivity, DNS failure, ...).
 class ApiException implements Exception {
   const ApiException(this.endpoint, this.statusCode, [this.cause, this.body]);
 
@@ -18,7 +15,6 @@ class ApiException implements Exception {
   final Object? cause;
   final String? body;
 
-  /// The Render free tier answers 502/503 while the service is waking up.
   bool get isServerWakingUp =>
       statusCode == 502 || statusCode == 503 || statusCode == 504;
 
@@ -53,17 +49,12 @@ class RadarApiClient {
         _tokens = tokenStore ?? SecureTokenStore();
 
   static const _productionBaseUrl = 'https://marmaradar-gateway.onrender.com';
-  static const _emulatorBaseUrl = 'http://10.0.2.2:8081';
 
-  /// Override at build time, e.g. for local dev on a physical device:
-  ///   flutter run --dart-define=RADAR_API_URL=http://192.168.1.105:8081
-  ///
-  /// Release builds default to production; debug builds default to the
-  /// Android emulator host (10.0.2.2:8081).
+  // Override: --dart-define=RADAR_API_URL=http://10.0.2.2:8081
   static String _resolveBaseUrl() {
     const fromEnv = String.fromEnvironment('RADAR_API_URL');
     if (fromEnv.isNotEmpty) return fromEnv;
-    return kReleaseMode ? _productionBaseUrl : _emulatorBaseUrl;
+    return _productionBaseUrl;
   }
 
   final String baseUrl;
@@ -71,9 +62,6 @@ class RadarApiClient {
 
   TokenStore get tokenStore => _tokens;
 
-  /// Delays between retries. Sized for Render's free-tier cold start, which
-  /// typically takes 10-15 s: waiting a few seconds and retrying usually
-  /// turns a 502 into a 200 without the user doing anything.
   static const _retryDelays = [
     Duration(seconds: 3),
     Duration(seconds: 6),
@@ -93,7 +81,6 @@ class RadarApiClient {
         if (resp.statusCode == 200) return resp;
         lastStatus = resp.statusCode;
         lastError = null;
-        // Only gateway errors are worth retrying; a 4xx won't fix itself.
         if (resp.statusCode < 500) break;
       } on SocketException catch (e) {
         lastError = e;
@@ -102,7 +89,6 @@ class RadarApiClient {
         lastError = e;
         lastStatus = null;
       } on Exception catch (e) {
-        // TimeoutException and friends: retry, the server may be waking up.
         lastError = e;
         lastStatus = null;
       }
@@ -148,9 +134,6 @@ class RadarApiClient {
     return resp;
   }
 
-  /// Authenticated GET with a single refresh-and-retry on 401. Unlike
-  /// [_getWithRetry] this attaches the Bearer token; used for user-scoped
-  /// endpoints such as drive history.
   Future<http.Response> _getAuthed(
     Uri uri, {
     bool retryOnUnauthorized = true,
@@ -173,7 +156,6 @@ class RadarApiClient {
     return resp;
   }
 
-  /// Authenticated PATCH with a single refresh-and-retry on 401.
   Future<http.Response> _patchJson(
     Uri uri,
     Map<String, dynamic> body, {
@@ -351,7 +333,6 @@ class RadarApiClient {
     return jsonDecode(resp.body) as Map<String, dynamic>;
   }
 
-  /// Road distance + duration for nearby cameras via Distance Matrix proxy.
   Future<List<RoadEtaResult>> fetchCameraEtas({
     required double originLat,
     required double originLon,
@@ -376,7 +357,6 @@ class RadarApiClient {
         .toList();
   }
 
-  /// Route amenities for spatial cells via Places Nearby proxy.
   Future<List<AmenityPlace>> fetchAmenityCells({
     required List<AmenityCellRef> cells,
     List<String> types = AmenityConstants.defaultTypes,

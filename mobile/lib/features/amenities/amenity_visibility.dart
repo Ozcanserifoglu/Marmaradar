@@ -3,12 +3,9 @@ import 'dart:math';
 import 'package:radar_alert/core/geo/bearing.dart';
 import 'package:radar_alert/features/amenities/amenity_models.dart';
 
-/// Pure selection helpers for which amenities to draw on the map.
 class AmenityVisibility {
   AmenityVisibility._();
 
-  /// Returns up to [maxCount] places nearest the driver that lie ahead
-  /// (heading cone) or inside an optional viewport bbox.
   static List<AmenityPlace> selectVisible({
     required List<AmenityPlace> places,
     required double driverLat,
@@ -54,7 +51,6 @@ class AmenityVisibility {
   }
 }
 
-/// Resolves the current cell plus look-ahead cells along [headingDeg].
 List<AmenityCellRef> amenityCellsAlongHeading({
   required double lat,
   required double lon,
@@ -65,7 +61,6 @@ List<AmenityCellRef> amenityCellsAlongHeading({
   final seen = <String>{current.key};
   final out = <AmenityCellRef>[current];
 
-  // One cell step ≈ cellDeg × 111 km.
   const stepM = AmenityConstants.cellDeg * 111000;
   for (var i = 1; i <= lookAhead; i++) {
     final point = offsetByHeading(lat, lon, headingDeg, stepM * i);
@@ -76,7 +71,6 @@ List<AmenityCellRef> amenityCellsAlongHeading({
   return out;
 }
 
-/// Moves [distanceM] from [lat]/[lon] along [headingDeg] (0 = north).
 ({double lat, double lon}) offsetByHeading(
   double lat,
   double lon,

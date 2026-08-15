@@ -2,8 +2,6 @@ import 'package:radar_alert/data/api/radar_api_client.dart';
 import 'package:radar_alert/features/amenities/amenity_models.dart';
 import 'package:radar_alert/features/amenities/amenity_session_cache.dart';
 
-/// Fetches amenity cells via the Go Places proxy with session cache and
-/// in-flight request deduplication.
 class AmenitiesRepository {
   AmenitiesRepository({
     required RadarApiClient api,
@@ -30,8 +28,6 @@ class AmenitiesRepository {
 
   List<AmenityPlace> allPlaces() => cache.allPlaces();
 
-  /// Fetches [cells] (max 3). Coalesces concurrent calls with the same set.
-  /// Returns empty on auth/network failure.
   Future<List<AmenityPlace>> fetchCells({
     required List<AmenityCellRef> cells,
     List<String> types = AmenityConstants.defaultTypes,

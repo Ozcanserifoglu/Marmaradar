@@ -10,11 +10,6 @@ import 'package:radar_alert/core/theme/app_theme.dart';
 import 'package:radar_alert/data/api/auth_models.dart';
 import 'package:radar_alert/features/drives/drive_format.dart';
 
-/// Renders a stylized replay of a recorded drive (route line + moving car on
-/// the app's dark background) and encodes it to an MP4 file on-device.
-///
-/// Google Maps' native surface can't be captured frame-by-frame, so the video
-/// uses a tile-less canvas rendering rather than the live map.
 class DriveVideoExporter {
   DriveVideoExporter._();
 
@@ -27,12 +22,6 @@ class DriveVideoExporter {
   static int get _tailFrames => (tailSeconds * fps).round();
   static int get _totalFrames => _travelFrames + _tailFrames;
 
-  /// Encodes the drive to an MP4 and returns the output file path.
-  /// [onProgress] is called with a 0..1 fraction as frames are written.
-  ///
-  /// [displayPoints] is the road-snapped (or raw fallback) geometry for the
-  /// route line and car path. [points] is required for validation / API parity
-  /// with the live replay (raw telemetry retained on the server).
   static Future<String> export({
     required List<DrivePoint> points,
     required List<SnappedPoint> displayPoints,
@@ -116,7 +105,6 @@ class DriveVideoExporter {
       Paint()..color = AppColors.night,
     );
 
-    // Full route (faint).
     final fullPath = Path()..moveTo(projected.first.dx, projected.first.dy);
     for (final o in projected.skip(1)) {
       fullPath.lineTo(o.dx, o.dy);
@@ -134,7 +122,6 @@ class DriveVideoExporter {
     final head = routeSampler.at(travelFraction);
     final headOffset = projector.project(head.lat, head.lon);
 
-    // Traveled portion (bright).
     final traveled = Path()..moveTo(projected.first.dx, projected.first.dy);
     for (var i = 1; i <= head.index; i++) {
       traveled.lineTo(projected[i].dx, projected[i].dy);
@@ -150,7 +137,6 @@ class DriveVideoExporter {
         ..strokeCap = StrokeCap.round,
     );
 
-    // Start marker.
     canvas.drawCircle(
       projected.first,
       9,
@@ -224,7 +210,6 @@ class DriveVideoExporter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = 3,
     );
-    // Arrow pointing up (toward travel direction after rotation).
     final arrow = Path()
       ..moveTo(0, -7)
       ..lineTo(5, 5)
@@ -266,7 +251,6 @@ class DriveVideoExporter {
   }
 }
 
-/// Projects lat/lon into square canvas pixel coordinates, preserving aspect.
 class _RouteProjector {
   _RouteProjector(List<SnappedPoint> points, double size, double pad) {
     var minLat = points.first.lat, maxLat = points.first.lat;
@@ -308,7 +292,6 @@ class _RouteProjector {
     final y = (lat - _minLat) * _scale;
     return Offset(
       _pad + _offsetX + x,
-      // Flip Y so north is up.
       _pad + _offsetY + (_worldH * _scale - y),
     );
   }
@@ -322,7 +305,6 @@ class _HeadSample {
   final double headingDeg;
 }
 
-/// Samples a position along [route] by cumulative geodesic distance fraction.
 class _RouteSampler {
   _RouteSampler(this._route) {
     _cum.add(0);

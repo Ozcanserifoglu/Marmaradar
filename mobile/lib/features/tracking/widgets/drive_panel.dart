@@ -7,7 +7,6 @@ import 'package:radar_alert/features/auth/auth_screen.dart';
 import 'package:radar_alert/features/drives/drives_history_screen.dart';
 import 'package:radar_alert/features/tracking/tracking_controller.dart';
 
-/// Bottom control dock: live speed, status and the main actions.
 class DrivePanel extends ConsumerWidget {
   const DrivePanel({super.key, required this.controller});
 

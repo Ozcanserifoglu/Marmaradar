@@ -25,8 +25,6 @@ class TrackingScreen extends ConsumerStatefulWidget {
 }
 
 class _TrackingScreenState extends ConsumerState<TrackingScreen> {
-  /// GPS headings are noise below walking speed; don't steer the camera with
-  /// them or the map would spin while waiting at a light.
   static const _headingMinSpeedMps = 1.5;
 
   GoogleMapController? _mapController;
@@ -38,7 +36,6 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
   double _currentZoom = 15.5;
   MapStyle _mapStyle = MapStyle.dark;
 
-  /// Last route length we fitted the camera to (avoid re-fitting on rebuilds).
   int _fittedRouteLen = 0;
 
   @override
@@ -54,8 +51,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
     try {
       await controller.moveCamera(update);
     } finally {
-      // Allow the platform a beat to deliver move-started for this update
-      // before gesture detection treats the next move as user-driven.
+      // Let the platform deliver move-started before treating the next move as user-driven.
       Future<void>.delayed(const Duration(milliseconds: 80), () {
         _programmaticMove = false;
       });
@@ -69,6 +65,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
     try {
       await controller.animateCamera(update);
     } finally {
+      // Let the platform deliver move-started before treating the next move as user-driven.
       Future<void>.delayed(const Duration(milliseconds: 80), () {
         _programmaticMove = false;
       });
@@ -83,7 +80,6 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
     final driving = controller.isRunning;
     if (driving != _wasDriving) {
       _wasDriving = driving;
-      // Drive ended: settle back to a north-up map.
       if (!driving) {
         await _moveCamera(
           CameraUpdate.newCameraPosition(
@@ -97,8 +93,6 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
       }
     }
 
-    // Always jump to the very first fix so the map opens where the user is,
-    // then keep following only while follow mode is on.
     if (!_centeredOnce) {
       _centeredOnce = true;
       _currentZoom = 15.5;
@@ -133,16 +127,10 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
     );
   }
 
-  /// Google Maps-style chase view: the map rotates so the direction of travel
-  /// points up, and the camera aims ahead of the car so the driver marker
-  /// sits in the lower part of the screen with the road ahead filling it.
   Future<void> _driveCamera(DriverSnapshot snap) async {
     final zoom = _currentZoom < 14 ? 16.5 : _currentZoom;
     _currentZoom = zoom;
 
-    // Meters per logical pixel for 256px web-mercator tiles at this
-    // zoom/latitude, used to convert the desired screen offset into a
-    // geographic look-ahead distance.
     final metersPerPixel = 156543.03392 *
         math.cos(snap.lat * math.pi / 180) /
         math.pow(2, zoom);
@@ -179,7 +167,6 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
       maxLng = math.max(maxLng, p.longitude);
     }
 
-    // Pad degenerate bounds (very short routes) so the camera still zooms.
     if ((maxLat - minLat).abs() < 0.001) {
       minLat -= 0.005;
       maxLat += 0.005;
@@ -321,7 +308,6 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
             ),
           ),
 
-          // Top overlays: search, then alert / corridor / route info.
           Positioned(
             top: padding.top + 12,
             left: 16,
@@ -390,7 +376,6 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
             ),
           ),
 
-          // Map controls: style toggle + recenter.
           Positioned(
             right: 16,
             bottom: 200 + padding.bottom,
@@ -418,7 +403,6 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
             ),
           ),
 
-          // Bottom control dock.
           Align(
             alignment: Alignment.bottomCenter,
             child: DrivePanel(controller: controller),

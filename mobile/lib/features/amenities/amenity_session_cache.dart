@@ -1,6 +1,5 @@
 import 'package:radar_alert/features/amenities/amenity_models.dart';
 
-/// In-memory per-cell amenity cache for the active drive session.
 class AmenitySessionCache {
   final Map<String, CachedAmenityCell> _byCell = {};
 
@@ -30,8 +29,6 @@ class AmenitySessionCache {
     }
   }
 
-  /// Marks [cellKeys] as fetched even when Google returned zero places,
-  /// so we do not re-request empty cells during the same drive.
   void markFetched(Iterable<String> cellKeys, {DateTime? fetchedAt}) {
     final now = fetchedAt ?? DateTime.now();
     for (final key in cellKeys) {

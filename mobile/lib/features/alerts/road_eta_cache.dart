@@ -1,7 +1,6 @@
 import 'package:radar_alert/core/geo/bearing.dart';
 import 'package:radar_alert/features/alerts/road_eta_models.dart';
 
-/// In-memory per-camera road ETA cache with TTL and move-threshold freshness.
 class RoadEtaCache {
   final Map<int, CachedRoadEta> _byCamera = {};
 
@@ -21,8 +20,6 @@ class RoadEtaCache {
 
   void clear() => _byCamera.clear();
 
-  /// Fresh when within TTL and the user has not moved past [moveThresholdM]
-  /// from the origin used for the Matrix request.
   bool isFresh(
     int cameraId, {
     required double lat,
@@ -39,8 +36,6 @@ class RoadEtaCache {
     return moved < RoadEtaConstants.moveThresholdM;
   }
 
-  /// Interpolates remaining road distance / duration using movement and time
-  /// since the last Matrix hit so the banner does not jump only on refresh.
   ({double distanceM, double durationSec})? interpolated(
     int cameraId, {
     required double lat,

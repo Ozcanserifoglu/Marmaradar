@@ -33,10 +33,8 @@ type Corridor struct {
 	LengthM     float64 `json:"length_m"`
 	Direction   string  `json:"direction"`
 	RegionCode  string  `json:"region_code"`
-	// Road-following geometry as a Google encoded polyline (precision 5),
-	// nil when the corridor has not been enriched with route geometry yet.
-	Polyline *string        `json:"polyline,omitempty"`
-	Gates    []CorridorGate `json:"gates"`
+	Polyline    *string        `json:"polyline,omitempty"`
+	Gates       []CorridorGate `json:"gates"`
 }
 
 type SyncPayload struct {

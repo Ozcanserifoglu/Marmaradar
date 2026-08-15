@@ -17,7 +17,6 @@ import 'package:radar_alert/features/corridors/corridor_tracker.dart';
 import 'package:radar_alert/features/sync/region_sync_service.dart';
 import 'package:radar_alert/features/tracking/drive_recorder.dart';
 
-/// Live proximity state for the closest camera ahead of the driver.
 class ApproachingCamera {
   const ApproachingCamera({
     required this.camera,
@@ -30,24 +29,20 @@ class ApproachingCamera {
 
   final CachedCamera camera;
 
-  /// Effective distance used for display / severity (road when available).
   final double distanceM;
 
-  /// Effective TTA in seconds (road duration when available).
   final double ttaSec;
 
   final double? roadDistanceM;
   final double? roadDurationSec;
   final RoadEtaSource source;
 
-  /// 0 = far, 1 = inside alert radius, 2 = imminent (<300 m or <15 s).
   int get severity {
     if (distanceM <= 300 || ttaSec <= 15) return 2;
     return 1;
   }
 }
 
-/// Live state of the corridor session for the UI panel.
 class CorridorStatus {
   const CorridorStatus({
     required this.corridor,
@@ -85,7 +80,6 @@ class TrackingController extends ChangeNotifier {
     _initLocation();
   }
 
-  /// ~15 km/h sustained over a few fixes counts as driving.
   static const _driveStartSpeedMps = 4.2;
   static const _driveStartFixCount = 3;
 
@@ -108,8 +102,7 @@ class TrackingController extends ChangeNotifier {
   bool _syncing = false;
   bool _autoDrive = true;
   bool _autoStarted = false;
-  // Set after a manual stop so auto-detect doesn't instantly restart the
-  // drive while the vehicle is still moving; clears once speed drops.
+  // After manual stop: block auto-restart until speed drops.
   bool _autoSuppressed = false;
   bool _amenitiesVisible = true;
   int _movingFixCount = 0;
@@ -167,8 +160,6 @@ class TrackingController extends ChangeNotifier {
     );
   }
 
-  /// Runs on app launch: gets a first fix so the map centers on the user,
-  /// then keeps a lightweight watch running for drive auto-detection.
   Future<void> _initLocation() async {
     final granted = await _location.ensureBasicPermission();
     if (!granted) {
@@ -351,8 +342,6 @@ class TrackingController extends ChangeNotifier {
     await _startIdleWatch();
   }
 
-  /// Debug-only: writes a short fake GPS trail and ends the drive so the
-  /// save / login prompt can be exercised without physically moving.
   Future<void> simulateShortDrive() async {
     if (!kDebugMode) return;
     if (_running) {
@@ -373,7 +362,6 @@ class TrackingController extends ChangeNotifier {
     notifyListeners();
 
     final origin = DateTime.now().toUtc();
-    // 6 points, ~33 m and 6 s apart — well above the recorder thresholds.
     for (var i = 0; i < 6; i++) {
       final snap = DriverSnapshot(
         lat: baseLat + i * 0.0003,
@@ -388,7 +376,6 @@ class TrackingController extends ChangeNotifier {
     await stop();
   }
 
-  /// Uploads a drive that was left pending after a guest session.
   Future<void> uploadPendingDrive() async {
     if (!_recorder.hasPendingUpload) return;
 
@@ -502,8 +489,6 @@ class TrackingController extends ChangeNotifier {
     _approaching = best;
   }
 
-  /// Fire-and-forget Matrix refresh for cameras inside the gate radius.
-  /// Never awaits on the GPS hot path.
   void _scheduleRoadEtaRefresh(
     DriverSnapshot snap,
     List<CachedCamera> cameras,
@@ -564,7 +549,6 @@ class TrackingController extends ChangeNotifier {
         if (!_running) return;
         final okCount = results.where((r) => r.isOk).length;
         if (okCount == 0) {
-          // Auth missing, Matrix down, or all elements failed — back off.
           _lastEtaAttemptAt = DateTime.now();
           return;
         }
@@ -584,8 +568,6 @@ class TrackingController extends ChangeNotifier {
     }());
   }
 
-  /// Fire-and-forget Places cell fetch for the current + look-ahead grid.
-  /// Never awaits on the GPS hot path.
   void _scheduleAmenityRefresh(DriverSnapshot snap) {
     if (!_running) return;
     if (!_amenitiesVisible) return;
@@ -612,7 +594,6 @@ class TrackingController extends ChangeNotifier {
         final results = await _amenities.fetchCells(cells: missing);
         if (!_running) return;
         if (results.isEmpty && _amenities.needsRefresh(missing)) {
-          // Auth missing or Places down — back off.
           _lastAmenityAttemptAt = DateTime.now();
           return;
         }

@@ -23,7 +23,6 @@ func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	slog.SetDefault(logger)
 
-	// API server only — data seeding runs via data-pipeline/cmd/importer (separate CLI).
 	cfg := config.Load()
 	ctx := context.Background()
 

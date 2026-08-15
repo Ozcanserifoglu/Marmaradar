@@ -19,21 +19,17 @@ const (
 	defaultTimeout    = 15 * time.Second
 )
 
-// LatLng is a geographic coordinate.
 type LatLng struct {
 	Lat float64
 	Lon float64
 }
 
-// Client calls the Google Roads Snap to Roads API.
 type Client struct {
 	apiKey     string
 	endpoint   string
 	httpClient *http.Client
 }
 
-// NewClient returns a Roads API client. An empty apiKey disables snapping;
-// SnapToRoads will return an error so callers can fall back to raw geometry.
 func NewClient(apiKey string) *Client {
 	return &Client{
 		apiKey:   strings.TrimSpace(apiKey),
@@ -44,7 +40,6 @@ func NewClient(apiKey string) *Client {
 	}
 }
 
-// Enabled reports whether an API key is configured.
 func (c *Client) Enabled() bool {
 	return c != nil && c.apiKey != ""
 }
@@ -78,9 +73,6 @@ func (e *apiError) Error() string {
 	return fmt.Sprintf("roads api %s (%d): %s", e.Status, e.Code, e.Message)
 }
 
-// SnapToRoads snaps GPS points to the most likely roads with interpolation.
-// Paths longer than 100 points are processed in overlapping pages per
-// https://developers.google.com/maps/documentation/roads/advanced
 func (c *Client) SnapToRoads(ctx context.Context, points []LatLng) ([]LatLng, error) {
 	if !c.Enabled() {
 		return nil, fmt.Errorf("roads api key not configured")

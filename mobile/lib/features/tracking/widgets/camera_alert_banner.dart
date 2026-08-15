@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:radar_alert/core/theme/app_theme.dart';
 import 'package:radar_alert/features/tracking/tracking_controller.dart';
 
-/// Pulsing red banner shown while a camera is ahead of the driver.
 class CameraAlertBanner extends StatefulWidget {
   const CameraAlertBanner({super.key, required this.approaching});
 

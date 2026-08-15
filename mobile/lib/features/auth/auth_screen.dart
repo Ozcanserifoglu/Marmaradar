@@ -3,10 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:radar_alert/app.dart';
 import 'package:radar_alert/core/theme/app_theme.dart';
 
-/// Opens [AuthScreen] as a dismissible full-screen modal.
-///
-/// Returns `true` if the user signed in successfully, otherwise `false`
-/// (dismissed or failed without leaving authenticated).
 Future<bool> showAuthModal(BuildContext context) async {
   final result = await Navigator.of(context).push<bool>(
     MaterialPageRoute(
@@ -20,7 +16,6 @@ Future<bool> showAuthModal(BuildContext context) async {
 class AuthScreen extends ConsumerStatefulWidget {
   const AuthScreen({super.key, this.asModal = false});
 
-  /// When true, shows a close control and pops the route on success.
   final bool asModal;
 
   @override

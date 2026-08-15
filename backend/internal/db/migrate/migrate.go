@@ -18,8 +18,6 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
     applied_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );`
 
-// Run applies pending SQL migrations from dir in lexicographic order.
-// Each file is recorded in schema_migrations after a successful run..
 func Run(ctx context.Context, pool *pgxpool.Pool, dir string) error {
 	if _, err := os.Stat(dir); err != nil {
 		return fmt.Errorf("migrations directory %q: %w", dir, err)
@@ -158,8 +156,6 @@ func applyMigration(ctx context.Context, pool *pgxpool.Pool, version, sql string
 	return tx.Commit(ctx)
 }
 
-// ResolveDir returns the migrations directory from MIGRATIONS_DIR or common
-// monorepo-relative paths for local development.
 func ResolveDir() (string, error) {
 	if dir := os.Getenv("MIGRATIONS_DIR"); dir != "" {
 		return dir, nil
@@ -186,7 +182,6 @@ func ResolveDir() (string, error) {
 	return "", fmt.Errorf("migrations directory not found; set MIGRATIONS_DIR (e.g. /migrations in production)")
 }
 
-// Ping verifies the database is reachable before migrations run.
 func Ping(ctx context.Context, pool *pgxpool.Pool) error {
 	return pool.Ping(ctx)
 }

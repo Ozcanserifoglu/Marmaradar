@@ -1,6 +1,5 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-/// Persists JWT session tokens.
 abstract class TokenStore {
   Future<String?> get accessToken;
   Future<String?> get refreshToken;
@@ -18,7 +17,6 @@ abstract class TokenStore {
   Future<void> clear();
 }
 
-/// Platform secure storage (Keychain / EncryptedSharedPreferences).
 class SecureTokenStore implements TokenStore {
   SecureTokenStore({FlutterSecureStorage? storage})
       : _storage = storage ?? const FlutterSecureStorage();
@@ -76,7 +74,6 @@ class SecureTokenStore implements TokenStore {
   }
 }
 
-/// In-memory store for widget/unit tests (no platform plugins).
 class MemoryTokenStore implements TokenStore {
   String? _accessToken;
   String? _refreshToken;

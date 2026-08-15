@@ -42,8 +42,6 @@ class _DestinationSearchBarState extends State<DestinationSearchBar> {
   @override
   void didUpdateWidget(covariant DestinationSearchBar oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Sync when the controller sets the query (e.g. after selecting a place)
-    // without fighting the user's typing caret.
     if (widget.query != _controller.text &&
         widget.query != oldWidget.query) {
       _controller.value = TextEditingValue(

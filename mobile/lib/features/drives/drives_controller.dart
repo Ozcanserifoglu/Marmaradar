@@ -4,7 +4,6 @@ import 'package:radar_alert/data/api/radar_api_client.dart';
 
 enum DrivesLoadState { idle, loading, ready, error }
 
-/// Loads the signed-in user's recorded drives from the backend.
 class DrivesController extends ChangeNotifier {
   DrivesController({required RadarApiClient apiClient}) : _api = apiClient;
 
@@ -39,7 +38,6 @@ class DrivesController extends ChangeNotifier {
 
   Future<DriveDetail> loadDetail(String id) => _api.fetchDrive(id);
 
-  /// Renames a drive on the backend and updates the cached list in place.
   Future<void> rename(String id, String name) async {
     await _api.renameDrive(id, name);
     final trimmed = name.trim();

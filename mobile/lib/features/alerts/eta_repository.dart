@@ -4,8 +4,6 @@ import 'package:radar_alert/data/api/radar_api_client.dart';
 import 'package:radar_alert/features/alerts/road_eta_cache.dart';
 import 'package:radar_alert/features/alerts/road_eta_models.dart';
 
-/// Fetches road ETA via the Go Distance Matrix proxy with client-side
-/// cache, TTL/move throttle, and in-flight request deduplication.
 class EtaRepository {
   EtaRepository({
     required RadarApiClient api,
@@ -19,7 +17,6 @@ class EtaRepository {
   Future<List<RoadEtaResult>>? _inFlight;
   String? _inFlightKey;
 
-  /// Returns interpolated road metrics when a fresh-enough cache entry exists.
   ({double distanceM, double durationSec})? lookup(
     int cameraId, {
     required double lat,
@@ -28,7 +25,6 @@ class EtaRepository {
     return cache.interpolated(cameraId, lat: lat, lon: lon);
   }
 
-  /// Whether [cameraIds] need a network refresh at the current origin.
   bool needsRefresh(
     Iterable<int> cameraIds, {
     required double lat,
@@ -40,8 +36,6 @@ class EtaRepository {
     return false;
   }
 
-  /// Fetches road ETA for [destinations] (max 3). Coalesces concurrent calls
-  /// with the same destination set. Returns empty on auth/network failure.
   Future<List<RoadEtaResult>> refresh({
     required double originLat,
     required double originLon,

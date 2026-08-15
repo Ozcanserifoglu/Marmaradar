@@ -18,8 +18,7 @@ import (
 const (
 	etaMaxDestinations = 3
 	etaCacheTTL        = 25 * time.Second
-	// ~100 m grid at mid-latitudes for shared cache hits.
-	etaOriginCellDeg = 0.001
+	etaOriginCellDeg   = 0.001
 )
 
 var (
@@ -30,26 +29,22 @@ var (
 	ErrEtaInvalidCameraID = errors.New("invalid camera destination")
 )
 
-// EtaDestination is a camera the client wants road distance/ETA for.
 type EtaDestination struct {
 	CameraID int64   `json:"camera_id"`
 	Lat      float64 `json:"lat"`
 	Lon      float64 `json:"lon"`
 }
 
-// EtaRequest is the client payload for POST /v1/eta/cameras.
 type EtaRequest struct {
-	Origin        LatLon           `json:"origin"`
-	Destinations  []EtaDestination `json:"destinations"`
+	Origin       LatLon           `json:"origin"`
+	Destinations []EtaDestination `json:"destinations"`
 }
 
-// LatLon is a simple coordinate pair in JSON requests.
 type LatLon struct {
 	Lat float64 `json:"lat"`
 	Lon float64 `json:"lon"`
 }
 
-// EtaResult is one camera's road metrics.
 type EtaResult struct {
 	CameraID    int64   `json:"camera_id"`
 	DistanceM   float64 `json:"distance_m"`
@@ -62,7 +57,6 @@ type etaCacheEntry struct {
 	expiresAt time.Time
 }
 
-// EtaService proxies Distance Matrix with a short in-memory cache.
 type EtaService struct {
 	pool   *pgxpool.Pool
 	matrix *distancematrix.Client
@@ -83,7 +77,6 @@ func NewEtaService(pool *pgxpool.Pool, matrix *distancematrix.Client) *EtaServic
 	}
 }
 
-// CamerasETA returns road distance and duration for up to 3 cameras ahead.
 func (s *EtaService) CamerasETA(ctx context.Context, req EtaRequest) ([]EtaResult, error) {
 	if s == nil || s.matrix == nil || !s.matrix.Enabled() {
 		return nil, ErrEtaUnavailable
@@ -208,7 +201,6 @@ func (s *EtaService) getCache(key string) ([]EtaResult, bool) {
 func (s *EtaService) putCache(key string, results []EtaResult) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	// Opportunistic prune of expired entries to bound memory.
 	now := time.Now()
 	for k, v := range s.cache {
 		if now.After(v.expiresAt) {

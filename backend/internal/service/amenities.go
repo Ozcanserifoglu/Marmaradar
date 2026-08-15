@@ -15,8 +15,8 @@ import (
 )
 
 const (
-	amenityCellDeg       = 0.02 // ≈ 2 km
-	amenitySearchRadiusM = 1500 // cell half-diagonal coverage
+	amenityCellDeg       = 0.02
+	amenitySearchRadiusM = 1500
 	amenityPerCellCap    = 12
 	amenityMaxCells      = 3
 	amenityCacheTTL      = 45 * time.Minute
@@ -30,19 +30,16 @@ var (
 	ErrAmenitiesInvalidType = errors.New("invalid amenity type")
 )
 
-// AmenityCellRef identifies a spatial grid cell.
 type AmenityCellRef struct {
 	LatIndex int `json:"lat_index"`
 	LonIndex int `json:"lon_index"`
 }
 
-// AmenitiesRequest is the client payload for POST /v1/amenities/cells.
 type AmenitiesRequest struct {
 	Cells []AmenityCellRef `json:"cells"`
 	Types []string         `json:"types"`
 }
 
-// AmenityPlace is one place returned to the client.
 type AmenityPlace struct {
 	PlaceID  string   `json:"place_id"`
 	Name     string   `json:"name"`
@@ -59,7 +56,6 @@ type amenityCacheEntry struct {
 	expiresAt time.Time
 }
 
-// AmenitiesService proxies Places Nearby Search with a cell-keyed in-memory cache.
 type AmenitiesService struct {
 	places *places.Client
 
@@ -78,7 +74,6 @@ func NewAmenitiesService(placesClient *places.Client) *AmenitiesService {
 	}
 }
 
-// Cells returns amenities for up to 3 spatial cells.
 func (s *AmenitiesService) Cells(ctx context.Context, req AmenitiesRequest) ([]AmenityPlace, error) {
 	if s == nil || s.places == nil || !s.places.Enabled() {
 		return nil, ErrAmenitiesUnavailable
@@ -288,14 +283,12 @@ func cellCenter(c AmenityCellRef) (lat, lon float64) {
 }
 
 func validAmenityCell(c AmenityCellRef) bool {
-	// Rough world bounds for 0.02° cells.
 	maxLat := int(math.Floor(90 / amenityCellDeg))
 	maxLon := int(math.Floor(180 / amenityCellDeg))
 	return c.LatIndex >= -maxLat && c.LatIndex <= maxLat &&
 		c.LonIndex >= -maxLon && c.LonIndex <= maxLon
 }
 
-// AmenityCellIndexes converts lat/lon to grid indexes (exported for tests).
 func AmenityCellIndexes(lat, lon float64) (latIndex, lonIndex int) {
 	return int(math.Floor(lat / amenityCellDeg)), int(math.Floor(lon / amenityCellDeg))
 }

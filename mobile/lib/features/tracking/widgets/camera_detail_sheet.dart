@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:radar_alert/core/theme/app_theme.dart';
 import 'package:radar_alert/data/local/app_database.dart';
 
-/// Human-readable description of a camera's type, in Turkish.
 ({String title, String description, IconData icon}) cameraTypeInfo(
   CachedCamera camera,
 ) {
@@ -137,7 +136,6 @@ class CameraDetailSheet extends StatelessWidget {
   }
 }
 
-/// Turkish speed-limit sign: white disc with a red ring.
 class _SpeedLimitSign extends StatelessWidget {
   const _SpeedLimitSign({required this.limit});
 

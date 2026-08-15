@@ -11,21 +11,15 @@ import 'package:radar_alert/features/tracking/widgets/amenity_detail_sheet.dart'
 import 'package:radar_alert/features/tracking/widgets/camera_detail_sheet.dart';
 import 'package:radar_alert/features/tracking/widgets/map_marker_icons.dart';
 
-/// Bursa city center, used before the first GPS fix arrives.
 const _fallbackCenter = LatLng(40.1885, 29.0610);
 
-/// Keeps the map centered somewhere over Turkey (with a little slack past the
-/// borders) so it can never get "lost" in empty world tiles.
 final _turkeyBounds = LatLngBounds(
   southwest: const LatLng(35.0, 24.5),
   northeast: const LatLng(42.9, 45.5),
 );
 
-/// Below this zoom the country-wide camera set is drawn as cheap dots
-/// instead of full marker icons.
 const _markerMinZoom = 10.0;
 
-/// Amenity markers need tighter zoom to stay useful and uncluttered.
 const _amenityMinZoom = AmenityConstants.minZoom;
 
 enum MapStyle { dark, light }
@@ -58,11 +52,8 @@ class RadarMapView extends StatefulWidget {
   final VoidCallback onUserGesture;
   final ValueChanged<double> onCameraMoved;
 
-  /// When true, camera moves come from chase/follow logic — ignore for
-  /// breaking follow mode.
   final bool Function() isProgrammaticMove;
 
-  /// Live Directions route (blue). Independent of corridor overlays.
   final List<LatLng>? routePoints;
   final LatLng? destination;
   final String? destinationTitle;
@@ -253,8 +244,6 @@ class _RadarMapViewState extends State<RadarMapView> {
           position: LatLng(snapshot.lat, snapshot.lon),
           icon: userIcon,
           anchor: const Offset(0.5, 0.5),
-          // Flat + rotation: geographic heading; chase bearing keeps it
-          // pointing up-screen while driving.
           flat: true,
           rotation: snapshot.headingDeg,
           zIndexInt: 10,

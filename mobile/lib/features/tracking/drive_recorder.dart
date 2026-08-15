@@ -14,12 +14,9 @@ enum DriveUploadStatus {
   uploaded,
   failed,
   tooShort,
-  /// Drive ended with enough points, but cloud save needs a signed-in account.
   needsAuth,
 }
 
-/// Samples GPS during an active drive (20 m or 5 s) into Drift, then uploads
-/// the trail when the drive ends.
 class DriveRecorder {
   DriveRecorder({
     required AppDatabase db,
@@ -97,8 +94,6 @@ class DriveRecorder {
     _lastStored = snap;
   }
 
-  /// Ends the local session and uploads when [upload] is true and there are
-  /// enough points. When [upload] is false, keeps the drive pending for later.
   Future<DriveUploadStatus> finish({bool upload = true}) async {
     final driveId = _activeDriveId;
     if (driveId == null) {
@@ -137,7 +132,6 @@ class DriveRecorder {
     return _uploadDrive(driveId, endedAt, points);
   }
 
-  /// Uploads a drive left pending after a guest session ended.
   Future<DriveUploadStatus> uploadPending() async {
     final driveId = _pendingUploadDriveId;
     if (driveId == null) {

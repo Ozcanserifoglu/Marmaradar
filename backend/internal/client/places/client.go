@@ -18,7 +18,6 @@ const (
 	maxResults     = 20
 )
 
-// Place is a simplified Nearby Search result.
 type Place struct {
 	PlaceID  string
 	Name     string
@@ -27,17 +26,15 @@ type Place struct {
 	Types    []string
 	OpenNow  *bool
 	Rating   *float64
-	Category string // logical category set by the caller (gas_station / rest_stop)
+	Category string
 }
 
-// Client calls the Google Places Nearby Search API.
 type Client struct {
 	apiKey     string
 	endpoint   string
 	httpClient *http.Client
 }
 
-// NewClient returns a Places client. An empty apiKey disables calls.
 func NewClient(apiKey string) *Client {
 	return &Client{
 		apiKey:   strings.TrimSpace(apiKey),
@@ -48,12 +45,10 @@ func NewClient(apiKey string) *Client {
 	}
 }
 
-// Enabled reports whether an API key is configured.
 func (c *Client) Enabled() bool {
 	return c != nil && c.apiKey != ""
 }
 
-// SetHTTPForTest overrides the Nearby Search endpoint and HTTP client (tests only).
 func (c *Client) SetHTTPForTest(endpoint string, httpClient *http.Client) {
 	if c == nil {
 		return
@@ -88,8 +83,6 @@ type geometry struct {
 	} `json:"location"`
 }
 
-// NearbySearch queries Places around lat/lon within radiusM.
-// Exactly one of placeType or keyword should be set for a focused query.
 func (c *Client) NearbySearch(ctx context.Context, lat, lon, radiusM float64, placeType, keyword, category string) ([]Place, error) {
 	if !c.Enabled() {
 		return nil, fmt.Errorf("places api key not configured")

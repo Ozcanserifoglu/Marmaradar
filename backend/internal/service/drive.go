@@ -32,7 +32,6 @@ type DrivePoint struct {
 	RecordedAt time.Time `json:"recorded_at"`
 }
 
-// SnappedPoint is a road-aligned coordinate without telemetry.
 type SnappedPoint struct {
 	Lat float64 `json:"lat"`
 	Lon float64 `json:"lon"`
@@ -234,7 +233,6 @@ func (s *DriveService) Get(ctx context.Context, userID uuid.UUID, driveID string
 
 const maxDriveNameLen = 120
 
-// normalizeDriveNamePtr trims a name pointer. Blank becomes nil; over-long returns ErrInvalidName.
 func normalizeDriveNamePtr(name *string) (*string, error) {
 	if name == nil {
 		return nil, nil
@@ -249,7 +247,6 @@ func normalizeDriveNamePtr(name *string) (*string, error) {
 	return &trimmed, nil
 }
 
-// Rename sets (or clears, when blank) the display name of a user's drive.
 func (s *DriveService) Rename(ctx context.Context, userID uuid.UUID, driveID, name string) error {
 	id, err := uuid.Parse(driveID)
 	if err != nil {
