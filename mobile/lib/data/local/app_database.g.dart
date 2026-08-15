@@ -866,9 +866,6 @@ class CachedCorridor extends DataClass implements Insertable<CachedCorridor> {
   final int maxspeedKmh;
   final double lengthM;
   final String regionCode;
-
-  /// Road-following geometry as a Google encoded polyline (precision 5).
-  /// Null for corridors the server hasn't enriched with route geometry.
   final String? polyline;
   final DateTime updatedAt;
   const CachedCorridor({
@@ -1776,8 +1773,6 @@ class LocalDrive extends DataClass implements Insertable<LocalDrive> {
   final String id;
   final DateTime startedAt;
   final DateTime? endedAt;
-
-  /// recording | pending_upload | uploaded
   final String status;
   final String? remoteId;
   const LocalDrive({
@@ -2819,10 +2814,7 @@ final class $$CachedCorridorsTableReferences
   _cachedCorridorGatesRefsTable(_$AppDatabase db) =>
       MultiTypedResultKey.fromTable(
         db.cachedCorridorGates,
-        aliasName: $_aliasNameGenerator(
-          db.cachedCorridors.id,
-          db.cachedCorridorGates.corridorId,
-        ),
+        aliasName: 'cached_corridors__id__cached_corridor_gates__corridor_id',
       );
 
   $$CachedCorridorGatesTableProcessedTableManager get cachedCorridorGatesRefs {
@@ -3174,13 +3166,9 @@ final class $$CachedCorridorGatesTableReferences
     super.$_typedResult,
   );
 
-  static $CachedCorridorsTable _corridorIdTable(_$AppDatabase db) =>
-      db.cachedCorridors.createAlias(
-        $_aliasNameGenerator(
-          db.cachedCorridorGates.corridorId,
-          db.cachedCorridors.id,
-        ),
-      );
+  static $CachedCorridorsTable _corridorIdTable(_$AppDatabase db) => db
+      .cachedCorridors
+      .createAlias('cached_corridor_gates__corridor_id__cached_corridors__id');
 
   $$CachedCorridorsTableProcessedTableManager get corridorId {
     final $_column = $_itemColumn<int>('corridor_id')!;
@@ -3558,10 +3546,7 @@ final class $$LocalDrivesTableReferences
   static MultiTypedResultKey<$LocalDrivePointsTable, List<LocalDrivePoint>>
   _localDrivePointsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
     db.localDrivePoints,
-    aliasName: $_aliasNameGenerator(
-      db.localDrives.id,
-      db.localDrivePoints.driveId,
-    ),
+    aliasName: 'local_drives__id__local_drive_points__drive_id',
   );
 
   $$LocalDrivePointsTableProcessedTableManager get localDrivePointsRefs {
@@ -3870,10 +3855,8 @@ final class $$LocalDrivePointsTableReferences
     super.$_typedResult,
   );
 
-  static $LocalDrivesTable _driveIdTable(_$AppDatabase db) =>
-      db.localDrives.createAlias(
-        $_aliasNameGenerator(db.localDrivePoints.driveId, db.localDrives.id),
-      );
+  static $LocalDrivesTable _driveIdTable(_$AppDatabase db) => db.localDrives
+      .createAlias('local_drive_points__drive_id__local_drives__id');
 
   $$LocalDrivesTableProcessedTableManager get driveId {
     final $_column = $_itemColumn<String>('drive_id')!;
