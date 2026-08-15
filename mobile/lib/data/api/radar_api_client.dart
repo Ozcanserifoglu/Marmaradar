@@ -6,6 +6,7 @@ import 'package:radar_alert/data/api/auth_models.dart';
 import 'package:radar_alert/data/auth/token_store.dart';
 import 'package:radar_alert/features/alerts/road_eta_models.dart';
 import 'package:radar_alert/features/amenities/amenity_models.dart';
+import 'package:radar_alert/features/profile/profile_models.dart';
 
 class ApiException implements Exception {
   const ApiException(this.endpoint, this.statusCode, [this.cause, this.body]);
@@ -295,6 +296,15 @@ class RadarApiClient {
     if (resp.statusCode != 204 && resp.statusCode != 200) {
       throw ApiException('drives/$id', resp.statusCode, null, resp.body);
     }
+  }
+
+  Future<UserStats> fetchMyStats() async {
+    final uri = Uri.parse('$baseUrl/v1/users/me/stats');
+    final resp = await _getAuthed(uri);
+    if (resp.statusCode != 200) {
+      throw ApiException('users/me/stats', resp.statusCode, null, resp.body);
+    }
+    return UserStats.fromJson(jsonDecode(resp.body) as Map<String, dynamic>);
   }
 
   Future<List<Map<String, dynamic>>> fetchCamerasNearby({

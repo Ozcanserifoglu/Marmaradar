@@ -7,6 +7,7 @@ import 'package:radar_alert/data/auth/token_store.dart';
 import 'package:radar_alert/features/auth/auth_controller.dart';
 import 'package:radar_alert/features/directions/directions_controller.dart';
 import 'package:radar_alert/features/drives/drives_controller.dart';
+import 'package:radar_alert/features/profile/profile_controller.dart';
 import 'package:radar_alert/features/tracking/tracking_controller.dart';
 import 'package:radar_alert/features/tracking/tracking_screen.dart';
 
@@ -77,17 +78,27 @@ final authControllerProvider =
   );
 });
 
+final drivesControllerProvider =
+    ChangeNotifierProvider<DrivesController>((ref) {
+  return DrivesController(apiClient: _sharedApiClient);
+});
+
+final profileControllerProvider =
+    ChangeNotifierProvider<ProfileController>((ref) {
+  return ProfileController(apiClient: _sharedApiClient);
+});
+
 final trackingControllerProvider =
     ChangeNotifierProvider<TrackingController>((ref) {
-  return TrackingController(apiClient: _sharedApiClient);
+  return TrackingController(
+    apiClient: _sharedApiClient,
+    onDriveUploaded: () {
+      ref.read(profileControllerProvider).invalidate();
+    },
+  );
 });
 
 final directionsControllerProvider =
     ChangeNotifierProvider<DirectionsController>((ref) {
   return DirectionsController();
-});
-
-final drivesControllerProvider =
-    ChangeNotifierProvider<DrivesController>((ref) {
-  return DrivesController(apiClient: _sharedApiClient);
 });

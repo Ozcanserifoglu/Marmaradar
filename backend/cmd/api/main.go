@@ -76,11 +76,13 @@ func main() {
 		slog.Info("places amenities disabled; set GOOGLE_MAPS_API_KEY to enable")
 	}
 	driveSvc := service.NewDriveService(pool, roadsClient)
+	statsSvc := service.NewStatsService(pool)
 	etaSvc := service.NewEtaService(pool, matrixClient)
 	amenitiesSvc := service.NewAmenitiesService(placesClient)
 
 	authHandler := handler.NewAuthHandler(authSvc)
 	driveHandler := handler.NewDriveHandler(driveSvc)
+	statsHandler := handler.NewStatsHandler(statsSvc)
 	etaHandler := handler.NewEtaHandler(etaSvc)
 	amenitiesHandler := handler.NewAmenitiesHandler(amenitiesSvc)
 
@@ -110,6 +112,7 @@ func main() {
 			r.Get("/drives", driveHandler.List)
 			r.Get("/drives/{id}", driveHandler.Detail)
 			r.Patch("/drives/{id}", driveHandler.Rename)
+			r.Get("/users/me/stats", statsHandler.Me)
 			r.Post("/eta/cameras", etaHandler.Cameras)
 			r.Post("/amenities/cells", amenitiesHandler.Cells)
 		})

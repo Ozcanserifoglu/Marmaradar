@@ -66,12 +66,14 @@ class TrackingController extends ChangeNotifier {
     AlertPlayer? alertPlayer,
     EtaRepository? etaRepository,
     AmenitiesRepository? amenitiesRepository,
+    VoidCallback? onDriveUploaded,
   })  : _db = database ?? AppDatabase(),
         _location = locationService ?? BackgroundLocationService(),
         _alerts = AlertEngine(),
         _corridors = CorridorTracker(),
         _player = alertPlayer ?? AlertPlayer(),
-        _api = apiClient ?? RadarApiClient() {
+        _api = apiClient ?? RadarApiClient(),
+        _onDriveUploaded = onDriveUploaded {
     _sync = RegionSyncService(_db, _api);
     _recorder = DriveRecorder(db: _db, api: _api);
     _eta = etaRepository ?? EtaRepository(api: _api);
@@ -86,6 +88,7 @@ class TrackingController extends ChangeNotifier {
   final BackgroundLocationService _location;
   final AppDatabase _db;
   final RadarApiClient _api;
+  final VoidCallback? _onDriveUploaded;
   late final RegionSyncService _sync;
   late final DriveRecorder _recorder;
   late final EtaRepository _eta;
@@ -324,6 +327,7 @@ class TrackingController extends ChangeNotifier {
     switch (result) {
       case DriveUploadStatus.uploaded:
         _status = 'Sürüş kaydedildi';
+        _onDriveUploaded?.call();
       case DriveUploadStatus.tooShort:
         _status = _autoDrive
             ? 'Durduruldu — sürüş çok kısa, kayıt yok'
@@ -388,6 +392,7 @@ class TrackingController extends ChangeNotifier {
     switch (result) {
       case DriveUploadStatus.uploaded:
         _status = 'Sürüş kaydedildi';
+        _onDriveUploaded?.call();
       case DriveUploadStatus.tooShort:
         _status = 'Sürüş çok kısa, kayıt yok';
       case DriveUploadStatus.failed:

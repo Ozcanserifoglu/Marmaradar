@@ -118,11 +118,17 @@ func (s *DriveService) Create(ctx context.Context, userID uuid.UUID, in CreateDr
 		snappedArg = string(snappedJSON)
 	}
 
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("begin drive tx: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
 	var (
 		id      uuid.UUID
 		lengthM float64
 	)
-	err = s.pool.QueryRow(ctx, `
+	err = tx.QueryRow(ctx, `
 		INSERT INTO drives (user_id, path, points, snapped_points, started_at, ended_at, length_m, point_count, name)
 		VALUES (
 			$1,
@@ -139,6 +145,14 @@ func (s *DriveService) Create(ctx context.Context, userID uuid.UUID, in CreateDr
 	`, userID, wkt, string(pointsJSON), snappedArg, in.StartedAt, in.EndedAt, len(in.Points), namePtr).Scan(&id, &lengthM)
 	if err != nil {
 		return nil, fmt.Errorf("insert drive: %w", err)
+	}
+
+	if err := applyDriveToStats(ctx, tx, userID, id, lengthM, in.StartedAt, in.EndedAt, in.Points); err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("commit drive tx: %w", err)
 	}
 
 	return &DriveResult{

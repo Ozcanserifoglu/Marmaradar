@@ -5,6 +5,7 @@ import 'package:radar_alert/app.dart';
 import 'package:radar_alert/core/theme/app_theme.dart';
 import 'package:radar_alert/features/auth/auth_screen.dart';
 import 'package:radar_alert/features/drives/drives_history_screen.dart';
+import 'package:radar_alert/features/profile/profile_screen.dart';
 import 'package:radar_alert/features/tracking/tracking_controller.dart';
 
 class DrivePanel extends ConsumerWidget {
@@ -107,15 +108,21 @@ class DrivePanel extends ConsumerWidget {
               const SizedBox(width: 12),
               _AccountButton(
                 authenticated: authenticated,
-                onLogin: () async {
-                  final ok = await showAuthModal(context);
-                  if (ok && context.mounted) {
-                    await ref
-                        .read(trackingControllerProvider)
-                        .uploadPendingDrive();
+                onPressed: () async {
+                  if (!authenticated) {
+                    final ok = await showAuthModal(context);
+                    if (ok && context.mounted) {
+                      await ref
+                          .read(trackingControllerProvider)
+                          .uploadPendingDrive();
+                    }
+                    return;
                   }
+                  if (!context.mounted) return;
+                  await Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                  );
                 },
-                onLogout: () => ref.read(authControllerProvider).logout(),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -352,13 +359,11 @@ class _SyncButton extends StatelessWidget {
 class _AccountButton extends StatelessWidget {
   const _AccountButton({
     required this.authenticated,
-    required this.onLogin,
-    required this.onLogout,
+    required this.onPressed,
   });
 
   final bool authenticated;
-  final VoidCallback onLogin;
-  final VoidCallback onLogout;
+  final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -366,7 +371,7 @@ class _AccountButton extends StatelessWidget {
       width: 56,
       height: 56,
       child: OutlinedButton(
-        onPressed: authenticated ? onLogout : onLogin,
+        onPressed: onPressed,
         style: OutlinedButton.styleFrom(
           padding: EdgeInsets.zero,
           shape: RoundedRectangleBorder(
@@ -374,7 +379,7 @@ class _AccountButton extends StatelessWidget {
           ),
         ),
         child: Icon(
-          authenticated ? Icons.logout : Icons.login,
+          authenticated ? Icons.person : Icons.login,
           size: 22,
         ),
       ),

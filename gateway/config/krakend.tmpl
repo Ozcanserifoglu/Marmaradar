@@ -220,6 +220,26 @@
       ]
     },
     {
+      "endpoint": "/v1/users/me/stats",
+      "method": "GET",
+      "output_encoding": "no-op",
+      "input_headers": ["Authorization"],
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "max_rate": 100,
+          "client_max_rate": 10,
+          "strategy": "ip"
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/v1/users/me/stats",
+          "encoding": "no-op",
+          "host": {{ marshal .backend.host }}
+        }
+      ]
+    },
+    {
       "endpoint": "/v1/eta/cameras",
       "method": "POST",
       "output_encoding": "no-op",
