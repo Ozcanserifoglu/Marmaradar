@@ -84,8 +84,10 @@
       "output_encoding": "no-op",
       "extra_config": {
         "qos/ratelimit/router": {
-          "max_rate": 20,
-          "client_max_rate": 2,
+          "max_rate": 60,
+          "client_max_rate": 10,
+          "client_capacity": 5,
+          "every": "1m",
           "strategy": "ip"
         }
       },
@@ -103,8 +105,10 @@
       "output_encoding": "no-op",
       "extra_config": {
         "qos/ratelimit/router": {
-          "max_rate": 20,
-          "client_max_rate": 2,
+          "max_rate": 60,
+          "client_max_rate": 10,
+          "client_capacity": 5,
+          "every": "1m",
           "strategy": "ip"
         }
       },

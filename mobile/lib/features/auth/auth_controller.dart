@@ -71,6 +71,7 @@ class AuthController extends ChangeNotifier {
   }
 
   Future<bool> _authenticate(Future<AuthTokens> Function() action) async {
+    if (_busy) return false;
     _busy = true;
     _error = null;
     notifyListeners();

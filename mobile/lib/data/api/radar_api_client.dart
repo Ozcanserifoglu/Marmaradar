@@ -27,6 +27,9 @@ class ApiException implements Exception {
   bool get isUnauthorized => statusCode == 401;
 
   String get message {
+    if (statusCode == 429) {
+      return 'Çok fazla deneme. Lütfen bir dakika bekleyip tekrar deneyin.';
+    }
     if (body != null && body!.isNotEmpty) {
       try {
         final map = jsonDecode(body!) as Map<String, dynamic>;
