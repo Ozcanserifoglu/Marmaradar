@@ -11,7 +11,7 @@ mobile/.packages
 mobile/build/
 mobile/.pub-cache/
 mobile/.pub/
-mobile/pubspec.lock
+#mobile/pubspec.lock
 
 # IDE / local dev (keep on disk, never push to GitHub)
 .idea/
