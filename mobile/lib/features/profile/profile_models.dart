@@ -21,6 +21,9 @@ class UserStats {
     required this.totalDriveTimeSec,
     required this.totalDrives,
     required this.radarsEncountered,
+    required this.reportsSubmitted,
+    required this.confirmationsGiven,
+    required this.driversSaved,
     required this.achievements,
     required this.updatedAt,
   });
@@ -29,6 +32,9 @@ class UserStats {
   final int totalDriveTimeSec;
   final int totalDrives;
   final int radarsEncountered;
+  final int reportsSubmitted;
+  final int confirmationsGiven;
+  final int driversSaved;
   final List<AchievementUnlock> achievements;
   final DateTime updatedAt;
 
@@ -45,6 +51,9 @@ class UserStats {
       totalDriveTimeSec: (json['total_drive_time_sec'] as num).toInt(),
       totalDrives: json['total_drives'] as int,
       radarsEncountered: json['radars_encountered'] as int,
+      reportsSubmitted: (json['reports_submitted'] as num?)?.toInt() ?? 0,
+      confirmationsGiven: (json['confirmations_given'] as num?)?.toInt() ?? 0,
+      driversSaved: (json['drivers_saved'] as num?)?.toInt() ?? 0,
       achievements: raw.map(AchievementUnlock.fromJson).toList(),
       updatedAt: DateTime.parse(json['updated_at'] as String).toLocal(),
     );
@@ -95,5 +104,29 @@ const achievementCatalog = <AchievementDefinition>[
     title: 'Radar İzcisi',
     description: '25 farklı radarın yanından geçin',
     icon: 'radar',
+  ),
+  AchievementDefinition(
+    code: 'first_report',
+    title: 'İlk Bildirim',
+    description: 'İlk mobil radar bildirimini gönderin',
+    icon: 'report',
+  ),
+  AchievementDefinition(
+    code: 'community_helper',
+    title: 'Topluluk Yardımcısı',
+    description: '10 radar doğrulaması yapın',
+    icon: 'helper',
+  ),
+  AchievementDefinition(
+    code: 'radar_reporter',
+    title: 'Radar Muhabiri',
+    description: '10 radar bildirimi gönderin',
+    icon: 'reporter',
+  ),
+  AchievementDefinition(
+    code: 'crowd_guardian',
+    title: 'Topluluk Koruyucusu',
+    description: 'Bildirimleriniz 25 sürücüyü uyarsın',
+    icon: 'guardian',
   ),
 ];

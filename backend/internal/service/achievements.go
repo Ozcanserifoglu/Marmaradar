@@ -10,11 +10,15 @@ import (
 )
 
 const (
-	AchievementFirstDrive  = "first_drive"
-	AchievementClub100km   = "club_100km"
-	AchievementNightRider  = "night_rider"
-	AchievementSafeDriver  = "safe_driver"
-	AchievementRadarScout  = "radar_scout"
+	AchievementFirstDrive      = "first_drive"
+	AchievementClub100km       = "club_100km"
+	AchievementNightRider      = "night_rider"
+	AchievementSafeDriver      = "safe_driver"
+	AchievementRadarScout      = "radar_scout"
+	AchievementFirstReport     = "first_report"
+	AchievementCommunityHelper = "community_helper"
+	AchievementRadarReporter   = "radar_reporter"
+	AchievementCrowdGuardian   = "crowd_guardian"
 )
 
 const safeSpeedMpsMax = 36.111 // 130 km/h
@@ -31,6 +35,10 @@ type userStatsRow struct {
 	RadarsEncountered  int
 	NightDrives        int
 	SafeDrives         int
+	ReportsSubmitted   int
+	ConfirmationsGiven int
+	DriversSaved       int
+	FakeReports        int
 	UpdatedAt          time.Time
 }
 
@@ -53,7 +61,7 @@ func isSafeDrive(points []DrivePoint) bool {
 }
 
 func evaluateAchievements(ctx context.Context, tx pgx.Tx, userID uuid.UUID, stats userStatsRow) error {
-	candidates := make([]string, 0, 5)
+	candidates := make([]string, 0, 9)
 	if stats.TotalDrives >= 1 {
 		candidates = append(candidates, AchievementFirstDrive)
 	}
@@ -68,6 +76,18 @@ func evaluateAchievements(ctx context.Context, tx pgx.Tx, userID uuid.UUID, stat
 	}
 	if stats.RadarsEncountered >= 25 {
 		candidates = append(candidates, AchievementRadarScout)
+	}
+	if stats.ReportsSubmitted >= 1 {
+		candidates = append(candidates, AchievementFirstReport)
+	}
+	if stats.ConfirmationsGiven >= 10 {
+		candidates = append(candidates, AchievementCommunityHelper)
+	}
+	if stats.ReportsSubmitted >= 10 {
+		candidates = append(candidates, AchievementRadarReporter)
+	}
+	if stats.DriversSaved >= 25 {
+		candidates = append(candidates, AchievementCrowdGuardian)
 	}
 	for _, code := range candidates {
 		if _, err := tx.Exec(ctx, `

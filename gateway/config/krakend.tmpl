@@ -240,6 +240,46 @@
       ]
     },
     {
+      "endpoint": "/v1/reports",
+      "method": "POST",
+      "output_encoding": "no-op",
+      "input_headers": ["Authorization", "Content-Type"],
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "max_rate": 50,
+          "client_max_rate": 5,
+          "strategy": "ip"
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/v1/reports",
+          "encoding": "no-op",
+          "host": {{ marshal .backend.host }}
+        }
+      ]
+    },
+    {
+      "endpoint": "/v1/reports/{id}/votes",
+      "method": "POST",
+      "output_encoding": "no-op",
+      "input_headers": ["Authorization", "Content-Type"],
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "max_rate": 80,
+          "client_max_rate": 8,
+          "strategy": "ip"
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/v1/reports/{id}/votes",
+          "encoding": "no-op",
+          "host": {{ marshal .backend.host }}
+        }
+      ]
+    },
+    {
       "endpoint": "/v1/eta/cameras",
       "method": "POST",
       "output_encoding": "no-op",

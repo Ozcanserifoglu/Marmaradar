@@ -243,6 +243,137 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
     await ref.read(trackingControllerProvider).uploadPendingDrive();
   }
 
+  Future<void> _promptVerifyRadar() async {
+    if (!mounted) return;
+    final tracking = ref.read(trackingControllerProvider);
+    if (tracking.pendingVerify == null) return;
+
+    final answer = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: AppColors.night,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.outline,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Bu radar hâlâ burada mı?',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.white,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Topluluk bildirimini doğrulayarak diğer sürücülere yardım edin.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: AppColors.whiteMuted,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.of(ctx).pop(false),
+                        child: const Text('Hayır'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton(
+                        onPressed: () => Navigator.of(ctx).pop(true),
+                        child: const Text('Evet'),
+                      ),
+                    ),
+                  ],
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text('Şimdi değil'),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (!mounted) return;
+    if (answer == null) {
+      ref.read(trackingControllerProvider).clearPendingVerify();
+      return;
+    }
+
+    final msg = await ref
+        .read(trackingControllerProvider)
+        .submitVerifyVote(answer);
+    if (!mounted) return;
+    if (msg == 'auth_required') {
+      final ok = await showAuthModal(context);
+      if (ok && mounted) {
+        final retry = await ref
+            .read(trackingControllerProvider)
+            .submitVerifyVote(answer);
+        if (retry != null && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(retry)),
+          );
+        }
+      }
+      return;
+    }
+    if (msg != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(msg)),
+      );
+    }
+  }
+
+  Future<void> _onReportRadar() async {
+    final auth = ref.read(authControllerProvider);
+    if (!auth.isAuthenticated) {
+      final ok = await showAuthModal(context);
+      if (!ok || !mounted) return;
+    }
+
+    final msg = await ref.read(trackingControllerProvider).reportRadar();
+    if (!mounted || msg == null) return;
+    if (msg == 'auth_required') {
+      final ok = await showAuthModal(context);
+      if (ok && mounted) {
+        final retry = await ref.read(trackingControllerProvider).reportRadar();
+        if (retry != null && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(retry)),
+          );
+        }
+      }
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     ref.listen(trackingControllerProvider, (previous, next) {
@@ -260,6 +391,14 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
       if (becameNeedsAuth) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           _promptSaveDrive();
+        });
+      }
+
+      final verifyBecameVisible = previous?.pendingVerify == null &&
+          next.pendingVerify != null;
+      if (verifyBecameVisible) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _promptVerifyRadar();
         });
       }
     });
@@ -381,6 +520,17 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
             bottom: 200 + padding.bottom,
             child: Column(
               children: [
+                if (controller.isRunning) ...[
+                  _MapButton(
+                    icon: controller.isReporting
+                        ? Icons.hourglass_top
+                        : Icons.camera_alt,
+                    tooltip: 'Radar bildir',
+                    highlighted: true,
+                    onTap: controller.isReporting ? () {} : _onReportRadar,
+                  ),
+                  const SizedBox(height: 10),
+                ],
                 _MapButton(
                   icon: _mapStyle == MapStyle.dark
                       ? Icons.light_mode

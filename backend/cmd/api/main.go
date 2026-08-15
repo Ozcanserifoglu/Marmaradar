@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -77,14 +78,28 @@ func main() {
 	}
 	driveSvc := service.NewDriveService(pool, roadsClient)
 	statsSvc := service.NewStatsService(pool)
+	reportSvc := service.NewReportService(pool)
 	etaSvc := service.NewEtaService(pool, matrixClient)
 	amenitiesSvc := service.NewAmenitiesService(placesClient)
 
 	authHandler := handler.NewAuthHandler(authSvc)
 	driveHandler := handler.NewDriveHandler(driveSvc)
 	statsHandler := handler.NewStatsHandler(statsSvc)
+	reportHandler := handler.NewReportHandler(reportSvc)
 	etaHandler := handler.NewEtaHandler(etaSvc)
 	amenitiesHandler := handler.NewAmenitiesHandler(amenitiesSvc)
+
+	// Soft-expire stale crowd reports in the background.
+	go func() {
+		ticker := time.NewTicker(time.Minute)
+		defer ticker.Stop()
+		for {
+			if _, err := reportSvc.ExpireStale(context.Background()); err != nil {
+				slog.Warn("expire mobile cameras failed", "error", err)
+			}
+			<-ticker.C
+		}
+	}()
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
@@ -113,6 +128,8 @@ func main() {
 			r.Get("/drives/{id}", driveHandler.Detail)
 			r.Patch("/drives/{id}", driveHandler.Rename)
 			r.Get("/users/me/stats", statsHandler.Me)
+			r.Post("/reports", reportHandler.Create)
+			r.Post("/reports/{id}/votes", reportHandler.Vote)
 			r.Post("/eta/cameras", etaHandler.Cameras)
 			r.Post("/amenities/cells", amenitiesHandler.Cells)
 		})

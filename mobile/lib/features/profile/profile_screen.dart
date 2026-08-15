@@ -222,6 +222,21 @@ class _MetricsGrid extends StatelessWidget {
           value: '${stats.radarsEncountered}',
           icon: Icons.radar,
         ),
+        _MetricTile(
+          label: 'Bildirim',
+          value: '${stats.reportsSubmitted}',
+          icon: Icons.campaign_outlined,
+        ),
+        _MetricTile(
+          label: 'Kurtarılan',
+          value: '${stats.driversSaved}',
+          icon: Icons.volunteer_activism_outlined,
+        ),
+        _MetricTile(
+          label: 'Doğrulama',
+          value: '${stats.confirmationsGiven}',
+          icon: Icons.verified_outlined,
+        ),
       ],
     );
   }
@@ -315,6 +330,14 @@ class _AchievementTile extends StatelessWidget {
         return Icons.verified_user;
       case 'radar':
         return Icons.radar;
+      case 'report':
+        return Icons.campaign;
+      case 'helper':
+        return Icons.handshake_outlined;
+      case 'reporter':
+        return Icons.record_voice_over;
+      case 'guardian':
+        return Icons.shield_moon;
       case 'flag':
       default:
         return Icons.flag;
@@ -398,7 +421,7 @@ class _MetricsSkeleton extends StatelessWidget {
       crossAxisSpacing: 12,
       childAspectRatio: 1.55,
       children: List.generate(
-        4,
+        7,
         (_) => Container(
           decoration: BoxDecoration(
             color: AppColors.surface,

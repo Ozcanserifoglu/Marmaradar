@@ -307,6 +307,57 @@ class RadarApiClient {
     return UserStats.fromJson(jsonDecode(resp.body) as Map<String, dynamic>);
   }
 
+  Future<ReportResult> createReport({
+    required double lat,
+    required double lon,
+    double? headingDeg,
+    String region = 'bursa',
+  }) async {
+    final body = <String, dynamic>{
+      'lat': lat,
+      'lon': lon,
+      'region': region,
+    };
+    if (headingDeg != null) {
+      body['heading_deg'] = headingDeg;
+    }
+    final resp = await _postJson('/v1/reports', body, auth: true);
+    if (resp.statusCode != 201 && resp.statusCode != 200) {
+      throw ApiException('reports', resp.statusCode, null, resp.body);
+    }
+    return ReportResult.fromJson(
+      jsonDecode(resp.body) as Map<String, dynamic>,
+    );
+  }
+
+  Future<ReportResult> voteReport({
+    required int reportId,
+    required int value,
+    required double lat,
+    required double lon,
+  }) async {
+    final resp = await _postJson(
+      '/v1/reports/$reportId/votes',
+      {
+        'value': value,
+        'lat': lat,
+        'lon': lon,
+      },
+      auth: true,
+    );
+    if (resp.statusCode != 200) {
+      throw ApiException(
+        'reports/$reportId/votes',
+        resp.statusCode,
+        null,
+        resp.body,
+      );
+    }
+    return ReportResult.fromJson(
+      jsonDecode(resp.body) as Map<String, dynamic>,
+    );
+  }
+
   Future<List<Map<String, dynamic>>> fetchCamerasNearby({
     required double lat,
     required double lon,
@@ -388,5 +439,52 @@ class RadarApiClient {
         .cast<Map<String, dynamic>>()
         .map(AmenityPlace.fromJson)
         .toList();
+  }
+}
+
+class ReportResult {
+  const ReportResult({
+    required this.id,
+    required this.lat,
+    required this.lon,
+    required this.regionCode,
+    required this.status,
+    required this.confidenceScore,
+    required this.upvotes,
+    required this.downvotes,
+    required this.expiresAt,
+    required this.merged,
+    required this.source,
+  });
+
+  final int id;
+  final double lat;
+  final double lon;
+  final String regionCode;
+  final String status;
+  final double confidenceScore;
+  final int upvotes;
+  final int downvotes;
+  final DateTime expiresAt;
+  final bool merged;
+  final String source;
+
+  /// Local cache / map id uses a negative namespace to avoid colliding with imports.
+  int get localCameraId => -id;
+
+  factory ReportResult.fromJson(Map<String, dynamic> json) {
+    return ReportResult(
+      id: json['id'] as int,
+      lat: (json['lat'] as num).toDouble(),
+      lon: (json['lon'] as num).toDouble(),
+      regionCode: (json['region_code'] as String?) ?? 'bursa',
+      status: (json['status'] as String?) ?? 'active',
+      confidenceScore: (json['confidence_score'] as num?)?.toDouble() ?? 0.35,
+      upvotes: (json['upvotes'] as num?)?.toInt() ?? 0,
+      downvotes: (json['downvotes'] as num?)?.toInt() ?? 0,
+      expiresAt: DateTime.parse(json['expires_at'] as String).toLocal(),
+      merged: json['merged'] as bool? ?? false,
+      source: (json['source'] as String?) ?? 'crowd',
+    );
   }
 }

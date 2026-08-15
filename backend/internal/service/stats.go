@@ -14,12 +14,15 @@ import (
 const radarEncounterRadiusM = 150.0
 
 type UserStats struct {
-	TotalDistanceM    float64       `json:"total_distance_m"`
-	TotalDriveTimeSec int64         `json:"total_drive_time_sec"`
-	TotalDrives       int           `json:"total_drives"`
-	RadarsEncountered int           `json:"radars_encountered"`
-	Achievements      []Achievement `json:"achievements"`
-	UpdatedAt         time.Time     `json:"updated_at"`
+	TotalDistanceM     float64       `json:"total_distance_m"`
+	TotalDriveTimeSec  int64         `json:"total_drive_time_sec"`
+	TotalDrives        int           `json:"total_drives"`
+	RadarsEncountered  int           `json:"radars_encountered"`
+	ReportsSubmitted   int           `json:"reports_submitted"`
+	ConfirmationsGiven int           `json:"confirmations_given"`
+	DriversSaved       int           `json:"drivers_saved"`
+	Achievements       []Achievement `json:"achievements"`
+	UpdatedAt          time.Time     `json:"updated_at"`
 }
 
 type StatsService struct {
@@ -56,12 +59,15 @@ func (s *StatsService) GetMe(ctx context.Context, userID uuid.UUID) (*UserStats,
 	}
 
 	return &UserStats{
-		TotalDistanceM:    stats.TotalDistanceM,
-		TotalDriveTimeSec: stats.TotalDriveTimeSec,
-		TotalDrives:       stats.TotalDrives,
-		RadarsEncountered: stats.RadarsEncountered,
-		Achievements:      achievements,
-		UpdatedAt:         stats.UpdatedAt,
+		TotalDistanceM:     stats.TotalDistanceM,
+		TotalDriveTimeSec:  stats.TotalDriveTimeSec,
+		TotalDrives:        stats.TotalDrives,
+		RadarsEncountered:  stats.RadarsEncountered,
+		ReportsSubmitted:   stats.ReportsSubmitted,
+		ConfirmationsGiven: stats.ConfirmationsGiven,
+		DriversSaved:       stats.DriversSaved,
+		Achievements:       achievements,
+		UpdatedAt:          stats.UpdatedAt,
 	}, nil
 }
 
@@ -69,7 +75,9 @@ func ensureUserStats(ctx context.Context, tx pgx.Tx, userID uuid.UUID) (userStat
 	var row userStatsRow
 	err := tx.QueryRow(ctx, `
 		SELECT total_distance_m, total_drive_time_sec, total_drives,
-		       radars_encountered, night_drives, safe_drives, updated_at
+		       radars_encountered, night_drives, safe_drives,
+		       reports_submitted, confirmations_given, drivers_saved, fake_reports,
+		       updated_at
 		FROM user_stats
 		WHERE user_id = $1
 	`, userID).Scan(
@@ -79,6 +87,10 @@ func ensureUserStats(ctx context.Context, tx pgx.Tx, userID uuid.UUID) (userStat
 		&row.RadarsEncountered,
 		&row.NightDrives,
 		&row.SafeDrives,
+		&row.ReportsSubmitted,
+		&row.ConfirmationsGiven,
+		&row.DriversSaved,
+		&row.FakeReports,
 		&row.UpdatedAt,
 	)
 	if err == nil {
@@ -99,7 +111,9 @@ func ensureUserStats(ctx context.Context, tx pgx.Tx, userID uuid.UUID) (userStat
 
 	err = tx.QueryRow(ctx, `
 		SELECT total_distance_m, total_drive_time_sec, total_drives,
-		       radars_encountered, night_drives, safe_drives, updated_at
+		       radars_encountered, night_drives, safe_drives,
+		       reports_submitted, confirmations_given, drivers_saved, fake_reports,
+		       updated_at
 		FROM user_stats
 		WHERE user_id = $1
 	`, userID).Scan(
@@ -109,6 +123,10 @@ func ensureUserStats(ctx context.Context, tx pgx.Tx, userID uuid.UUID) (userStat
 		&row.RadarsEncountered,
 		&row.NightDrives,
 		&row.SafeDrives,
+		&row.ReportsSubmitted,
+		&row.ConfirmationsGiven,
+		&row.DriversSaved,
+		&row.FakeReports,
 		&row.UpdatedAt,
 	)
 	if err != nil {

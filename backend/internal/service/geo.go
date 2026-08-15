@@ -19,13 +19,41 @@ func NewGeoService(pool *pgxpool.Pool) *GeoService {
 
 func (s *GeoService) NearbyCameras(ctx context.Context, lat, lon, radiusM float64, region string) ([]model.Camera, error) {
 	const q = `
-		SELECT id, ST_Y(location::geometry), ST_X(location::geometry),
-		       maxspeed_kmh, direction_deg, direction_tolerance_deg,
-		       ST_Distance(location, ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography) AS distance_m,
-		       road_name, camera_type, region_code
-		FROM fixed_cameras
-		WHERE active AND region_code = $3
-		  AND ST_DWithin(location, ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography, $4)
+		SELECT id, lat, lon, maxspeed_kmh, direction_deg, direction_tolerance_deg,
+		       distance_m, road_name, camera_type, region_code, source, confidence_score
+		FROM (
+			SELECT id,
+			       ST_Y(location::geometry) AS lat,
+			       ST_X(location::geometry) AS lon,
+			       maxspeed_kmh, direction_deg, direction_tolerance_deg,
+			       ST_Distance(location, ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography) AS distance_m,
+			       road_name, camera_type, region_code,
+			       'import'::text AS source,
+			       confidence AS confidence_score
+			FROM fixed_cameras
+			WHERE active AND region_code = $3
+			  AND ST_DWithin(location, ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography, $4)
+
+			UNION ALL
+
+			SELECT -id AS id,
+			       ST_Y(location::geometry) AS lat,
+			       ST_X(location::geometry) AS lon,
+			       NULL::smallint AS maxspeed_kmh,
+			       CASE WHEN heading_deg IS NULL THEN NULL ELSE ROUND(heading_deg)::smallint END AS direction_deg,
+			       45::smallint AS direction_tolerance_deg,
+			       ST_Distance(location, ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography) AS distance_m,
+			       NULL::text AS road_name,
+			       'mobile'::text AS camera_type,
+			       region_code,
+			       'crowd'::text AS source,
+			       confidence_score
+			FROM mobile_cameras
+			WHERE status = 'active'
+			  AND expires_at > now()
+			  AND region_code = $3
+			  AND ST_DWithin(location, ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography, $4)
+		) AS cameras
 		ORDER BY distance_m
 		LIMIT 50`
 
@@ -35,19 +63,7 @@ func (s *GeoService) NearbyCameras(ctx context.Context, lat, lon, radiusM float6
 	}
 	defer rows.Close()
 
-	var cameras []model.Camera
-	for rows.Next() {
-		var c model.Camera
-		if err := rows.Scan(
-			&c.ID, &c.Lat, &c.Lon,
-			&c.MaxspeedKmh, &c.DirectionDeg, &c.DirectionToleranceDeg,
-			&c.DistanceM, &c.RoadName, &c.CameraType, &c.RegionCode,
-		); err != nil {
-			return nil, err
-		}
-		cameras = append(cameras, c)
-	}
-	return cameras, rows.Err()
+	return scanCameras(rows)
 }
 
 func (s *GeoService) NearbyCorridors(ctx context.Context, lat, lon float64, region string) ([]model.Corridor, error) {
@@ -138,49 +154,86 @@ func (s *GeoService) SyncDelta(ctx context.Context, region, bbox string, since *
 }
 
 func (s *GeoService) camerasInBBox(ctx context.Context, region string, west, south, east, north float64, since *time.Time) ([]model.Camera, error) {
-	q := `
-		SELECT id, ST_Y(location::geometry), ST_X(location::geometry),
+	fixedQ := `
+		SELECT id,
+		       ST_Y(location::geometry), ST_X(location::geometry),
 		       maxspeed_kmh, direction_deg, direction_tolerance_deg,
-		       0::float8 AS distance_m, road_name, camera_type, region_code
+		       0::float8 AS distance_m, road_name, camera_type, region_code,
+		       'import'::text AS source, confidence AS confidence_score
 		FROM fixed_cameras
 		WHERE active`
-	args := []any{}
+	fixedArgs := []any{}
 	argN := 1
 
 	if region != "" && region != "turkey" {
-		q += fmt.Sprintf(` AND region_code = $%d`, argN)
-		args = append(args, region)
+		fixedQ += fmt.Sprintf(` AND region_code = $%d`, argN)
+		fixedArgs = append(fixedArgs, region)
 		argN++
 	}
 
-	q += fmt.Sprintf(` AND location && ST_MakeEnvelope($%d, $%d, $%d, $%d, 4326)::geography`, argN, argN+1, argN+2, argN+3)
-	args = append(args, west, south, east, north)
+	fixedQ += fmt.Sprintf(` AND location && ST_MakeEnvelope($%d, $%d, $%d, $%d, 4326)::geography`, argN, argN+1, argN+2, argN+3)
+	fixedArgs = append(fixedArgs, west, south, east, north)
 	argN += 4
 
 	if since != nil {
-		q += fmt.Sprintf(` AND updated_at > $%d`, argN)
-		args = append(args, *since)
+		fixedQ += fmt.Sprintf(` AND updated_at > $%d`, argN)
+		fixedArgs = append(fixedArgs, *since)
 	}
 
-	rows, err := s.pool.Query(ctx, q, args...)
+	fixedRows, err := s.pool.Query(ctx, fixedQ, fixedArgs...)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer fixedRows.Close()
 
-	var cameras []model.Camera
-	for rows.Next() {
-		var c model.Camera
-		if err := rows.Scan(
-			&c.ID, &c.Lat, &c.Lon,
-			&c.MaxspeedKmh, &c.DirectionDeg, &c.DirectionToleranceDeg,
-			&c.DistanceM, &c.RoadName, &c.CameraType, &c.RegionCode,
-		); err != nil {
-			return nil, err
-		}
-		cameras = append(cameras, c)
+	cameras, err := scanCameras(fixedRows)
+	if err != nil {
+		return nil, err
 	}
-	return cameras, rows.Err()
+
+	mobileQ := `
+		SELECT -id AS id,
+		       ST_Y(location::geometry), ST_X(location::geometry),
+		       NULL::smallint AS maxspeed_kmh,
+		       CASE WHEN heading_deg IS NULL THEN NULL ELSE ROUND(heading_deg)::smallint END AS direction_deg,
+		       45::smallint AS direction_tolerance_deg,
+		       0::float8 AS distance_m,
+		       NULL::text AS road_name,
+		       'mobile'::text AS camera_type,
+		       region_code,
+		       'crowd'::text AS source,
+		       confidence_score
+		FROM mobile_cameras
+		WHERE status = 'active' AND expires_at > now()`
+	mobileArgs := []any{}
+	argN = 1
+
+	if region != "" && region != "turkey" {
+		mobileQ += fmt.Sprintf(` AND region_code = $%d`, argN)
+		mobileArgs = append(mobileArgs, region)
+		argN++
+	}
+
+	mobileQ += fmt.Sprintf(` AND location && ST_MakeEnvelope($%d, $%d, $%d, $%d, 4326)::geography`, argN, argN+1, argN+2, argN+3)
+	mobileArgs = append(mobileArgs, west, south, east, north)
+	argN += 4
+
+	if since != nil {
+		mobileQ += fmt.Sprintf(` AND updated_at > $%d`, argN)
+		mobileArgs = append(mobileArgs, *since)
+	}
+
+	mobileRows, err := s.pool.Query(ctx, mobileQ, mobileArgs...)
+	if err != nil {
+		return nil, err
+	}
+	defer mobileRows.Close()
+
+	crowd, err := scanCameras(mobileRows)
+	if err != nil {
+		return nil, err
+	}
+	return append(cameras, crowd...), nil
 }
 
 func (s *GeoService) corridorsInBBox(ctx context.Context, region string, west, south, east, north float64, since *time.Time) ([]model.Corridor, error) {
@@ -235,6 +288,30 @@ func (s *GeoService) corridorsInBBox(ctx context.Context, region string, west, s
 		corridors = append(corridors, c)
 	}
 	return corridors, rows.Err()
+}
+
+func scanCameras(rows interface {
+	Next() bool
+	Scan(dest ...any) error
+	Err() error
+}) ([]model.Camera, error) {
+	var cameras []model.Camera
+	for rows.Next() {
+		var c model.Camera
+		var confidence float64
+		if err := rows.Scan(
+			&c.ID, &c.Lat, &c.Lon,
+			&c.MaxspeedKmh, &c.DirectionDeg, &c.DirectionToleranceDeg,
+			&c.DistanceM, &c.RoadName, &c.CameraType, &c.RegionCode,
+			&c.Source, &confidence,
+		); err != nil {
+			return nil, err
+		}
+		conf := confidence
+		c.ConfidenceScore = &conf
+		cameras = append(cameras, c)
+	}
+	return cameras, rows.Err()
 }
 
 func parseBBox(bbox string) (west, south, east, north float64, err error) {

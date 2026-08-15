@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart' show LocationServiceDisabledException;
 import 'package:radar_alert/core/audio/alert_player.dart';
@@ -117,15 +118,20 @@ class TrackingController extends ChangeNotifier {
   List<CachedCorridorWithGates> _mapCorridors = const [];
   List<AmenityPlace> _mapAmenities = const [];
   DriveUploadStatus _driveUploadStatus = DriveUploadStatus.idle;
+  bool _reporting = false;
+  CachedCamera? _pendingVerify;
+  final Set<int> _verifyPromptedIds = {};
 
   bool get isRunning => _running;
   bool get isSyncing => _syncing;
+  bool get isReporting => _reporting;
   bool get autoDriveEnabled => _autoDrive;
   bool get wasAutoStarted => _autoStarted;
   String get status => _status;
   String? get lastAlert => _lastAlert;
   DriverSnapshot? get lastSnapshot => _lastSnapshot;
   ApproachingCamera? get approaching => _approaching;
+  CachedCamera? get pendingVerify => _pendingVerify;
   List<CachedCamera> get mapCameras => _mapCameras;
   List<CachedCorridorWithGates> get mapCorridors => _mapCorridors;
   List<AmenityPlace> get mapAmenities =>
@@ -303,6 +309,8 @@ class TrackingController extends ChangeNotifier {
     _autoSuppressed = true;
     _movingFixCount = 0;
     _approaching = null;
+    _pendingVerify = null;
+    _verifyPromptedIds.clear();
     _alerts.reset();
     _corridors.reset();
     _eta.clear();
@@ -439,6 +447,13 @@ class TrackingController extends ChangeNotifier {
         lat: snap.lat,
         lon: snap.lon,
       ),
+      onLeftAlerted: (cam) {
+        if (!isCrowdCameraId(cam.id)) return;
+        if (_verifyPromptedIds.contains(cam.id)) return;
+        _verifyPromptedIds.add(cam.id);
+        _pendingVerify = cam;
+        notifyListeners();
+      },
     );
 
     _corridors.onLocation(snap, _mapCorridors, (corridor, avgKmh, level) async {
@@ -509,6 +524,7 @@ class TrackingController extends ChangeNotifier {
 
     final candidates = <({CachedCamera cam, double dist})>[];
     for (final cam in cameras) {
+      if (isCrowdCameraId(cam.id)) continue;
       final dist = haversineM(snap.lat, snap.lon, cam.lat, cam.lon);
       if (dist > RoadEtaConstants.matrixGateRadiusM) continue;
       if (!isAhead(
@@ -624,6 +640,86 @@ class TrackingController extends ChangeNotifier {
       driverLon: snap.lon,
       headingDeg: snap.headingDeg,
     );
+  }
+
+  void clearPendingVerify() {
+    if (_pendingVerify == null) return;
+    _pendingVerify = null;
+    notifyListeners();
+  }
+
+  Future<String?> reportRadar() async {
+    final snap = _lastSnapshot;
+    if (snap == null) return 'Konum henüz hazır değil';
+    if (_reporting) return null;
+
+    final hasSession = await _api.tokenStore.hasSession;
+    if (!hasSession) return 'auth_required';
+
+    _reporting = true;
+    notifyListeners();
+    try {
+      final result = await _api.createReport(
+        lat: snap.lat,
+        lon: snap.lon,
+        headingDeg: snap.headingDeg,
+      );
+      await _db.upsertCamera(
+        CachedCamerasCompanion(
+          id: Value(result.localCameraId),
+          lat: Value(result.lat),
+          lon: Value(result.lon),
+          directionDeg: Value(snap.headingDeg.round()),
+          directionToleranceDeg: const Value(45),
+          cameraType: const Value('mobile'),
+          regionCode: Value(result.regionCode),
+          updatedAt: Value(DateTime.now().toUtc()),
+        ),
+      );
+      await _loadMapData();
+      _onDriveUploaded?.call();
+      return result.merged
+          ? 'Yakındaki bildirim onaylandı'
+          : 'Radar bildirildi';
+    } on ApiException catch (e) {
+      return e.message;
+    } catch (e) {
+      return 'Bildirim gönderilemedi: $e';
+    } finally {
+      _reporting = false;
+      notifyListeners();
+    }
+  }
+
+  Future<String?> submitVerifyVote(bool stillThere) async {
+    final cam = _pendingVerify;
+    final snap = _lastSnapshot;
+    if (cam == null || snap == null) return null;
+    if (!isCrowdCameraId(cam.id)) {
+      clearPendingVerify();
+      return null;
+    }
+
+    final hasSession = await _api.tokenStore.hasSession;
+    if (!hasSession) return 'auth_required';
+
+    try {
+      await _api.voteReport(
+        reportId: crowdReportIdFromLocal(cam.id),
+        value: stillThere ? 1 : -1,
+        lat: snap.lat,
+        lon: snap.lon,
+      );
+      clearPendingVerify();
+      _onDriveUploaded?.call();
+      return stillThere ? 'Teşekkürler — onaylandı' : 'Teşekkürler — bildirildi';
+    } on ApiException catch (e) {
+      clearPendingVerify();
+      return e.message;
+    } catch (_) {
+      clearPendingVerify();
+      return null;
+    }
   }
 
   @override

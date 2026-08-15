@@ -13,6 +13,8 @@ type Camera struct {
 	RoadName              *string `json:"road_name,omitempty"`
 	CameraType            string  `json:"camera_type"`
 	RegionCode            string  `json:"region_code"`
+	Source                string  `json:"source,omitempty"`
+	ConfidenceScore       *float64 `json:"confidence_score,omitempty"`
 }
 
 type CorridorGate struct {
