@@ -27,6 +27,9 @@ class ApiException implements Exception {
     if (statusCode == 429) {
       return 'Çok fazla deneme. Lütfen bir dakika bekleyip tekrar deneyin.';
     }
+    if (isServerWakingUp) {
+      return 'Sunucu uyanıyor. Lütfen birkaç saniye sonra tekrar deneyin.';
+    }
     if (body != null && body!.isNotEmpty) {
       try {
         final map = jsonDecode(body!) as Map<String, dynamic>;
@@ -102,6 +105,7 @@ class RadarApiClient {
     Map<String, dynamic> body, {
     bool auth = false,
     bool retryOnUnauthorized = true,
+    bool retryOnWake = true,
     Duration timeout = const Duration(seconds: 60),
   }) async {
     final uri = Uri.parse('$baseUrl$path');
@@ -116,9 +120,20 @@ class RadarApiClient {
       }
     }
 
-    final resp = await http
-        .post(uri, headers: headers, body: jsonEncode(body))
-        .timeout(timeout);
+    http.Response? lastResp;
+    for (var attempt = 0; attempt <= (retryOnWake ? _retryDelays.length : 0); attempt++) {
+      if (attempt > 0) {
+        await Future<void>.delayed(_retryDelays[attempt - 1]);
+      }
+      lastResp = await http
+          .post(uri, headers: headers, body: jsonEncode(body))
+          .timeout(timeout);
+      final waking = lastResp.statusCode == 502 ||
+          lastResp.statusCode == 503 ||
+          lastResp.statusCode == 504;
+      if (!waking || !retryOnWake) break;
+    }
+    final resp = lastResp!;
 
     if (resp.statusCode == 401 && auth && retryOnUnauthorized) {
       final refreshed = await _tryRefresh();
@@ -128,6 +143,7 @@ class RadarApiClient {
           body,
           auth: true,
           retryOnUnauthorized: false,
+          retryOnWake: false,
           timeout: timeout,
         );
       }

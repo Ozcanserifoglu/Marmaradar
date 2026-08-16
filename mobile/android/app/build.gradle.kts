@@ -12,8 +12,14 @@ val localPropertiesFile = rootProject.file("local.properties")
 if (localPropertiesFile.exists()) {
     localPropertiesFile.inputStream().use { localProperties.load(it) }
 }
-// Maps SDK key: set MAPS_API_KEY in android/local.properties (gitignored).
-val mapsApiKey = localProperties.getProperty("MAPS_API_KEY") ?: ""
+// Maps SDK key: android/local.properties (gitignored), or MAPS_API_KEY /
+// GOOGLE_MAPS_API_KEY in the environment. The Maps widget reads this from
+// the manifest — --dart-define alone will not render tiles.
+val mapsApiKey = localProperties.getProperty("MAPS_API_KEY")
+    ?: localProperties.getProperty("GOOGLE_MAPS_API_KEY")
+    ?: System.getenv("MAPS_API_KEY")
+    ?: System.getenv("GOOGLE_MAPS_API_KEY")
+    ?: ""
 
 android {
     namespace = "com.radaralert.radar_alert"
