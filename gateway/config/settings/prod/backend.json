@@ -1,3 +1,3 @@
 {
-  "host": ["https://marmaradar.onrender.com"]
+  "host": ["http://api:8080"]
 }

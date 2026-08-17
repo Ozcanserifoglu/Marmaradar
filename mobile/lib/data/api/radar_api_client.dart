@@ -52,7 +52,7 @@ class RadarApiClient {
   })  : baseUrl = baseUrl ?? _resolveBaseUrl(),
         _tokens = tokenStore ?? SecureTokenStore();
 
-  static const _productionBaseUrl = 'https://marmaradar-gateway.onrender.com';
+  static const _productionBaseUrl = 'http://34.59.226.182:8081';
 
   // Override: --dart-define=RADAR_API_URL=http://10.0.2.2:8081
   static String _resolveBaseUrl() {

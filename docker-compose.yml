@@ -25,6 +25,8 @@ services:
       PORT: "8080"
       MIGRATIONS_DIR: /migrations
       GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY:-}
+      GEO_RESTRICT_COUNTRIES: ${GEO_RESTRICT_COUNTRIES:-TR}
+      JWT_SECRET: ${JWT_SECRET:-}
     expose:
       - "8080"
     depends_on:

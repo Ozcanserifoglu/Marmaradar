@@ -44,3 +44,13 @@ flutter run --dart-define=MAPS_API_KEY=your_key_here
 ```
 
 Without a key the map will not render tiles, and destination search will report that the API key is missing.
+
+## API URL
+
+Release builds call the production gateway by default (`_productionBaseUrl` in `lib/data/api/radar_api_client.dart`). To point a build somewhere else — local Docker, an emulator host, a staging box — override it:
+
+```bash
+flutter run --dart-define=RADAR_API_URL=http://10.0.2.2:8081
+```
+
+`10.0.2.2` is how the Android emulator reaches your machine's `localhost`. For repeat use, copy `dart_defines.json.example` to `dart_defines.json` (gitignored) and pass `--dart-define-from-file=dart_defines.json`.

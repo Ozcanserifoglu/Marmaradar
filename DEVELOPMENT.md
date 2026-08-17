@@ -87,7 +87,7 @@ dart run build_runner build
 flutter run
 ```
 
-Google Maps / Places / Directions key setup: see [mobile/README.md](mobile/README.md).
+The app calls the production gateway by default. To point a build at local Docker instead, see [mobile/README.md](mobile/README.md).
 
 ## API endpoints
 
@@ -105,7 +105,7 @@ All client traffic should go through KrakenD, not the Go API directly.
 | Environment | Entry URL |
 |-------------|-----------|
 | Local | http://localhost:8081 |
-| Production | https://marmaradar-gateway.onrender.com |
+| Production | http://34.59.226.182:8081 (GCP VM) |
 
 Config lives in [`gateway/config/`](gateway/config/). Rate limits on `/v1/*`: 100 req/s global, 10 req/s per IP.
 
@@ -141,7 +141,39 @@ Create a second Web Service (keep the existing Go API service):
 | Port | `8080` |
 | Region | Frankfurt |
 
-No database env vars needed. The gateway proxies to `https://marmaradar.onrender.com`.
+No database env vars needed. On the GCP VM the gateway proxies to the `api` container (`http://api:8080`).
+
+### GCP VM (current production)
+
+The Flutter app talks to the KrakenD gateway at `http://34.59.226.182:8081`. Do **not** publish the Go API port (8080) to the internet.
+
+Reserve the VM's external IP as **static** (VPC network → IP addresses). An ephemeral IP changes when the VM stops, which breaks every installed app until it is rebuilt.
+
+Create `.env` on the VM before starting the stack — without `JWT_SECRET` the API signs tokens with the dev default published in this repo, and anyone can forge them:
+
+```bash
+printf 'JWT_SECRET=%s\n' "$(openssl rand -base64 48)" >> .env
+```
+
+Open **TCP 8081** in the VPC firewall so phones can reach the gateway.
+
+1. Google Cloud Console → **VPC network** → **Firewall** → **Create firewall rule**
+2. Targets: the VM's network tag (or all instances in the VPC)
+3. Source IPv4 ranges: `0.0.0.0/0`
+4. Protocols and ports: TCP `8081`
+5. Recreate the API container so `GEO_RESTRICT_COUNTRIES=TR` is applied (`docker compose up -d`)
+
+Country blocking is enforced in the Go API (`GEO_RESTRICT_COUNTRIES=TR`): public IPs outside Turkey get HTTP 403. `/health` stays open for checks. This is an application filter, not a packet filter — it does not replace Cloud Armor.
+
+**VPC firewall cannot filter by country.** For edge-level geo blocking (drop traffic before it hits the VM):
+
+1. Put an **HTTP(S) Load Balancer** in front of the VM (Network services → Load balancing)
+2. **Network Security** → **Cloud Armor** → **Create security policy**
+3. Default rule: **Deny** (403)
+4. Add a higher-priority allow rule with match `origin.region_code == "TR"`
+5. Attach the policy to the load balancer backend
+
+Cloud Armor only works on a load balancer, not on the VM's raw external IP.
 
 ## Background location
 
@@ -149,4 +181,4 @@ The Flutter app uses `geolocator` with an Android foreground service notificatio
 
 ## Security
 
-This repo is public. Production secrets (`DATABASE_URL`, `JWT_SECRET`, signing keys) must live in Render/Neon dashboards and local `.env` files only — never in git. See [SECURITY.md](SECURITY.md).
+This repo is public. Production secrets (`DATABASE_URL`, `JWT_SECRET`, signing keys) must live in the GCP VM environment and local `.env` files only — never in git. See [SECURITY.md](SECURITY.md).

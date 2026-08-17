@@ -16,6 +16,7 @@ import (
 	"github.com/radar-alert/backend/internal/config"
 	"github.com/radar-alert/backend/internal/db"
 	"github.com/radar-alert/backend/internal/db/migrate"
+	"github.com/radar-alert/backend/internal/georestrict"
 	"github.com/radar-alert/backend/internal/handler"
 	"github.com/radar-alert/backend/internal/service"
 )
@@ -54,6 +55,10 @@ func main() {
 		os.Exit(1)
 	}
 	slog.Info("database migrations complete")
+
+	if cfg.JWTSecret == config.DevJWTSecret {
+		slog.Warn("JWT_SECRET is unset, falling back to the public dev secret; anyone can forge tokens against this instance")
+	}
 
 	jwtMgr := auth.NewJWTManager(cfg.JWTSecret, cfg.AccessTokenTTL, cfg.RefreshTokenTTL)
 	geo := service.NewGeoService(pool)
@@ -101,8 +106,18 @@ func main() {
 		}
 	}()
 
+	geoGuard, err := georestrict.New(georestrict.ParseCountries(cfg.GeoRestrictCountries))
+	if err != nil {
+		slog.Error("geo restriction config failed", "error", err)
+		os.Exit(1)
+	}
+	if geoGuard != nil {
+		slog.Info("geo restriction enabled", "countries", cfg.GeoRestrictCountries)
+	}
+
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
+	r.Use(geoGuard.Middleware)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
