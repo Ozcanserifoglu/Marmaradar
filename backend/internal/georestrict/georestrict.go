@@ -143,25 +143,30 @@ func requestIP(r *http.Request) net.IP {
 	}
 	remote := net.ParseIP(host)
 
+	// A public peer is the client itself, so its own headers prove nothing.
 	if remote != nil && !isTrustedHop(remote) {
 		return remote
 	}
 
-	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
-		parts := strings.Split(xff, ",")
-		for i := len(parts) - 1; i >= 0; i-- {
-			ip := net.ParseIP(strings.TrimSpace(parts[i]))
+	// Behind our own proxy. Each hop appends to X-Forwarded-For, so the last
+	// entry is the one our proxy wrote; anything earlier may be client-supplied.
+	if ip := lastForwardedIP(r.Header.Values("X-Forwarded-For")); ip != nil {
+		return ip
+	}
+	return remote
+}
+
+func lastForwardedIP(headers []string) net.IP {
+	for i := len(headers) - 1; i >= 0; i-- {
+		parts := strings.Split(headers[i], ",")
+		for j := len(parts) - 1; j >= 0; j-- {
+			ip := net.ParseIP(strings.TrimSpace(parts[j]))
 			if ip != nil && !isTrustedHop(ip) {
 				return ip
 			}
 		}
 	}
-	if xrip := strings.TrimSpace(r.Header.Get("X-Real-IP")); xrip != "" {
-		if ip := net.ParseIP(xrip); ip != nil {
-			return ip
-		}
-	}
-	return remote
+	return nil
 }
 
 func isTrustedHop(ip net.IP) bool {

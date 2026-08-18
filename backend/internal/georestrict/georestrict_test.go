@@ -124,6 +124,50 @@ func TestMiddlewareTrustsForwardedForFromPrivateHop(t *testing.T) {
 	}
 }
 
+// A client can prepend its own X-Forwarded-For before the proxy appends the
+// real address, so only the last entry may decide the verdict.
+func TestMiddlewareIgnoresClientSuppliedForwardedForPrefix(t *testing.T) {
+	g, err := New([]string{"TR"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ok := g.Middleware(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+
+	// Client claims Turkey, proxy appends the real foreign address.
+	req := httptest.NewRequest(http.MethodGet, "/v1/sync", nil)
+	req.RemoteAddr = "172.18.0.2:8080"
+	req.Header.Add("X-Forwarded-For", "5.24.0.1")
+	req.Header.Add("X-Forwarded-For", "8.8.8.8")
+	rec := httptest.NewRecorder()
+	ok.ServeHTTP(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, want 403; a spoofed Turkish prefix must not win", rec.Code)
+	}
+
+	// Same, but within a single comma-separated header.
+	req = httptest.NewRequest(http.MethodGet, "/v1/sync", nil)
+	req.RemoteAddr = "172.18.0.2:8080"
+	req.Header.Set("X-Forwarded-For", "5.24.0.1, 8.8.8.8")
+	rec = httptest.NewRecorder()
+	ok.ServeHTTP(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, want 403 for spoofed prefix in one header", rec.Code)
+	}
+
+	// A genuine Turkish client behind the proxy still gets through.
+	req = httptest.NewRequest(http.MethodGet, "/v1/sync", nil)
+	req.RemoteAddr = "172.18.0.2:8080"
+	req.Header.Add("X-Forwarded-For", "8.8.8.8")
+	req.Header.Add("X-Forwarded-For", "5.24.0.1")
+	rec = httptest.NewRecorder()
+	ok.ServeHTTP(rec, req)
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("status = %d, want 204 when the proxy-appended address is Turkish", rec.Code)
+	}
+}
+
 func TestMiddlewareIgnoresSpoofedForwardedForOnPublicHop(t *testing.T) {
 	g, err := New([]string{"TR"})
 	if err != nil {
