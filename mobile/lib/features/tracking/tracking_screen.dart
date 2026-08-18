@@ -11,6 +11,7 @@ import 'package:radar_alert/features/auth/auth_screen.dart';
 import 'package:radar_alert/features/directions/directions_controller.dart';
 import 'package:radar_alert/features/directions/widgets/destination_search_bar.dart';
 import 'package:radar_alert/features/directions/widgets/route_info_banner.dart';
+import 'package:radar_alert/features/reports/live_report_models.dart';
 import 'package:radar_alert/features/tracking/drive_recorder.dart';
 import 'package:radar_alert/features/tracking/widgets/camera_alert_banner.dart';
 import 'package:radar_alert/features/tracking/widgets/corridor_panel.dart';
@@ -374,6 +375,120 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
     );
   }
 
+  Future<void> _onMapLongPress(LatLng position) async {
+    final auth = ref.read(authControllerProvider);
+    if (!auth.isAuthenticated) {
+      final ok = await showAuthModal(context);
+      if (!ok || !mounted) return;
+    }
+
+    if (!mounted) return;
+    final type = await showModalBottomSheet<LiveReportType>(
+      context: context,
+      backgroundColor: AppColors.night,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.outline,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Canlı bildirim',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.white,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Bu konumda ne görüyorsunuz?',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: AppColors.whiteMuted,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: FilledButton(
+                    onPressed: () =>
+                        Navigator.of(ctx).pop(LiveReportType.police),
+                    child: const Text(
+                      '🚓 Polis',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.warning,
+                      foregroundColor: AppColors.night,
+                    ),
+                    onPressed: () =>
+                        Navigator.of(ctx).pop(LiveReportType.accident),
+                    child: const Text(
+                      '💥 Kaza',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (type == null || !mounted) return;
+    await _submitLiveReport(type, position);
+  }
+
+  Future<void> _submitLiveReport(LiveReportType type, LatLng position) async {
+    final msg = await ref.read(trackingControllerProvider).submitLiveReport(
+          type: type,
+          lat: position.latitude,
+          lng: position.longitude,
+        );
+    if (!mounted || msg == null) return;
+    if (msg == 'auth_required') {
+      final ok = await showAuthModal(context);
+      if (ok && mounted) {
+        await _submitLiveReport(type, position);
+      }
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     ref.listen(trackingControllerProvider, (previous, next) {
@@ -430,6 +545,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
               cameras: controller.mapCameras,
               corridors: controller.mapCorridors,
               amenities: controller.mapAmenities,
+              liveReports: controller.mapLiveReports,
               approaching: approaching,
               routePoints: directions.hasRoute ? directions.routePoints : null,
               destination: directions.destinationLatLng,
@@ -444,6 +560,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
               onUserGesture: () {
                 if (_follow) setState(() => _follow = false);
               },
+              onLongPress: _onMapLongPress,
             ),
           ),
 

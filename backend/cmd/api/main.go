@@ -84,6 +84,7 @@ func main() {
 	driveSvc := service.NewDriveService(pool, roadsClient)
 	statsSvc := service.NewStatsService(pool)
 	reportSvc := service.NewReportService(pool)
+	liveReportSvc := service.NewLiveReportService(pool)
 	etaSvc := service.NewEtaService(pool, matrixClient)
 	amenitiesSvc := service.NewAmenitiesService(placesClient)
 
@@ -91,6 +92,7 @@ func main() {
 	driveHandler := handler.NewDriveHandler(driveSvc)
 	statsHandler := handler.NewStatsHandler(statsSvc)
 	reportHandler := handler.NewReportHandler(reportSvc)
+	liveReportHandler := handler.NewLiveReportHandler(liveReportSvc)
 	etaHandler := handler.NewEtaHandler(etaSvc)
 	amenitiesHandler := handler.NewAmenitiesHandler(amenitiesSvc)
 
@@ -131,6 +133,7 @@ func main() {
 		r.Get("/cameras/nearby", handler.NewCameraHandler(geo).Nearby)
 		r.Get("/corridors/nearby", handler.NewCorridorHandler(geo).Nearby)
 		r.Get("/sync", handler.NewSyncHandler(geo).Delta)
+		r.Get("/live-reports/active", liveReportHandler.Active)
 
 		r.Post("/auth/register", authHandler.Register)
 		r.Post("/auth/login", authHandler.Login)
@@ -145,6 +148,7 @@ func main() {
 			r.Get("/users/me/stats", statsHandler.Me)
 			r.Post("/reports", reportHandler.Create)
 			r.Post("/reports/{id}/votes", reportHandler.Vote)
+			r.Post("/live-reports", liveReportHandler.Create)
 			r.Post("/eta/cameras", etaHandler.Cameras)
 			r.Post("/amenities/cells", amenitiesHandler.Cells)
 		})

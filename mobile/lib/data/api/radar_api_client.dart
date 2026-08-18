@@ -7,6 +7,7 @@ import 'package:radar_alert/data/auth/token_store.dart';
 import 'package:radar_alert/features/alerts/road_eta_models.dart';
 import 'package:radar_alert/features/amenities/amenity_models.dart';
 import 'package:radar_alert/features/profile/profile_models.dart';
+import 'package:radar_alert/features/reports/live_report_models.dart';
 
 class ApiException implements Exception {
   const ApiException(this.endpoint, this.statusCode, [this.cause, this.body]);
@@ -372,6 +373,36 @@ class RadarApiClient {
     return ReportResult.fromJson(
       jsonDecode(resp.body) as Map<String, dynamic>,
     );
+  }
+
+  Future<LiveReport> createLiveReport({
+    required double lat,
+    required double lng,
+    required String reportType,
+  }) async {
+    final resp = await _postJson(
+      '/v1/live-reports',
+      {
+        'lat': lat,
+        'lng': lng,
+        'report_type': reportType,
+      },
+      auth: true,
+    );
+    if (resp.statusCode != 201 && resp.statusCode != 200) {
+      throw ApiException('live-reports', resp.statusCode, null, resp.body);
+    }
+    return LiveReport.fromJson(jsonDecode(resp.body) as Map<String, dynamic>);
+  }
+
+  Future<List<LiveReport>> fetchActiveLiveReports() async {
+    final uri = Uri.parse('$baseUrl/v1/live-reports/active');
+    final resp = await _getWithRetry(uri, 'live-reports/active');
+    final list = jsonDecode(resp.body) as List<dynamic>;
+    return list
+        .cast<Map<String, dynamic>>()
+        .map(LiveReport.fromJson)
+        .toList();
   }
 
   Future<List<Map<String, dynamic>>> fetchCamerasNearby({

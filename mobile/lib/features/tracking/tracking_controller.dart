@@ -15,8 +15,10 @@ import 'package:radar_alert/features/amenities/amenities_repository.dart';
 import 'package:radar_alert/features/amenities/amenity_models.dart';
 import 'package:radar_alert/features/amenities/amenity_visibility.dart';
 import 'package:radar_alert/features/corridors/corridor_tracker.dart';
+import 'package:radar_alert/features/reports/live_report_models.dart';
 import 'package:radar_alert/features/sync/region_sync_service.dart';
 import 'package:radar_alert/features/tracking/drive_recorder.dart';
+import 'package:uuid/uuid.dart';
 
 class ApproachingCamera {
   const ApproachingCamera({
@@ -81,10 +83,18 @@ class TrackingController extends ChangeNotifier {
     _amenities = amenitiesRepository ?? AmenitiesRepository(api: _api);
     _loadMapData();
     _initLocation();
+    _refreshLiveReports();
+    _liveReportPoll = Timer.periodic(
+      _liveReportPollInterval,
+      (_) => _refreshLiveReports(),
+    );
   }
 
   static const _driveStartSpeedMps = 4.2;
   static const _driveStartFixCount = 3;
+  static const _liveReportPollInterval = Duration(seconds: 30);
+  static const _liveReportMatchDeg = 0.00015;
+  static const _uuid = Uuid();
 
   final BackgroundLocationService _location;
   final AppDatabase _db;
@@ -117,6 +127,8 @@ class TrackingController extends ChangeNotifier {
   List<CachedCamera> _mapCameras = const [];
   List<CachedCorridorWithGates> _mapCorridors = const [];
   List<AmenityPlace> _mapAmenities = const [];
+  List<LiveReport> _liveReports = const [];
+  Timer? _liveReportPoll;
   DriveUploadStatus _driveUploadStatus = DriveUploadStatus.idle;
   bool _reporting = false;
   CachedCamera? _pendingVerify;
@@ -136,6 +148,7 @@ class TrackingController extends ChangeNotifier {
   List<CachedCorridorWithGates> get mapCorridors => _mapCorridors;
   List<AmenityPlace> get mapAmenities =>
       _amenitiesVisible && _running ? _mapAmenities : const [];
+  List<LiveReport> get mapLiveReports => _liveReports;
   bool get amenitiesVisible => _amenitiesVisible;
   DriveUploadStatus get driveUploadStatus => _driveUploadStatus;
 
@@ -691,6 +704,77 @@ class TrackingController extends ChangeNotifier {
     }
   }
 
+  Future<void> _refreshLiveReports() async {
+    try {
+      final server = await _api.fetchActiveLiveReports();
+      _mergeLiveReports(server);
+    } catch (_) {
+      // Keep current pins if the poll fails.
+    }
+  }
+
+  void _mergeLiveReports(List<LiveReport> server) {
+    final pending = _liveReports.where((local) {
+      if (!local.isOptimistic) return false;
+      return !server.any((remote) => _isSameLivePin(local, remote));
+    });
+    _liveReports = [...server, ...pending];
+    notifyListeners();
+  }
+
+  bool _isSameLivePin(LiveReport a, LiveReport b) {
+    if (a.id == b.id) return true;
+    return a.type == b.type &&
+        (a.lat - b.lat).abs() < _liveReportMatchDeg &&
+        (a.lng - b.lng).abs() < _liveReportMatchDeg;
+  }
+
+  Future<String?> submitLiveReport({
+    required LiveReportType type,
+    required double lat,
+    required double lng,
+  }) async {
+    final hasSession = await _api.tokenStore.hasSession;
+    if (!hasSession) return 'auth_required';
+
+    final localId = _uuid.v4();
+    final local = LiveReport(
+      id: localId,
+      lat: lat,
+      lng: lng,
+      type: type,
+      createdAt: DateTime.now(),
+      isOptimistic: true,
+    );
+    _liveReports = [..._liveReports, local];
+    notifyListeners();
+
+    try {
+      final created = await _api.createLiveReport(
+        lat: lat,
+        lng: lng,
+        reportType: type.apiValue,
+      );
+      _liveReports = [
+        for (final report in _liveReports)
+          if (report.id == localId) created else report,
+      ];
+      notifyListeners();
+      return null;
+    } on ApiException catch (e) {
+      _removeLiveReport(localId);
+      return e.message;
+    } catch (_) {
+      _removeLiveReport(localId);
+      return 'Bildirim gönderilemedi';
+    }
+  }
+
+  void _removeLiveReport(String id) {
+    _liveReports = _liveReports.where((report) => report.id != id).toList();
+    notifyListeners();
+  }
+
   Future<String?> submitVerifyVote(bool stillThere) async {
     final cam = _pendingVerify;
     final snap = _lastSnapshot;
@@ -724,6 +808,7 @@ class TrackingController extends ChangeNotifier {
 
   @override
   void dispose() {
+    _liveReportPoll?.cancel();
     _location.stop();
     _location.stopIdleWatch();
     _eta.clear();

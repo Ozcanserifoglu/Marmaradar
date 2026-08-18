@@ -6,6 +6,7 @@ import 'package:radar_alert/core/theme/app_theme.dart';
 import 'package:radar_alert/data/local/app_database.dart';
 import 'package:radar_alert/features/amenities/amenity_models.dart';
 import 'package:radar_alert/features/corridors/corridor_tracker.dart';
+import 'package:radar_alert/features/reports/live_report_models.dart';
 import 'package:radar_alert/features/tracking/tracking_controller.dart';
 import 'package:radar_alert/features/tracking/widgets/amenity_detail_sheet.dart';
 import 'package:radar_alert/features/tracking/widgets/camera_detail_sheet.dart';
@@ -37,6 +38,8 @@ class RadarMapView extends StatefulWidget {
     required this.onCameraMoved,
     required this.isProgrammaticMove,
     this.amenities = const [],
+    this.liveReports = const [],
+    this.onLongPress,
     this.routePoints,
     this.destination,
     this.destinationTitle,
@@ -48,9 +51,11 @@ class RadarMapView extends StatefulWidget {
   final List<CachedCorridorWithGates> corridors;
   final ApproachingCamera? approaching;
   final List<AmenityPlace> amenities;
+  final List<LiveReport> liveReports;
   final void Function(GoogleMapController controller) onMapCreated;
   final VoidCallback onUserGesture;
   final ValueChanged<double> onCameraMoved;
+  final ValueChanged<LatLng>? onLongPress;
 
   final bool Function() isProgrammaticMove;
 
@@ -83,6 +88,7 @@ class _RadarMapViewState extends State<RadarMapView> {
         oldWidget.corridors != widget.corridors ||
         oldWidget.approaching != widget.approaching ||
         oldWidget.amenities != widget.amenities ||
+        oldWidget.liveReports != widget.liveReports ||
         oldWidget.routePoints != widget.routePoints ||
         oldWidget.destination != widget.destination ||
         oldWidget.destinationTitle != widget.destinationTitle) {
@@ -290,6 +296,25 @@ class _RadarMapViewState extends State<RadarMapView> {
       }
     }
 
+    if (widget.liveReports.isNotEmpty) {
+      final policeIcon = await MapMarkerIcons.police();
+      final accidentIcon = await MapMarkerIcons.accident();
+      if (gen != _overlayGen) return;
+      for (final report in widget.liveReports) {
+        final isPolice = report.type == LiveReportType.police;
+        markers.add(
+          Marker(
+            markerId: MarkerId('report_${report.id}'),
+            position: LatLng(report.lat, report.lng),
+            icon: isPolice ? policeIcon : accidentIcon,
+            anchor: const Offset(0.5, 0.5),
+            zIndexInt: 5,
+            infoWindow: InfoWindow(title: report.type.label),
+          ),
+        );
+      }
+    }
+
     if (!mounted || gen != _overlayGen) return;
     setState(() {
       _markers = markers;
@@ -320,6 +345,7 @@ class _RadarMapViewState extends State<RadarMapView> {
       polylines: _polylines,
       circles: _circles,
       onMapCreated: widget.onMapCreated,
+      onLongPress: widget.onLongPress,
       onCameraMoveStarted: () {
         if (!widget.isProgrammaticMove()) {
           widget.onUserGesture();

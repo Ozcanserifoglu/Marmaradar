@@ -216,6 +216,72 @@ class MapMarkerIcons {
         });
       });
 
+  static Future<BitmapDescriptor> police() => _cached('live_police', () {
+        return _paint(40, (canvas, size) {
+          final center = Offset(size / 2, size / 2);
+          final radius = size / 2 - 2;
+          canvas.drawCircle(
+            center,
+            radius + 2,
+            Paint()
+              ..color = AppColors.red.withValues(alpha: 0.4)
+              ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
+          );
+          canvas.drawCircle(center, radius, Paint()..color = AppColors.red);
+          canvas.drawCircle(
+            center,
+            radius,
+            Paint()
+              ..color = AppColors.white
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 2.5,
+          );
+          final shield = Path()
+            ..moveTo(center.dx, center.dy - size * 0.22)
+            ..lineTo(center.dx + size * 0.16, center.dy - size * 0.1)
+            ..lineTo(center.dx + size * 0.14, center.dy + size * 0.08)
+            ..lineTo(center.dx, center.dy + size * 0.22)
+            ..lineTo(center.dx - size * 0.14, center.dy + size * 0.08)
+            ..lineTo(center.dx - size * 0.16, center.dy - size * 0.1)
+            ..close();
+          canvas.drawPath(shield, Paint()..color = AppColors.white);
+        });
+      });
+
+  static Future<BitmapDescriptor> accident() => _cached('live_accident', () {
+        return _paint(40, (canvas, size) {
+          final center = Offset(size / 2, size / 2);
+          final radius = size / 2 - 2;
+          canvas.drawCircle(
+            center,
+            radius + 2,
+            Paint()
+              ..color = AppColors.warning.withValues(alpha: 0.4)
+              ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
+          );
+          canvas.drawCircle(center, radius, Paint()..color = AppColors.warning);
+          canvas.drawCircle(
+            center,
+            radius,
+            Paint()
+              ..color = AppColors.night
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 2.5,
+          );
+          final burst = Path()
+            ..moveTo(center.dx, center.dy - size * 0.22)
+            ..lineTo(center.dx + size * 0.06, center.dy - size * 0.06)
+            ..lineTo(center.dx + size * 0.22, center.dy)
+            ..lineTo(center.dx + size * 0.06, center.dy + size * 0.06)
+            ..lineTo(center.dx, center.dy + size * 0.22)
+            ..lineTo(center.dx - size * 0.06, center.dy + size * 0.06)
+            ..lineTo(center.dx - size * 0.22, center.dy)
+            ..lineTo(center.dx - size * 0.06, center.dy - size * 0.06)
+            ..close();
+          canvas.drawPath(burst, Paint()..color = AppColors.night);
+        });
+      });
+
   static Future<BitmapDescriptor> gate({required bool isEntry}) {
     final key = isEntry ? 'gate_in' : 'gate_out';
     return _cached(key, () {
