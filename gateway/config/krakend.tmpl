@@ -5,6 +5,11 @@
   "port": 8080,
   "timeout": "30s",
   "cache_ttl": "0s",
+  "extra_config": {
+    "router": {
+      "forwarded_by_client_ip": false
+    }
+  },
   "endpoints": [
     {
       "endpoint": "/health",
