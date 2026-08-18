@@ -1,0 +1,35 @@
+name: Monthly Camera Data Update
+
+on:
+  schedule:
+
+    - cron: '0 3 1 * *'
+  
+
+  workflow_dispatch: 
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Setup SSH Tunnel to Server
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          # Sunucuya bağlanıp 5433 portunu arka planda (-f -N) köprülüyor
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa -f -N -L 5433:127.0.0.1:5433 ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}
+
+      - name: Run Import Script and Update Database
+        env:
+          DATABASE_URL: "postgres://radar:radar@127.0.0.1:5433/radar_alert?sslmode=disable"
+        run: |
+          bash ./scripts/import-turkey.sh

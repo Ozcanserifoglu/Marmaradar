@@ -19,6 +19,22 @@ subprojects {
     project.evaluationDependsOn(":app")
 }
 
+subprojects {
+    fun bumpPluginCompileSdk() {
+        extensions.findByType<com.android.build.gradle.BaseExtension>()?.apply {
+            val current = compileSdkVersion?.removePrefix("android-")?.toIntOrNull() ?: 0
+            if (current < 36) {
+                compileSdkVersion(36)
+            }
+        }
+    }
+    if (state.executed) {
+        bumpPluginCompileSdk()
+    } else {
+        afterEvaluate { bumpPluginCompileSdk() }
+    }
+}
+
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }
