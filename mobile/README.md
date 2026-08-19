@@ -47,7 +47,14 @@ Without a key the map will not render tiles, and destination search will report 
 
 ## API URL
 
-Release builds call the production gateway by default (`_productionBaseUrl` in `lib/data/api/radar_api_client.dart`). To point a build somewhere else — local Docker, an emulator host, a staging box — override it:
+API base URL selection is environment-aware:
+
+- Release builds always use production gateway (`_productionBaseUrl` in `lib/data/api/radar_api_client.dart`).
+- Debug/profile builds default to local API:
+  - Android emulator: `http://10.0.2.2:8081`
+  - iOS simulator / desktop: `http://127.0.0.1:8081`
+
+For debug/profile one-off runs you can still override it (for example, to test staging or a LAN host):
 
 ```bash
 flutter run --dart-define=RADAR_API_URL=http://10.0.2.2:8081

@@ -53,10 +53,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         foregroundColor: AppColors.white,
         actions: [
           if (auth.isAuthenticated)
-            TextButton(
-              onPressed: _logout,
-              child: const Text('Çıkış'),
-            ),
+            TextButton(onPressed: _logout, child: const Text('Çıkış')),
         ],
       ),
       body: SafeArea(
@@ -86,7 +83,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [
-          _Header(email: email ?? ''),
+          _Header(email: email ?? '', stats: stats),
           const SizedBox(height: 20),
           if (showSkeleton)
             const _MetricsSkeleton()
@@ -94,6 +91,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             _MetricsGrid(stats: stats)
           else
             const SizedBox.shrink(),
+          if (stats != null) ...[
+            const SizedBox(height: 16),
+            _ReputationSection(stats: stats),
+            const SizedBox(height: 16),
+            _StreakSection(stats: stats),
+          ],
           if (profile.isRefreshing) ...[
             const SizedBox(height: 8),
             const LinearProgressIndicator(
@@ -115,16 +118,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           if (showSkeleton)
             const _BadgesSkeleton()
           else
-            _AchievementsSection(
-              unlocked: stats?.unlockedCodes ?? const {},
-            ),
+            _AchievementsSection(unlocked: stats?.unlockedCodes ?? const {}),
           const SizedBox(height: 28),
           FilledButton.icon(
             onPressed: () {
               Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const DrivesHistoryScreen(),
-                ),
+                MaterialPageRoute(builder: (_) => const DrivesHistoryScreen()),
               );
             },
             icon: const Icon(Icons.history),
@@ -137,9 +136,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.email});
+  const _Header({required this.email, required this.stats});
 
   final String email;
+  final UserStats? stats;
 
   @override
   Widget build(BuildContext context) {
@@ -161,8 +161,8 @@ class _Header extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Hesabım',
+              Text(
+                stats?.rankTitle ?? 'Hesabım',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w800,
@@ -170,6 +170,18 @@ class _Header extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 4),
+              if (stats != null)
+                Text(
+                  '${stats!.rankTitle} • ${stats!.xp} XP',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.whiteMuted,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              if (stats != null) const SizedBox(height: 4),
               Text(
                 email,
                 maxLines: 1,
@@ -224,17 +236,17 @@ class _MetricsGrid extends StatelessWidget {
         ),
         _MetricTile(
           label: 'Bildirim',
-          value: '${stats.reportsSubmitted}',
+          value: '${stats.reportsSubmitted + stats.liveReportsSubmitted}',
           icon: Icons.campaign_outlined,
         ),
         _MetricTile(
           label: 'Kurtarılan',
-          value: '${stats.driversSaved}',
+          value: '${stats.totalDriversSaved}',
           icon: Icons.volunteer_activism_outlined,
         ),
         _MetricTile(
           label: 'Doğrulama',
-          value: '${stats.confirmationsGiven}',
+          value: '${stats.confirmationsGiven + stats.liveConfirmationsGiven}',
           icon: Icons.verified_outlined,
         ),
       ],
@@ -312,10 +324,7 @@ class _AchievementsSection extends StatelessWidget {
 }
 
 class _AchievementTile extends StatelessWidget {
-  const _AchievementTile({
-    required this.definition,
-    required this.unlocked,
-  });
+  const _AchievementTile({required this.definition, required this.unlocked});
 
   final AchievementDefinition definition;
   final bool unlocked;
@@ -338,6 +347,10 @@ class _AchievementTile extends StatelessWidget {
         return Icons.record_voice_over;
       case 'guardian':
         return Icons.shield_moon;
+      case 'owl':
+        return Icons.dark_mode_outlined;
+      case 'responder':
+        return Icons.emergency;
       case 'flag':
       default:
         return Icons.flag;
@@ -355,7 +368,9 @@ class _AchievementTile extends StatelessWidget {
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: unlocked ? AppColors.success.withValues(alpha: 0.45) : AppColors.outline,
+            color: unlocked
+                ? AppColors.success.withValues(alpha: 0.45)
+                : AppColors.outline,
           ),
         ),
         child: Row(
@@ -400,7 +415,11 @@ class _AchievementTile extends StatelessWidget {
               ),
             ),
             if (unlocked)
-              const Icon(Icons.check_circle, color: AppColors.success, size: 20),
+              const Icon(
+                Icons.check_circle,
+                color: AppColors.success,
+                size: 20,
+              ),
           ],
         ),
       ),
@@ -429,6 +448,174 @@ class _MetricsSkeleton extends StatelessWidget {
             border: Border.all(color: AppColors.outline),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _ReputationSection extends StatelessWidget {
+  const _ReputationSection({required this.stats});
+
+  final UserStats stats;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasUninitializedReputation =
+        stats.rankCode == 'caylak' &&
+        stats.xp == 0 &&
+        stats.xpToNextRank == 0 &&
+        stats.eloRating <= 1000;
+    final progressBase = hasUninitializedReputation
+        ? 0.0
+        : (stats.xpToNextRank <= 0
+              ? 1.0
+              : 1 -
+                    (stats.xpToNextRank /
+                        (stats.xp + stats.xpToNextRank).clamp(1, 1 << 30)));
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.outline),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.workspace_premium, color: AppColors.white),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  stats.rankTitle,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.white,
+                  ),
+                ),
+              ),
+              Text(
+                '${stats.eloRating.toStringAsFixed(0)} ELO',
+                style: const TextStyle(
+                  color: AppColors.whiteMuted,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            '${stats.xp} XP',
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w900,
+              color: AppColors.white,
+            ),
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              minHeight: 8,
+              value: progressBase.toDouble().clamp(0, 1),
+              color: AppColors.red,
+              backgroundColor: AppColors.surfaceHigh,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            hasUninitializedReputation
+                ? 'Reputasyon verileri senkronize ediliyor'
+                : stats.xpToNextRank > 0
+                ? 'Sonraki seviyeye ${stats.xpToNextRank} XP kaldı'
+                : 'En yüksek rütbedesiniz',
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppColors.whiteMuted,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StreakSection extends StatelessWidget {
+  const _StreakSection({required this.stats});
+
+  final UserStats stats;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _CompactMetricTile(
+            label: 'Sürüş Serisi',
+            value: '${stats.driveStreak.current} gün',
+            icon: Icons.local_fire_department_outlined,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _CompactMetricTile(
+            label: 'En İyi Seri',
+            value: '${stats.driveStreak.best} gün',
+            icon: Icons.bolt_outlined,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CompactMetricTile extends StatelessWidget {
+  const _CompactMetricTile({
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
+
+  final String label;
+  final String value;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.outline),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 18, color: AppColors.whiteMuted),
+          const SizedBox(height: 10),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+              color: AppColors.white,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppColors.whiteMuted,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -471,7 +658,11 @@ class _GuestState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.person_outline, size: 48, color: AppColors.whiteMuted),
+            const Icon(
+              Icons.person_outline,
+              size: 48,
+              color: AppColors.whiteMuted,
+            ),
             const SizedBox(height: 16),
             const Text(
               'İstatistiklerinizi görmek için giriş yapın',
@@ -479,10 +670,7 @@ class _GuestState extends StatelessWidget {
               style: TextStyle(fontSize: 16, color: AppColors.whiteMuted),
             ),
             const SizedBox(height: 20),
-            FilledButton(
-              onPressed: onLogin,
-              child: const Text('Giriş Yap'),
-            ),
+            FilledButton(onPressed: onLogin, child: const Text('Giriş Yap')),
           ],
         ),
       ),
@@ -491,10 +679,7 @@ class _GuestState extends StatelessWidget {
 }
 
 class _ErrorState extends StatelessWidget {
-  const _ErrorState({
-    required this.message,
-    required this.onRetry,
-  });
+  const _ErrorState({required this.message, required this.onRetry});
 
   final String message;
   final VoidCallback onRetry;
@@ -513,10 +698,7 @@ class _ErrorState extends StatelessWidget {
               style: const TextStyle(color: AppColors.whiteMuted),
             ),
             const SizedBox(height: 16),
-            FilledButton(
-              onPressed: onRetry,
-              child: const Text('Tekrar Dene'),
-            ),
+            FilledButton(onPressed: onRetry, child: const Text('Tekrar Dene')),
           ],
         ),
       ),

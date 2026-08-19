@@ -1,8 +1,5 @@
 class AchievementUnlock {
-  const AchievementUnlock({
-    required this.code,
-    required this.unlockedAt,
-  });
+  const AchievementUnlock({required this.code, required this.unlockedAt});
 
   final String code;
   final DateTime unlockedAt;
@@ -24,6 +21,16 @@ class UserStats {
     required this.reportsSubmitted,
     required this.confirmationsGiven,
     required this.driversSaved,
+    required this.liveReportsSubmitted,
+    required this.liveConfirmationsGiven,
+    required this.liveDriversSaved,
+    required this.nightReportsSubmitted,
+    required this.rankCode,
+    required this.rankTitle,
+    required this.xp,
+    required this.xpToNextRank,
+    required this.eloRating,
+    required this.driveStreak,
     required this.achievements,
     required this.updatedAt,
   });
@@ -35,13 +42,24 @@ class UserStats {
   final int reportsSubmitted;
   final int confirmationsGiven;
   final int driversSaved;
+  final int liveReportsSubmitted;
+  final int liveConfirmationsGiven;
+  final int liveDriversSaved;
+  final int nightReportsSubmitted;
+  final String rankCode;
+  final String rankTitle;
+  final int xp;
+  final int xpToNextRank;
+  final double eloRating;
+  final ProfileStreak driveStreak;
   final List<AchievementUnlock> achievements;
   final DateTime updatedAt;
 
   Duration get totalDriveTime => Duration(seconds: totalDriveTimeSec);
 
-  Set<String> get unlockedCodes =>
-      achievements.map((a) => a.code).toSet();
+  int get totalDriversSaved => driversSaved + liveDriversSaved;
+
+  Set<String> get unlockedCodes => achievements.map((a) => a.code).toSet();
 
   factory UserStats.fromJson(Map<String, dynamic> json) {
     final raw = (json['achievements'] as List<dynamic>? ?? const [])
@@ -54,8 +72,37 @@ class UserStats {
       reportsSubmitted: (json['reports_submitted'] as num?)?.toInt() ?? 0,
       confirmationsGiven: (json['confirmations_given'] as num?)?.toInt() ?? 0,
       driversSaved: (json['drivers_saved'] as num?)?.toInt() ?? 0,
+      liveReportsSubmitted:
+          (json['live_reports_submitted'] as num?)?.toInt() ?? 0,
+      liveConfirmationsGiven:
+          (json['live_confirmations_given'] as num?)?.toInt() ?? 0,
+      liveDriversSaved: (json['live_drivers_saved'] as num?)?.toInt() ?? 0,
+      nightReportsSubmitted:
+          (json['night_reports_submitted'] as num?)?.toInt() ?? 0,
+      rankCode: (json['rank_code'] as String?) ?? 'caylak',
+      rankTitle: (json['rank_title'] as String?) ?? 'Çaylak',
+      xp: (json['xp'] as num?)?.toInt() ?? 0,
+      xpToNextRank: (json['xp_to_next_rank'] as num?)?.toInt() ?? 0,
+      eloRating: (json['elo_rating'] as num?)?.toDouble() ?? 1000,
+      driveStreak: ProfileStreak.fromJson(
+        (json['drive_streak'] as Map<String, dynamic>?) ?? const {},
+      ),
       achievements: raw.map(AchievementUnlock.fromJson).toList(),
       updatedAt: DateTime.parse(json['updated_at'] as String).toLocal(),
+    );
+  }
+}
+
+class ProfileStreak {
+  const ProfileStreak({required this.current, required this.best});
+
+  final int current;
+  final int best;
+
+  factory ProfileStreak.fromJson(Map<String, dynamic> json) {
+    return ProfileStreak(
+      current: (json['current'] as num?)?.toInt() ?? 0,
+      best: (json['best'] as num?)?.toInt() ?? 0,
     );
   }
 }
@@ -128,5 +175,17 @@ const achievementCatalog = <AchievementDefinition>[
     title: 'Topluluk Koruyucusu',
     description: 'Bildirimleriniz 25 sürücüyü uyarsın',
     icon: 'guardian',
+  ),
+  AchievementDefinition(
+    code: 'night_owl',
+    title: 'Night Owl',
+    description: '5 gece bildirimi gönderin',
+    icon: 'owl',
+  ),
+  AchievementDefinition(
+    code: 'first_responder',
+    title: 'First Responder',
+    description: 'İlk doğrulanan kaza bildirimini gönderin',
+    icon: 'responder',
   ),
 ];

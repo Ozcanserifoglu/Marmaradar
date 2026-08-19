@@ -2,9 +2,11 @@ import 'dart:async';
 
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
-import 'package:geolocator/geolocator.dart' show LocationServiceDisabledException;
+import 'package:geolocator/geolocator.dart'
+    show LocationServiceDisabledException;
 import 'package:radar_alert/core/audio/alert_player.dart';
 import 'package:radar_alert/core/geo/bearing.dart';
+import 'package:radar_alert/core/geo/map_pin_filter.dart';
 import 'package:radar_alert/core/location/background_location_service.dart';
 import 'package:radar_alert/data/api/radar_api_client.dart';
 import 'package:radar_alert/data/local/app_database.dart';
@@ -70,13 +72,13 @@ class TrackingController extends ChangeNotifier {
     EtaRepository? etaRepository,
     AmenitiesRepository? amenitiesRepository,
     VoidCallback? onDriveUploaded,
-  })  : _db = database ?? AppDatabase(),
-        _location = locationService ?? BackgroundLocationService(),
-        _alerts = AlertEngine(),
-        _corridors = CorridorTracker(),
-        _player = alertPlayer ?? AlertPlayer(),
-        _api = apiClient ?? RadarApiClient(),
-        _onDriveUploaded = onDriveUploaded {
+  }) : _db = database ?? AppDatabase(),
+       _location = locationService ?? BackgroundLocationService(),
+       _alerts = AlertEngine(),
+       _corridors = CorridorTracker(),
+       _player = alertPlayer ?? AlertPlayer(),
+       _api = apiClient ?? RadarApiClient(),
+       _onDriveUploaded = onDriveUploaded {
     _sync = RegionSyncService(_db, _api);
     _recorder = DriveRecorder(db: _db, api: _api);
     _eta = etaRepository ?? EtaRepository(api: _api);
@@ -125,9 +127,12 @@ class TrackingController extends ChangeNotifier {
   DriverSnapshot? _lastSnapshot;
   ApproachingCamera? _approaching;
   List<CachedCamera> _mapCameras = const [];
+  List<CachedCamera> _visibleCameras = const [];
   List<CachedCorridorWithGates> _mapCorridors = const [];
   List<AmenityPlace> _mapAmenities = const [];
   List<LiveReport> _liveReports = const [];
+  List<LiveReport> _visibleLiveReports = const [];
+  List<GeoPoint>? _activeRoutePoints;
   Timer? _liveReportPoll;
   DriveUploadStatus _driveUploadStatus = DriveUploadStatus.idle;
   bool _reporting = false;
@@ -144,15 +149,22 @@ class TrackingController extends ChangeNotifier {
   DriverSnapshot? get lastSnapshot => _lastSnapshot;
   ApproachingCamera? get approaching => _approaching;
   CachedCamera? get pendingVerify => _pendingVerify;
-  List<CachedCamera> get mapCameras => _mapCameras;
+  List<CachedCamera> get mapCameras => _visibleCameras;
   List<CachedCorridorWithGates> get mapCorridors => _mapCorridors;
   List<AmenityPlace> get mapAmenities =>
       _amenitiesVisible && _running ? _mapAmenities : const [];
-  List<LiveReport> get mapLiveReports => _liveReports;
+  List<LiveReport> get mapLiveReports => _visibleLiveReports;
   bool get amenitiesVisible => _amenitiesVisible;
   DriveUploadStatus get driveUploadStatus => _driveUploadStatus;
 
   double get speedKmh => (_lastSnapshot?.speedMps ?? 0) * 3.6;
+
+  void setActiveRoute(List<GeoPoint>? points) {
+    final next = (points != null && points.length >= 2) ? points : null;
+    if (_sameRoute(_activeRoutePoints, next)) return;
+    _activeRoutePoints = next;
+    if (_applySmartMapFilter()) notifyListeners();
+  }
 
   void setAmenitiesVisible(bool visible) {
     if (_amenitiesVisible == visible) return;
@@ -170,8 +182,9 @@ class TrackingController extends ChangeNotifier {
   CorridorStatus? get corridorStatus {
     final session = _corridors.activeSession;
     if (session == null) return null;
-    final match =
-        _mapCorridors.where((c) => c.corridor.id == session.corridorId);
+    final match = _mapCorridors.where(
+      (c) => c.corridor.id == session.corridorId,
+    );
     if (match.isEmpty) return null;
     final elapsed = DateTime.now().difference(session.enteredAt).inSeconds;
     final avgKmh = elapsed > 0 ? (session.distanceM / elapsed) * 3.6 : 0.0;
@@ -193,6 +206,7 @@ class TrackingController extends ChangeNotifier {
     final snap = await _location.currentSnapshot();
     if (snap != null && _lastSnapshot == null) {
       _lastSnapshot = snap;
+      _applySmartMapFilter();
     }
     _status = 'Hazır — sürüş algılanınca takip otomatik başlar';
     notifyListeners();
@@ -214,6 +228,7 @@ class TrackingController extends ChangeNotifier {
 
   void _onIdleLocation(DriverSnapshot snap) {
     _lastSnapshot = snap;
+    _applySmartMapFilter();
 
     if (snap.speedMps < _driveStartSpeedMps) {
       _autoSuppressed = false;
@@ -255,6 +270,7 @@ class TrackingController extends ChangeNotifier {
       withGates.add(CachedCorridorWithGates(c, await _db.gatesFor(c.id)));
     }
     _mapCorridors = withGates;
+    _applySmartMapFilter();
     notifyListeners();
   }
 
@@ -429,6 +445,7 @@ class TrackingController extends ChangeNotifier {
 
   Future<void> _onLocation(DriverSnapshot snap) async {
     _lastSnapshot = snap;
+    _applySmartMapFilter();
     await _recorder.maybeAppend(snap);
 
     final cameras = await _db.camerasNear(
@@ -455,11 +472,8 @@ class TrackingController extends ChangeNotifier {
         );
         notifyListeners();
       },
-      roadMetrics: (cameraId) => _eta.lookup(
-        cameraId,
-        lat: snap.lat,
-        lon: snap.lon,
-      ),
+      roadMetrics: (cameraId) =>
+          _eta.lookup(cameraId, lat: snap.lat, lon: snap.lon),
       onLeftAlerted: (cam) {
         if (!isCrowdCameraId(cam.id)) return;
         if (_verifyPromptedIds.contains(cam.id)) return;
@@ -470,8 +484,9 @@ class TrackingController extends ChangeNotifier {
     );
 
     _corridors.onLocation(snap, _mapCorridors, (corridor, avgKmh, level) async {
-      final prefix =
-          level >= 2 ? 'Hız limiti aşıldı' : 'Hız limitine yaklaşıyorsunuz';
+      final prefix = level >= 2
+          ? 'Hız limiti aşıldı'
+          : 'Hız limitine yaklaşıyorsunuz';
       _lastAlert =
           '$prefix — ${corridor.name}: ${avgKmh.round()} km/s (limit ${corridor.maxspeedKmh})';
       await _player.showCorridorWarning(
@@ -531,7 +546,8 @@ class TrackingController extends ChangeNotifier {
     if (_etaRefreshScheduled) return;
     final failureCooldown = _lastEtaAttemptAt;
     if (failureCooldown != null &&
-        DateTime.now().difference(failureCooldown) < RoadEtaConstants.cacheTtl) {
+        DateTime.now().difference(failureCooldown) <
+            RoadEtaConstants.cacheTtl) {
       return;
     }
 
@@ -719,6 +735,7 @@ class TrackingController extends ChangeNotifier {
       return !server.any((remote) => _isSameLivePin(local, remote));
     });
     _liveReports = [...server, ...pending];
+    _applySmartMapFilter();
     notifyListeners();
   }
 
@@ -747,6 +764,7 @@ class TrackingController extends ChangeNotifier {
       isOptimistic: true,
     );
     _liveReports = [..._liveReports, local];
+    _applySmartMapFilter();
     notifyListeners();
 
     try {
@@ -759,7 +777,9 @@ class TrackingController extends ChangeNotifier {
         for (final report in _liveReports)
           if (report.id == localId) created else report,
       ];
+      _applySmartMapFilter();
       notifyListeners();
+      _onDriveUploaded?.call();
       return null;
     } on ApiException catch (e) {
       _removeLiveReport(localId);
@@ -770,9 +790,95 @@ class TrackingController extends ChangeNotifier {
     }
   }
 
+  Future<String?> voteLiveReport({
+    required LiveReport report,
+    required bool isUpvote,
+  }) async {
+    final hasSession = await _api.tokenStore.hasSession;
+    if (!hasSession) return 'auth_required';
+
+    LiveReport? removed;
+    if (!isUpvote) {
+      removed = report;
+      _removeLiveReport(report.id);
+    }
+
+    try {
+      await _api.voteLiveReport(reportId: report.id, isUpvote: isUpvote);
+      _onDriveUploaded?.call();
+      return isUpvote ? 'Teşekkürler - onaylandı' : 'Teşekkürler - bildirildi';
+    } on ApiException catch (e) {
+      if (removed != null) {
+        _liveReports = [..._liveReports, removed];
+        _applySmartMapFilter();
+        notifyListeners();
+      }
+      return e.message;
+    } catch (_) {
+      if (removed != null) {
+        _liveReports = [..._liveReports, removed];
+        _applySmartMapFilter();
+        notifyListeners();
+      }
+      return 'Doğrulama gönderilemedi';
+    }
+  }
+
   void _removeLiveReport(String id) {
     _liveReports = _liveReports.where((report) => report.id != id).toList();
+    _applySmartMapFilter();
     notifyListeners();
+  }
+
+  bool _applySmartMapFilter() {
+    final snap = _lastSnapshot;
+    final cameras = MapPinFilter.filterMapPins(
+      pins: _mapCameras,
+      latOf: (cam) => cam.lat,
+      lngOf: (cam) => cam.lon,
+      originLat: snap?.lat,
+      originLng: snap?.lon,
+      routePoints: _activeRoutePoints,
+    );
+    final reports = MapPinFilter.filterMapPins(
+      pins: _liveReports,
+      latOf: (report) => report.lat,
+      lngOf: (report) => report.lng,
+      originLat: snap?.lat,
+      originLng: snap?.lon,
+      routePoints: _activeRoutePoints,
+    );
+
+    final camerasChanged = !_sameIds(_visibleCameras, cameras, (cam) => cam.id);
+    final reportsChanged = !_sameIds(
+      _visibleLiveReports,
+      reports,
+      (report) => report.id,
+    );
+    if (!camerasChanged && !reportsChanged) return false;
+
+    if (camerasChanged) _visibleCameras = cameras;
+    if (reportsChanged) _visibleLiveReports = reports;
+    return true;
+  }
+
+  bool _sameRoute(List<GeoPoint>? a, List<GeoPoint>? b) {
+    if (identical(a, b)) return true;
+    if (a == null || b == null) return a == b;
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i].lat != b[i].lat || a[i].lng != b[i].lng) return false;
+    }
+    return true;
+  }
+
+  bool _sameIds<T>(List<T> a, List<T> b, Object Function(T item) idOf) {
+    if (identical(a, b)) return true;
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (idOf(a[i]) != idOf(b[i])) return false;
+    }
+    return true;
   }
 
   Future<String?> submitVerifyVote(bool stillThere) async {
@@ -796,7 +902,9 @@ class TrackingController extends ChangeNotifier {
       );
       clearPendingVerify();
       _onDriveUploaded?.call();
-      return stillThere ? 'Teşekkürler — onaylandı' : 'Teşekkürler — bildirildi';
+      return stillThere
+          ? 'Teşekkürler — onaylandı'
+          : 'Teşekkürler — bildirildi';
     } on ApiException catch (e) {
       clearPendingVerify();
       return e.message;

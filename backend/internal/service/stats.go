@@ -14,15 +14,25 @@ import (
 const radarEncounterRadiusM = 150.0
 
 type UserStats struct {
-	TotalDistanceM     float64       `json:"total_distance_m"`
-	TotalDriveTimeSec  int64         `json:"total_drive_time_sec"`
-	TotalDrives        int           `json:"total_drives"`
-	RadarsEncountered  int           `json:"radars_encountered"`
-	ReportsSubmitted   int           `json:"reports_submitted"`
-	ConfirmationsGiven int           `json:"confirmations_given"`
-	DriversSaved       int           `json:"drivers_saved"`
-	Achievements       []Achievement `json:"achievements"`
-	UpdatedAt          time.Time     `json:"updated_at"`
+	TotalDistanceM         float64       `json:"total_distance_m"`
+	TotalDriveTimeSec      int64         `json:"total_drive_time_sec"`
+	TotalDrives            int           `json:"total_drives"`
+	RadarsEncountered      int           `json:"radars_encountered"`
+	ReportsSubmitted       int           `json:"reports_submitted"`
+	ConfirmationsGiven     int           `json:"confirmations_given"`
+	DriversSaved           int           `json:"drivers_saved"`
+	LiveReportsSubmitted   int           `json:"live_reports_submitted"`
+	LiveConfirmationsGiven int           `json:"live_confirmations_given"`
+	LiveDriversSaved       int           `json:"live_drivers_saved"`
+	NightReportsSubmitted  int           `json:"night_reports_submitted"`
+	RankCode               string        `json:"rank_code"`
+	RankTitle              string        `json:"rank_title"`
+	XP                     int64         `json:"xp"`
+	XPToNextRank           int64         `json:"xp_to_next_rank"`
+	EloRating              float64       `json:"elo_rating"`
+	DriveStreak            UserStreak    `json:"drive_streak"`
+	Achievements           []Achievement `json:"achievements"`
+	UpdatedAt              time.Time     `json:"updated_at"`
 }
 
 type StatsService struct {
@@ -44,6 +54,14 @@ func (s *StatsService) GetMe(ctx context.Context, userID uuid.UUID) (*UserStats,
 	if err != nil {
 		return nil, err
 	}
+	reputation, err := ensureUserReputation(ctx, tx, userID)
+	if err != nil {
+		return nil, err
+	}
+	streak, err := loadUserStreak(ctx, tx, userID, driveStreakType)
+	if err != nil {
+		return nil, err
+	}
 	if err := evaluateAchievements(ctx, tx, userID, stats); err != nil {
 		return nil, err
 	}
@@ -58,16 +76,35 @@ func (s *StatsService) GetMe(ctx context.Context, userID uuid.UUID) (*UserStats,
 		achievements = make([]Achievement, 0)
 	}
 
+	nextRank := nextRankForXP(reputation.XP)
+	var xpToNext int64
+	if nextRank != nil {
+		xpToNext = nextRank.MinXP - reputation.XP
+		if xpToNext < 0 {
+			xpToNext = 0
+		}
+	}
+
 	return &UserStats{
-		TotalDistanceM:     stats.TotalDistanceM,
-		TotalDriveTimeSec:  stats.TotalDriveTimeSec,
-		TotalDrives:        stats.TotalDrives,
-		RadarsEncountered:  stats.RadarsEncountered,
-		ReportsSubmitted:   stats.ReportsSubmitted,
-		ConfirmationsGiven: stats.ConfirmationsGiven,
-		DriversSaved:       stats.DriversSaved,
-		Achievements:       achievements,
-		UpdatedAt:          stats.UpdatedAt,
+		TotalDistanceM:         stats.TotalDistanceM,
+		TotalDriveTimeSec:      stats.TotalDriveTimeSec,
+		TotalDrives:            stats.TotalDrives,
+		RadarsEncountered:      stats.RadarsEncountered,
+		ReportsSubmitted:       stats.ReportsSubmitted,
+		ConfirmationsGiven:     stats.ConfirmationsGiven,
+		DriversSaved:           stats.DriversSaved,
+		LiveReportsSubmitted:   stats.LiveReportsSubmitted,
+		LiveConfirmationsGiven: stats.LiveConfirmationsGiven,
+		LiveDriversSaved:       stats.LiveDriversSaved,
+		NightReportsSubmitted:  stats.NightReportsSubmitted,
+		RankCode:               reputation.RankCode,
+		RankTitle:              reputation.RankTitle,
+		XP:                     reputation.XP,
+		XPToNextRank:           xpToNext,
+		EloRating:              reputation.ELORating,
+		DriveStreak:            streak,
+		Achievements:           achievements,
+		UpdatedAt:              stats.UpdatedAt,
 	}, nil
 }
 
@@ -77,6 +114,8 @@ func ensureUserStats(ctx context.Context, tx pgx.Tx, userID uuid.UUID) (userStat
 		SELECT total_distance_m, total_drive_time_sec, total_drives,
 		       radars_encountered, night_drives, safe_drives,
 		       reports_submitted, confirmations_given, drivers_saved, fake_reports,
+		       live_reports_submitted, live_confirmations_given, live_drivers_saved,
+		       night_reports_submitted,
 		       updated_at
 		FROM user_stats
 		WHERE user_id = $1
@@ -91,6 +130,10 @@ func ensureUserStats(ctx context.Context, tx pgx.Tx, userID uuid.UUID) (userStat
 		&row.ConfirmationsGiven,
 		&row.DriversSaved,
 		&row.FakeReports,
+		&row.LiveReportsSubmitted,
+		&row.LiveConfirmationsGiven,
+		&row.LiveDriversSaved,
+		&row.NightReportsSubmitted,
 		&row.UpdatedAt,
 	)
 	if err == nil {
@@ -113,6 +156,8 @@ func ensureUserStats(ctx context.Context, tx pgx.Tx, userID uuid.UUID) (userStat
 		SELECT total_distance_m, total_drive_time_sec, total_drives,
 		       radars_encountered, night_drives, safe_drives,
 		       reports_submitted, confirmations_given, drivers_saved, fake_reports,
+		       live_reports_submitted, live_confirmations_given, live_drivers_saved,
+		       night_reports_submitted,
 		       updated_at
 		FROM user_stats
 		WHERE user_id = $1
@@ -127,6 +172,10 @@ func ensureUserStats(ctx context.Context, tx pgx.Tx, userID uuid.UUID) (userStat
 		&row.ConfirmationsGiven,
 		&row.DriversSaved,
 		&row.FakeReports,
+		&row.LiveReportsSubmitted,
+		&row.LiveConfirmationsGiven,
+		&row.LiveDriversSaved,
+		&row.NightReportsSubmitted,
 		&row.UpdatedAt,
 	)
 	if err != nil {
@@ -205,6 +254,20 @@ func applyDriveToStats(
 
 	stats, err := ensureUserStats(ctx, tx, userID)
 	if err != nil {
+		return err
+	}
+	if _, _, err := applyReputationEvent(
+		ctx,
+		tx,
+		userID,
+		reputationEventKeyDrive(driveID),
+		reputationReasonDrive,
+		xpForDrive(lengthM),
+		0,
+	); err != nil {
+		return err
+	}
+	if _, err := updateUserStreak(ctx, tx, userID, driveStreakType, endedAt); err != nil {
 		return err
 	}
 	return evaluateAchievements(ctx, tx, userID, stats)

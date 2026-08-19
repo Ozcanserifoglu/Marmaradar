@@ -30,15 +30,15 @@ const (
 )
 
 var (
-	ErrInvalidReport      = errors.New("invalid report")
-	ErrReportNotFound     = errors.New("report not found")
-	ErrReportInactive     = errors.New("report is not active")
-	ErrTooFarToVote       = errors.New("too far from report to vote")
-	ErrCannotVoteOwn      = errors.New("cannot vote on own report")
-	ErrReportRateLimited  = errors.New("report rate limit exceeded")
-	ErrVoteRateLimited    = errors.New("vote rate limit exceeded")
-	ErrReportBanned       = errors.New("temporarily banned from reporting")
-	ErrInvalidVoteValue   = errors.New("vote value must be 1 or -1")
+	ErrInvalidReport     = errors.New("invalid report")
+	ErrReportNotFound    = errors.New("report not found")
+	ErrReportInactive    = errors.New("report is not active")
+	ErrTooFarToVote      = errors.New("too far from report to vote")
+	ErrCannotVoteOwn     = errors.New("cannot vote on own report")
+	ErrReportRateLimited = errors.New("report rate limit exceeded")
+	ErrVoteRateLimited   = errors.New("vote rate limit exceeded")
+	ErrReportBanned      = errors.New("temporarily banned from reporting")
+	ErrInvalidVoteValue  = errors.New("vote value must be 1 or -1")
 )
 
 type ReportService struct {
@@ -204,6 +204,22 @@ func (s *ReportService) Create(ctx context.Context, userID uuid.UUID, in CreateR
 	if err := bumpStat(ctx, tx, userID, "reports_submitted", 1); err != nil {
 		return nil, err
 	}
+	if isNightDrive(time.Now().UTC()) {
+		if err := bumpStat(ctx, tx, userID, "night_reports_submitted", 1); err != nil {
+			return nil, err
+		}
+	}
+	if _, _, err := applyReputationEvent(
+		ctx,
+		tx,
+		userID,
+		reputationEventKeyCrowdReportCreate(id),
+		reputationReasonReport,
+		30,
+		0,
+	); err != nil {
+		return nil, err
+	}
 	stats, err := ensureUserStats(ctx, tx, userID)
 	if err != nil {
 		return nil, err
@@ -284,12 +300,12 @@ func applyVoteTx(
 	allowMergeOwn bool,
 ) (*ReportResult, error) {
 	var (
-		reporterID               uuid.UUID
-		status                   string
-		upvotes, downvotes       int
-		confidence               float64
-		expiresAt, createdAt     time.Time
-		withinProximity          bool
+		reporterID           uuid.UUID
+		status               string
+		upvotes, downvotes   int
+		confidence           float64
+		expiresAt, createdAt time.Time
+		withinProximity      bool
 	)
 	err := tx.QueryRow(ctx, `
 		SELECT reporter_id, status, upvotes, downvotes, confidence_score,
@@ -420,6 +436,17 @@ func applyVoteTx(
 		if err := bumpStat(ctx, tx, userID, "confirmations_given", 1); err != nil {
 			return nil, err
 		}
+		if _, _, err := applyReputationEvent(
+			ctx,
+			tx,
+			userID,
+			reputationEventKeyCrowdVoteUp(cameraID, userID),
+			reputationReasonVote,
+			8,
+			0,
+		); err != nil {
+			return nil, err
+		}
 		if reporterID != userID {
 			if err := bumpStat(ctx, tx, reporterID, "drivers_saved", 1); err != nil {
 				return nil, err
@@ -481,10 +508,14 @@ func clampConfidence(v float64) float64 {
 
 func bumpStat(ctx context.Context, tx pgx.Tx, userID uuid.UUID, column string, delta int) error {
 	allowed := map[string]bool{
-		"reports_submitted":   true,
-		"confirmations_given": true,
-		"drivers_saved":       true,
-		"fake_reports":        true,
+		"reports_submitted":        true,
+		"confirmations_given":      true,
+		"drivers_saved":            true,
+		"fake_reports":             true,
+		"live_reports_submitted":   true,
+		"live_confirmations_given": true,
+		"live_drivers_saved":       true,
+		"night_reports_submitted":  true,
 	}
 	if !allowed[column] {
 		return fmt.Errorf("invalid stats column %s", column)

@@ -108,6 +108,18 @@ func main() {
 		}
 	}()
 
+	// Settle live reports when they expire or hit score thresholds.
+	go func() {
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
+		for {
+			if _, err := liveReportSvc.SettleExpired(context.Background()); err != nil {
+				slog.Warn("settle live reports failed", "error", err)
+			}
+			<-ticker.C
+		}
+	}()
+
 	geoGuard, err := georestrict.New(georestrict.ParseCountries(cfg.GeoRestrictCountries))
 	if err != nil {
 		slog.Error("geo restriction config failed", "error", err)
@@ -149,6 +161,7 @@ func main() {
 			r.Post("/reports", reportHandler.Create)
 			r.Post("/reports/{id}/votes", reportHandler.Vote)
 			r.Post("/live-reports", liveReportHandler.Create)
+			r.Post("/live-reports/{id}/vote", liveReportHandler.Vote)
 			r.Post("/eta/cameras", etaHandler.Cameras)
 			r.Post("/amenities/cells", amenitiesHandler.Cells)
 		})

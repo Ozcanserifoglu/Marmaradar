@@ -87,7 +87,33 @@ dart run build_runner build
 flutter run
 ```
 
-The app calls the production gateway by default. To point a build at local Docker instead, see [mobile/README.md](mobile/README.md).
+One-command run (API + app):
+
+```bash
+./scripts/run-local-mobile.sh
+```
+
+By default it starts local gateway + local API wired to `LIVE_DATABASE_URL` (live DB).
+Set `LIVE_DATABASE_URL` in `.env.local` (gitignored). You can copy `.env.local.example`.
+
+Run modes:
+
+```bash
+# local gateway + local API + LIVE_DATABASE_URL (default)
+./scripts/run-local-mobile.sh
+
+# local gateway + local API + local docker db
+./scripts/run-local-mobile.sh --local
+
+# direct production gateway
+./scripts/run-local-mobile.sh --live
+```
+
+You can pass normal `flutter run` args through, for example:
+
+```bash
+./scripts/run-local-mobile.sh -d emulator-5554
+```
 
 ## API endpoints
 

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:radar_alert/data/api/auth_models.dart';
 import 'package:radar_alert/data/auth/token_store.dart';
@@ -54,12 +55,20 @@ class RadarApiClient {
         _tokens = tokenStore ?? SecureTokenStore();
 
   static const _productionBaseUrl = 'http://34.59.226.182:8081';
+  static const _androidEmulatorLocalBaseUrl = 'http://10.0.2.2:8081';
+  static const _localhostBaseUrl = 'http://127.0.0.1:8081';
 
-  // Override: --dart-define=RADAR_API_URL=http://10.0.2.2:8081
+  // Release builds always use production API.
+  // Debug/profile builds default to local API and can be overridden via RADAR_API_URL.
   static String _resolveBaseUrl() {
+    if (kReleaseMode) return _productionBaseUrl;
+
     const fromEnv = String.fromEnvironment('RADAR_API_URL');
     if (fromEnv.isNotEmpty) return fromEnv;
-    return _productionBaseUrl;
+
+    // Android emulator cannot reach host localhost directly.
+    if (Platform.isAndroid) return _androidEmulatorLocalBaseUrl;
+    return _localhostBaseUrl;
   }
 
   final String baseUrl;
@@ -403,6 +412,27 @@ class RadarApiClient {
         .cast<Map<String, dynamic>>()
         .map(LiveReport.fromJson)
         .toList();
+  }
+
+  Future<void> voteLiveReport({
+    required String reportId,
+    required bool isUpvote,
+  }) async {
+    final resp = await _postJson(
+      '/v1/live-reports/$reportId/vote',
+      {
+        'is_upvote': isUpvote,
+      },
+      auth: true,
+    );
+    if (resp.statusCode != 200) {
+      throw ApiException(
+        'live-reports/$reportId/vote',
+        resp.statusCode,
+        null,
+        resp.body,
+      );
+    }
   }
 
   Future<List<Map<String, dynamic>>> fetchCamerasNearby({

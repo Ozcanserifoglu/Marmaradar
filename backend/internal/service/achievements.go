@@ -19,6 +19,8 @@ const (
 	AchievementCommunityHelper = "community_helper"
 	AchievementRadarReporter   = "radar_reporter"
 	AchievementCrowdGuardian   = "crowd_guardian"
+	AchievementNightOwl        = "night_owl"
+	AchievementFirstResponder  = "first_responder"
 )
 
 const safeSpeedMpsMax = 36.111 // 130 km/h
@@ -29,17 +31,21 @@ type Achievement struct {
 }
 
 type userStatsRow struct {
-	TotalDistanceM     float64
-	TotalDriveTimeSec  int64
-	TotalDrives        int
-	RadarsEncountered  int
-	NightDrives        int
-	SafeDrives         int
-	ReportsSubmitted   int
-	ConfirmationsGiven int
-	DriversSaved       int
-	FakeReports        int
-	UpdatedAt          time.Time
+	TotalDistanceM         float64
+	TotalDriveTimeSec      int64
+	TotalDrives            int
+	RadarsEncountered      int
+	NightDrives            int
+	SafeDrives             int
+	ReportsSubmitted       int
+	ConfirmationsGiven     int
+	DriversSaved           int
+	FakeReports            int
+	LiveReportsSubmitted   int
+	LiveConfirmationsGiven int
+	LiveDriversSaved       int
+	NightReportsSubmitted  int
+	UpdatedAt              time.Time
 }
 
 func isNightDrive(startedAt time.Time) bool {
@@ -61,7 +67,7 @@ func isSafeDrive(points []DrivePoint) bool {
 }
 
 func evaluateAchievements(ctx context.Context, tx pgx.Tx, userID uuid.UUID, stats userStatsRow) error {
-	candidates := make([]string, 0, 9)
+	candidates := make([]string, 0, 11)
 	if stats.TotalDrives >= 1 {
 		candidates = append(candidates, AchievementFirstDrive)
 	}
@@ -89,6 +95,9 @@ func evaluateAchievements(ctx context.Context, tx pgx.Tx, userID uuid.UUID, stat
 	if stats.DriversSaved >= 25 {
 		candidates = append(candidates, AchievementCrowdGuardian)
 	}
+	if stats.NightReportsSubmitted >= 5 {
+		candidates = append(candidates, AchievementNightOwl)
+	}
 	for _, code := range candidates {
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO user_achievements (user_id, code)
@@ -97,6 +106,17 @@ func evaluateAchievements(ctx context.Context, tx pgx.Tx, userID uuid.UUID, stat
 		`, userID, code); err != nil {
 			return fmt.Errorf("unlock achievement %s: %w", code, err)
 		}
+	}
+	return nil
+}
+
+func unlockAchievement(ctx context.Context, tx pgx.Tx, userID uuid.UUID, code string) error {
+	if _, err := tx.Exec(ctx, `
+		INSERT INTO user_achievements (user_id, code)
+		VALUES ($1, $2)
+		ON CONFLICT DO NOTHING
+	`, userID, code); err != nil {
+		return fmt.Errorf("unlock achievement %s: %w", code, err)
 	}
 	return nil
 }

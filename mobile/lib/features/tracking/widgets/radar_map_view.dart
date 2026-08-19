@@ -39,6 +39,7 @@ class RadarMapView extends StatefulWidget {
     required this.isProgrammaticMove,
     this.amenities = const [],
     this.liveReports = const [],
+    this.onLiveReportTap,
     this.onLongPress,
     this.routePoints,
     this.destination,
@@ -52,6 +53,7 @@ class RadarMapView extends StatefulWidget {
   final ApproachingCamera? approaching;
   final List<AmenityPlace> amenities;
   final List<LiveReport> liveReports;
+  final ValueChanged<LiveReport>? onLiveReportTap;
   final void Function(GoogleMapController controller) onMapCreated;
   final VoidCallback onUserGesture;
   final ValueChanged<double> onCameraMoved;
@@ -310,6 +312,8 @@ class _RadarMapViewState extends State<RadarMapView> {
             anchor: const Offset(0.5, 0.5),
             zIndexInt: 5,
             infoWindow: InfoWindow(title: report.type.label),
+            consumeTapEvents: true,
+            onTap: () => widget.onLiveReportTap?.call(report),
           ),
         );
       }

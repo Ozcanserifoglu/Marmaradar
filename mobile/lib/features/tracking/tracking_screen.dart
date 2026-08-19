@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -38,6 +39,26 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
   MapStyle _mapStyle = MapStyle.dark;
 
   int _fittedRouteLen = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _syncRouteFilter(ref.read(directionsControllerProvider));
+    });
+  }
+
+  void _syncRouteFilter(DirectionsController directions) {
+    ref.read(trackingControllerProvider).setActiveRoute(
+          directions.hasRoute
+              ? [
+                  for (final point in directions.routePoints)
+                    (lat: point.latitude, lng: point.longitude),
+                ]
+              : null,
+        );
+  }
 
   @override
   void dispose() {
@@ -383,7 +404,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
     }
 
     if (!mounted) return;
-    final type = await showModalBottomSheet<LiveReportType>(
+    final action = await showModalBottomSheet<_ReportSheetAction>(
       context: context,
       backgroundColor: AppColors.night,
       shape: const RoundedRectangleBorder(
@@ -429,7 +450,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                   height: 56,
                   child: FilledButton(
                     onPressed: () =>
-                        Navigator.of(ctx).pop(LiveReportType.police),
+                        Navigator.of(ctx).pop(_ReportSheetAction.police),
                     child: const Text(
                       '🚓 Polis',
                       style: TextStyle(
@@ -449,9 +470,25 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                       foregroundColor: AppColors.night,
                     ),
                     onPressed: () =>
-                        Navigator.of(ctx).pop(LiveReportType.accident),
+                        Navigator.of(ctx).pop(_ReportSheetAction.accident),
                     child: const Text(
                       '💥 Kaza',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: FilledButton(
+                    onPressed: () =>
+                        Navigator.of(ctx).pop(_ReportSheetAction.mobileRadar),
+                    child: const Text(
+                      '📸 Seyyar Radar',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
@@ -466,7 +503,14 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
       },
     );
 
-    if (type == null || !mounted) return;
+    if (action == null || !mounted) return;
+    if (action == _ReportSheetAction.mobileRadar) {
+      await _onReportRadar();
+      return;
+    }
+    final type = action == _ReportSheetAction.police
+        ? LiveReportType.police
+        : LiveReportType.accident;
     await _submitLiveReport(type, position);
   }
 
@@ -481,6 +525,104 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
       final ok = await showAuthModal(context);
       if (ok && mounted) {
         await _submitLiveReport(type, position);
+      }
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg)),
+    );
+  }
+
+  Future<void> _onLiveReportTap(LiveReport report) async {
+    if (!mounted) return;
+    final isStillThere = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: AppColors.night,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.outline,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Burada hala polis/kaza var mı?',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.white,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  report.type == LiveReportType.police
+                      ? 'Bu polis bildirimi hala geçerli mi?'
+                      : 'Bu kaza bildirimi hala geçerli mi?',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: AppColors.whiteMuted,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.of(ctx).pop(false),
+                        child: const Text('👎 Hayır'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton(
+                        onPressed: () => Navigator.of(ctx).pop(true),
+                        child: const Text('👍 Evet'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    if (isStillThere == null || !mounted) return;
+
+    if (!isStillThere) {
+      unawaited(_submitLiveReportVote(report, isUpvote: false));
+      return;
+    }
+    await _submitLiveReportVote(report, isUpvote: true);
+  }
+
+  Future<void> _submitLiveReportVote(
+    LiveReport report, {
+    required bool isUpvote,
+  }) async {
+    final msg = await ref.read(trackingControllerProvider).voteLiveReport(
+          report: report,
+          isUpvote: isUpvote,
+        );
+    if (!mounted || msg == null) return;
+    if (msg == 'auth_required') {
+      final ok = await showAuthModal(context);
+      if (ok && mounted) {
+        await _submitLiveReportVote(report, isUpvote: isUpvote);
       }
       return;
     }
@@ -520,6 +662,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
 
     ref.listen<DirectionsController>(directionsControllerProvider,
         (previous, next) {
+      _syncRouteFilter(next);
       if (next.hasRoute && next.routePoints.length != _fittedRouteLen) {
         _fittedRouteLen = next.routePoints.length;
         _fitRoute(next.routePoints);
@@ -561,6 +704,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                 if (_follow) setState(() => _follow = false);
               },
               onLongPress: _onMapLongPress,
+              onLiveReportTap: _onLiveReportTap,
             ),
           ),
 
@@ -678,6 +822,12 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
       ),
     );
   }
+}
+
+enum _ReportSheetAction {
+  police,
+  accident,
+  mobileRadar,
 }
 
 class _MapButton extends StatelessWidget {

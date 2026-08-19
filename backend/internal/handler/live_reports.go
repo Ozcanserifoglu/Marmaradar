@@ -5,6 +5,8 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"github.com/radar-alert/backend/internal/auth"
 	"github.com/radar-alert/backend/internal/service"
 )
@@ -51,4 +53,51 @@ func (h *LiveReportHandler) Active(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, reports)
+}
+
+type voteLiveReportBody struct {
+	IsUpvote *bool `json:"is_upvote"`
+}
+
+func (h *LiveReportHandler) Vote(w http.ResponseWriter, r *http.Request) {
+	userID, ok := auth.UserIDFromContext(r.Context())
+	if !ok {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return
+	}
+
+	reportIDRaw := chi.URLParam(r, "id")
+	reportID, err := uuid.Parse(reportIDRaw)
+	if err != nil {
+		writeBadRequest(w, "invalid report id")
+		return
+	}
+
+	var body voteLiveReportBody
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&body); err != nil {
+		writeBadRequest(w, "invalid JSON body")
+		return
+	}
+	if body.IsUpvote == nil {
+		writeBadRequest(w, "is_upvote is required")
+		return
+	}
+
+	if err := h.reports.Vote(r.Context(), reportID, userID, *body.IsUpvote); err != nil {
+		if errors.Is(err, service.ErrLiveReportNotFound) {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "live report not found"})
+			return
+		}
+		if errors.Is(err, service.ErrLiveReportInactive) ||
+			errors.Is(err, service.ErrCannotVoteOwnLiveReport) {
+			writeJSON(w, http.StatusConflict, map[string]string{"error": err.Error()})
+			return
+		}
+		writeError(w, err)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 }

@@ -18,6 +18,7 @@ mobile/.pub/
 .vscode/
 .cursor/
 *.iml
+scripts/run-local-mobile.sh
 
 # Cursor AI Rules
 .cursorrules
