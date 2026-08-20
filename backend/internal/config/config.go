@@ -19,12 +19,36 @@ type Config struct {
 	JWTSecret            string `envconfig:"JWT_SECRET"`
 	AccessTokenTTL       int    `envconfig:"ACCESS_TOKEN_TTL" default:"900"`
 	RefreshTokenTTL      int    `envconfig:"REFRESH_TOKEN_TTL" default:"2592000"`
+	GoogleOAuthClientIDs string `envconfig:"GOOGLE_OAUTH_CLIENT_IDS"`
+	AppleOAuthClientIDs  string `envconfig:"APPLE_OAUTH_CLIENT_IDS"`
 	GoogleMapsAPIKey     string `envconfig:"GOOGLE_MAPS_API_KEY"`
 	GoogleTTSAPIKey      string `envconfig:"GOOGLE_TTS_API_KEY"`
 	TTSCacheDir          string `envconfig:"TTS_CACHE_DIR" default:"/var/cache/tts"`
 	TTSVoice             string `envconfig:"TTS_VOICE" default:"tr-TR-Standard-A"`
 	TTSWarmOnStart       bool   `envconfig:"TTS_WARM_ON_START" default:"true"`
 	GeoRestrictCountries string `envconfig:"GEO_RESTRICT_COUNTRIES"`
+}
+
+// GoogleClientIDs returns configured Google OAuth audiences (Web/iOS/Android client IDs).
+func (c Config) GoogleClientIDs() []string {
+	return splitCSV(c.GoogleOAuthClientIDs)
+}
+
+// AppleClientIDs returns configured Apple OAuth audiences (bundle ID / Services ID).
+func (c Config) AppleClientIDs() []string {
+	return splitCSV(c.AppleOAuthClientIDs)
+}
+
+func splitCSV(s string) []string {
+	parts := strings.Split(s, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
 }
 
 func Load() Config {

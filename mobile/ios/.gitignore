@@ -20,6 +20,7 @@ Flutter/Flutter.framework
 Flutter/Flutter.podspec
 Flutter/Generated.xcconfig
 Flutter/MapsSecrets.xcconfig
+Flutter/GoogleSignInSecrets.xcconfig
 Flutter/ephemeral/
 Flutter/app.flx
 Flutter/app.zip

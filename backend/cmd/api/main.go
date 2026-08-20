@@ -63,7 +63,7 @@ func main() {
 
 	jwtMgr := auth.NewJWTManager(cfg.JWTSecret, cfg.AccessTokenTTL, cfg.RefreshTokenTTL)
 	geo := service.NewGeoService(pool)
-	authSvc := service.NewAuthService(pool, jwtMgr)
+	authSvc := service.NewAuthService(pool, jwtMgr, cfg.GoogleClientIDs(), cfg.AppleClientIDs())
 	roadsClient := roads.NewClient(cfg.GoogleMapsAPIKey)
 	if roadsClient.Enabled() {
 		slog.Info("roads snap-to-road enabled")
@@ -176,6 +176,7 @@ func main() {
 		r.Post("/auth/register", authHandler.Register)
 		r.Post("/auth/login", authHandler.Login)
 		r.Post("/auth/refresh", authHandler.Refresh)
+		r.Post("/auth/oauth", authHandler.OAuth)
 
 		r.Group(func(r chi.Router) {
 			r.Use(auth.Middleware(jwtMgr))

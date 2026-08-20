@@ -48,6 +48,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     }
   }
 
+  Future<void> _social(Future<bool> Function() action) async {
+    final ok = await action();
+    if (!ok || !mounted) return;
+    if (widget.asModal) {
+      Navigator.of(context).pop(true);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = ref.watch(authControllerProvider);
@@ -100,7 +108,53 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     textAlign: TextAlign.center,
                     style: TextStyle(color: AppColors.whiteMuted, fontSize: 14),
                   ),
-                  const SizedBox(height: 36),
+                  const SizedBox(height: 28),
+                  OutlinedButton.icon(
+                    onPressed: auth.isBusy || !auth.canUseGoogleSignIn
+                        ? null
+                        : () => _social(auth.loginWithGoogle),
+                    icon: const Icon(Icons.g_mobiledata, size: 28),
+                    label: const Text('Google ile devam et'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.white,
+                      side: const BorderSide(color: AppColors.whiteMuted),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                  ),
+                  if (auth.showAppleSignIn) ...[
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      onPressed: auth.isBusy
+                          ? null
+                          : () => _social(auth.loginWithApple),
+                      icon: const Icon(Icons.apple, size: 22),
+                      label: const Text('Apple ile devam et'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.white,
+                        backgroundColor: Colors.black,
+                        side: const BorderSide(color: Colors.white24),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      const Expanded(child: Divider(color: AppColors.whiteMuted)),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Text(
+                          'veya e-posta',
+                          style: TextStyle(
+                            color: AppColors.whiteMuted.withValues(alpha: 0.9),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                      const Expanded(child: Divider(color: AppColors.whiteMuted)),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
                   TextField(
                     controller: _emailCtrl,
                     keyboardType: TextInputType.emailAddress,

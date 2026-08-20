@@ -93,8 +93,23 @@ One-command run (API + app):
 ./scripts/run-local-mobile.sh
 ```
 
+If you do not have that script yet (it is gitignored), copy the example:
+
+```bash
+cp scripts/run-local-mobile.sh.example scripts/run-local-mobile.sh
+chmod +x scripts/run-local-mobile.sh
+```
+
 By default it starts local gateway + local API wired to `LIVE_DATABASE_URL` (live DB).
 Set `LIVE_DATABASE_URL` in `.env.local` (gitignored). You can copy `.env.local.example`.
+
+Release builds (Google Sign-In Web client ID is injected automatically):
+
+```bash
+./scripts/build-release-mobile.sh appbundle
+./scripts/build-release-mobile.sh apk
+./scripts/build-release-mobile.sh ipa
+```
 
 Run modes:
 
@@ -180,6 +195,40 @@ Create `.env` on the VM before starting the stack — without `JWT_SECRET` the A
 ```bash
 printf 'JWT_SECRET=%s\n' "$(openssl rand -base64 48)" >> .env
 ```
+
+Also set OAuth audiences used by `POST /v1/auth/oauth`:
+
+```bash
+# Comma-separated Google OAuth 2.0 Client IDs (Web + iOS + Android)
+echo 'GOOGLE_OAUTH_CLIENT_IDS=WEB_CLIENT_ID,IOS_CLIENT_ID,ANDROID_CLIENT_ID' >> .env
+# Apple native audience = iOS bundle ID
+echo 'APPLE_OAUTH_CLIENT_IDS=com.radaralert.radarAlert' >> .env
+```
+
+### Google / Apple Sign-In console setup
+
+**Google Cloud (same project as Maps is fine):**
+
+1. APIs & Services → OAuth consent screen → configure
+2. Credentials → Create OAuth client IDs:
+   - **Web application** — used as Flutter `serverClientId` so ID token `aud` is this Web client ID (backend must accept it)
+   - **Android** — package `com.radaralert.radar_alert` + SHA-1/SHA-256 of debug and release keystores (`keytool -list -v -keystore ~/.android/debug.keystore`)
+   - **iOS** — bundle ID `com.radaralert.radarAlert` (provides reversed client ID / URL scheme for iOS)
+3. Put all three client IDs in `GOOGLE_OAUTH_CLIENT_IDS`
+4. Flutter run/build scripts bake in the Web client ID from `mobile/dart_defines.oauth.json` automatically (`./scripts/run-local-mobile.sh`, `./scripts/build-release-mobile.sh`). For a raw `flutter run` / `flutter build`, pass:
+
+```bash
+--dart-define-from-file=dart_defines.oauth.json
+```
+
+On iOS also set `--dart-define=GOOGLE_IOS_CLIENT_ID=IOS_CLIENT_ID` (and `GoogleSignInSecrets.xcconfig`).
+
+**Apple Developer:**
+
+1. Certificates, Identifiers & Profiles → App ID `com.radaralert.radarAlert` → enable **Sign In with Apple**
+2. Xcode / Runner entitlements already include `com.apple.developer.applesignin` (`mobile/ios/Runner/Runner.entitlements`)
+3. Backend `APPLE_OAUTH_CLIENT_IDS` = `com.radaralert.radarAlert`
+4. Copy `mobile/ios/Flutter/GoogleSignInSecrets.xcconfig.example` → `GoogleSignInSecrets.xcconfig` and set `GOOGLE_IOS_CLIENT_ID` + `GOOGLE_IOS_URL_SCHEME` (reversed client ID)
 
 Open **TCP 8081** in the VPC firewall so phones can reach the gateway.
 

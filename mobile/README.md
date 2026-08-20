@@ -61,3 +61,20 @@ flutter run --dart-define=RADAR_API_URL=http://10.0.2.2:8081
 ```
 
 `10.0.2.2` is how the Android emulator reaches your machine's `localhost`. For repeat use, copy `dart_defines.json.example` to `dart_defines.json` (gitignored) and pass `--dart-define-from-file=dart_defines.json`.
+
+## Google Sign-In (OAuth Web client ID)
+
+The Web OAuth client ID used as `serverClientId` lives in committed [`dart_defines.oauth.json`](dart_defines.oauth.json). Local run and release scripts inject it automatically:
+
+```bash
+# from repo root
+./scripts/run-local-mobile.sh
+./scripts/build-release-mobile.sh appbundle
+```
+
+Plain Flutter commands:
+
+```bash
+flutter run --dart-define-from-file=dart_defines.oauth.json
+flutter build apk --dart-define-from-file=dart_defines.oauth.json
+```

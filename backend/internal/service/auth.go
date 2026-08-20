@@ -17,18 +17,36 @@ import (
 )
 
 var (
-	ErrEmailTaken        = errors.New("email already registered")
+	ErrEmailTaken         = errors.New("email already registered")
 	ErrInvalidCredentials = errors.New("invalid email or password")
-	ErrInvalidRefresh    = errors.New("invalid or expired refresh token")
+	ErrInvalidRefresh     = errors.New("invalid or expired refresh token")
+	ErrInvalidOAuthToken  = errors.New("invalid oauth identity token")
+	ErrOAuthNotConfigured = errors.New("oauth provider is not configured")
+)
+
+const (
+	ProviderGoogle = "google"
+	ProviderApple  = "apple"
 )
 
 type AuthService struct {
-	pool *pgxpool.Pool
-	jwt  *auth.JWTManager
+	pool   *pgxpool.Pool
+	jwt    *auth.JWTManager
+	google *auth.GoogleIDTokenVerifier
+	apple  *auth.AppleIDTokenVerifier
 }
 
-func NewAuthService(pool *pgxpool.Pool, jwt *auth.JWTManager) *AuthService {
-	return &AuthService{pool: pool, jwt: jwt}
+func NewAuthService(
+	pool *pgxpool.Pool,
+	jwt *auth.JWTManager,
+	googleAudiences, appleAudiences []string,
+) *AuthService {
+	return &AuthService{
+		pool:   pool,
+		jwt:    jwt,
+		google: auth.NewGoogleIDTokenVerifier(googleAudiences),
+		apple:  auth.NewAppleIDTokenVerifier(appleAudiences),
+	}
 }
 
 type UserInfo struct {
@@ -76,7 +94,7 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (*AuthR
 	}
 
 	var userID uuid.UUID
-	var passwordHash string
+	var passwordHash *string
 	err := s.pool.QueryRow(ctx,
 		`SELECT id, password_hash FROM users WHERE email = $1`,
 		email,
@@ -88,11 +106,185 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (*AuthR
 		return nil, fmt.Errorf("lookup user: %w", err)
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(password)); err != nil {
+	if passwordHash == nil || *passwordHash == "" {
+		return nil, ErrInvalidCredentials
+	}
+	if err := bcrypt.CompareHashAndPassword([]byte(*passwordHash), []byte(password)); err != nil {
 		return nil, ErrInvalidCredentials
 	}
 
 	return s.issueTokens(ctx, userID, email)
+}
+
+// OAuthLogin verifies a Google/Apple ID token and find-or-creates the user.
+func (s *AuthService) OAuthLogin(ctx context.Context, provider, idToken, nonce string) (*AuthResult, error) {
+	provider = strings.ToLower(strings.TrimSpace(provider))
+	var (
+		claims *auth.IdentityClaims
+		err    error
+	)
+	switch provider {
+	case ProviderGoogle:
+		if len(s.googleAudiences()) == 0 {
+			return nil, ErrOAuthNotConfigured
+		}
+		claims, err = s.google.Verify(idToken)
+	case ProviderApple:
+		if len(s.appleAudiences()) == 0 {
+			return nil, ErrOAuthNotConfigured
+		}
+		claims, err = s.apple.Verify(idToken, nonce)
+	default:
+		return nil, fmt.Errorf("%w: unsupported provider", ErrInvalidOAuthToken)
+	}
+	if err != nil {
+		if errors.Is(err, auth.ErrInvalidIDToken) {
+			return nil, ErrInvalidOAuthToken
+		}
+		return nil, err
+	}
+	if claims == nil || claims.Subject == "" {
+		return nil, ErrInvalidOAuthToken
+	}
+
+	userID, email, err := s.findOrCreateOAuthUser(ctx, provider, claims)
+	if err != nil {
+		return nil, err
+	}
+	return s.issueTokens(ctx, userID, email)
+}
+
+func (s *AuthService) googleAudiences() []string {
+	if s.google == nil {
+		return nil
+	}
+	return s.google.Audiences()
+}
+
+func (s *AuthService) appleAudiences() []string {
+	if s.apple == nil {
+		return nil
+	}
+	return s.apple.Audiences()
+}
+
+func (s *AuthService) findOrCreateOAuthUser(
+	ctx context.Context,
+	provider string,
+	claims *auth.IdentityClaims,
+) (uuid.UUID, string, error) {
+	var userID uuid.UUID
+	var email string
+	err := s.pool.QueryRow(ctx, `
+		SELECT u.id, u.email
+		FROM auth_identities ai
+		JOIN users u ON u.id = ai.user_id
+		WHERE ai.provider = $1 AND ai.provider_subject = $2
+	`, provider, claims.Subject).Scan(&userID, &email)
+	if err == nil {
+		return userID, email, nil
+	}
+	if !errors.Is(err, pgx.ErrNoRows) {
+		return uuid.Nil, "", fmt.Errorf("lookup identity: %w", err)
+	}
+
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return uuid.Nil, "", fmt.Errorf("begin oauth tx: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	// Race-safe re-check inside the transaction.
+	err = tx.QueryRow(ctx, `
+		SELECT u.id, u.email
+		FROM auth_identities ai
+		JOIN users u ON u.id = ai.user_id
+		WHERE ai.provider = $1 AND ai.provider_subject = $2
+	`, provider, claims.Subject).Scan(&userID, &email)
+	if err == nil {
+		if err := tx.Commit(ctx); err != nil {
+			return uuid.Nil, "", err
+		}
+		return userID, email, nil
+	}
+	if !errors.Is(err, pgx.ErrNoRows) {
+		return uuid.Nil, "", fmt.Errorf("lookup identity tx: %w", err)
+	}
+
+	linkEmail := ""
+	if claims.EmailVerified && claims.Email != "" {
+		linkEmail = normalizeEmail(claims.Email)
+		err = tx.QueryRow(ctx, `SELECT id, email FROM users WHERE email = $1`, linkEmail).
+			Scan(&userID, &email)
+		if err == nil {
+			if err := s.insertIdentity(ctx, tx, userID, provider, claims.Subject, linkEmail); err != nil {
+				return uuid.Nil, "", err
+			}
+			if err := tx.Commit(ctx); err != nil {
+				return uuid.Nil, "", err
+			}
+			return userID, email, nil
+		}
+		if !errors.Is(err, pgx.ErrNoRows) {
+			return uuid.Nil, "", fmt.Errorf("lookup user by email: %w", err)
+		}
+	}
+
+	email = linkEmail
+	if email == "" {
+		email = syntheticOAuthEmail(provider, claims.Subject)
+	}
+
+	err = tx.QueryRow(ctx, `
+		INSERT INTO users (email, password_hash) VALUES ($1, NULL) RETURNING id
+	`, email).Scan(&userID)
+	if err != nil {
+		if isUniqueViolation(err) {
+			// Email taken between lookup and insert — attach to existing user.
+			err = tx.QueryRow(ctx, `SELECT id, email FROM users WHERE email = $1`, email).
+				Scan(&userID, &email)
+			if err != nil {
+				return uuid.Nil, "", fmt.Errorf("resolve email race: %w", err)
+			}
+		} else {
+			return uuid.Nil, "", fmt.Errorf("insert oauth user: %w", err)
+		}
+	}
+
+	if err := s.insertIdentity(ctx, tx, userID, provider, claims.Subject, claims.Email); err != nil {
+		return uuid.Nil, "", err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return uuid.Nil, "", err
+	}
+	return userID, email, nil
+}
+
+func (s *AuthService) insertIdentity(
+	ctx context.Context,
+	tx pgx.Tx,
+	userID uuid.UUID,
+	provider, subject, emailAtLink string,
+) error {
+	emailAtLink = normalizeEmail(emailAtLink)
+	var emailArg any
+	if emailAtLink != "" {
+		emailArg = emailAtLink
+	}
+	_, err := tx.Exec(ctx, `
+		INSERT INTO auth_identities (user_id, provider, provider_subject, email_at_link)
+		VALUES ($1, $2, $3, $4)
+		ON CONFLICT (provider, provider_subject) DO NOTHING
+	`, userID, provider, subject, emailArg)
+	if err != nil {
+		return fmt.Errorf("insert identity: %w", err)
+	}
+	return nil
+}
+
+func syntheticOAuthEmail(provider, subject string) string {
+	sum := sha256.Sum256([]byte(provider + ":" + subject))
+	return fmt.Sprintf("%s.%s@oauth.local", provider, hex.EncodeToString(sum[:12]))
 }
 
 func (s *AuthService) Refresh(ctx context.Context, refreshToken string) (*AuthResult, error) {

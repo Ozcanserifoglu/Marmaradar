@@ -1,0 +1,129 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+MOBILE_DIR="$ROOT_DIR/mobile"
+
+PROD_GATEWAY_URL="${PROD_GATEWAY_URL:-http://34.59.226.182:8081}"
+LOCAL_API_HEALTH_URL="${LOCAL_API_HEALTH_URL:-http://127.0.0.1:8081/health}"
+EMULATOR_LOCAL_GATEWAY_URL="${EMULATOR_LOCAL_GATEWAY_URL:-http://10.0.2.2:8081}"
+LOCAL_GATEWAY_URL="${LOCAL_GATEWAY_URL:-http://127.0.0.1:8081}"
+
+RUN_MODE="local-live-db"
+FLUTTER_ARGS=()
+
+# Load local env overrides if present (gitignored).
+if [[ -f "$ROOT_DIR/.env.local" ]]; then
+  set -a
+  # shellcheck source=/dev/null
+  source "$ROOT_DIR/.env.local"
+  set +a
+fi
+
+for arg in "$@"; do
+  case "$arg" in
+    --local)
+      RUN_MODE="local"
+      ;;
+    --local-live-db)
+      RUN_MODE="local-live-db"
+      ;;
+    --live)
+      RUN_MODE="live"
+      ;;
+    *)
+      FLUTTER_ARGS+=("$arg")
+      ;;
+  esac
+done
+
+if [[ "$RUN_MODE" == "local" ]]; then
+  echo "Starting local API stack with Docker Compose..."
+  docker compose -f "$ROOT_DIR/docker-compose.yml" up -d
+
+  echo "Waiting for local API gateway: $LOCAL_API_HEALTH_URL"
+  for i in {1..60}; do
+    if curl -fsS "$LOCAL_API_HEALTH_URL" >/dev/null 2>&1; then
+      echo "Local API gateway is healthy."
+      break
+    fi
+    if [[ "$i" -eq 60 ]]; then
+      echo "Gateway did not become healthy in time."
+      echo "Check: docker compose -f \"$ROOT_DIR/docker-compose.yml\" ps"
+      exit 1
+    fi
+    sleep 1
+  done
+elif [[ "$RUN_MODE" == "local-live-db" ]]; then
+  if [[ -z "${LIVE_DATABASE_URL:-}" ]]; then
+    echo "LIVE_DATABASE_URL is not set."
+    echo "Set it in your shell or in $ROOT_DIR/.env.local"
+    echo "Example: LIVE_DATABASE_URL='postgresql://...'"
+    exit 1
+  fi
+
+  echo "Starting local API + gateway against LIVE_DATABASE_URL..."
+  docker compose \
+    -f "$ROOT_DIR/docker-compose.yml" \
+    -f "$ROOT_DIR/docker-compose.live-db.yml" \
+    up -d api gateway
+
+  echo "Waiting for local API gateway: $LOCAL_API_HEALTH_URL"
+  for i in {1..60}; do
+    if curl -fsS "$LOCAL_API_HEALTH_URL" >/dev/null 2>&1; then
+      echo "Local API gateway is healthy."
+      break
+    fi
+    if [[ "$i" -eq 60 ]]; then
+      echo "Gateway did not become healthy in time."
+      echo "Check: docker compose -f \"$ROOT_DIR/docker-compose.yml\" -f \"$ROOT_DIR/docker-compose.live-db.yml\" ps"
+      exit 1
+    fi
+    sleep 1
+  done
+else
+  echo "Using production gateway (live DB): $PROD_GATEWAY_URL"
+fi
+
+echo "Running Flutter app..."
+cd "$MOBILE_DIR"
+flutter pub get
+
+# Ensure Flutter calls the intended API by setting RADAR_API_URL at build time.
+# If the caller already passed a RADAR_API_URL dart define, don't duplicate it.
+NEEDS_RADAR_DART_DEFINE="true"
+NEEDS_GOOGLE_DART_DEFINE="true"
+for arg in "${FLUTTER_ARGS[@]-}"; do
+  case "$arg" in
+    --dart-define=RADAR_API_URL=*|--dart-define-from-file=*)
+      # from-file may already include RADAR_API_URL; still set mode default below unless explicit.
+      if [[ "$arg" == --dart-define=RADAR_API_URL=* ]]; then
+        NEEDS_RADAR_DART_DEFINE="false"
+      fi
+      ;;
+    --dart-define=GOOGLE_SERVER_CLIENT_ID=*)
+      NEEDS_GOOGLE_DART_DEFINE="false"
+      ;;
+  esac
+done
+
+if [[ "$RUN_MODE" == "live" && "$NEEDS_RADAR_DART_DEFINE" == "true" ]]; then
+  # Explicitly call production gateway.
+  FLUTTER_ARGS+=(--dart-define=RADAR_API_URL="$PROD_GATEWAY_URL")
+elif [[ "$RUN_MODE" != "live" && "$NEEDS_RADAR_DART_DEFINE" == "true" ]]; then
+  # Use local gateway for emulator/device defaults.
+  # Emulator can reach host via 10.0.2.2; desktop/simulator can override manually.
+  FLUTTER_ARGS+=(--dart-define=RADAR_API_URL="$EMULATOR_LOCAL_GATEWAY_URL")
+fi
+
+# Bake Google Sign-In Web client ID (serverClientId) for ID token audience.
+OAUTH_DEFINES_FILE="$MOBILE_DIR/dart_defines.oauth.json"
+if [[ "$NEEDS_GOOGLE_DART_DEFINE" == "true" && -f "$OAUTH_DEFINES_FILE" ]]; then
+  FLUTTER_ARGS+=(--dart-define-from-file="$OAUTH_DEFINES_FILE")
+fi
+
+if [[ ${#FLUTTER_ARGS[@]} -eq 0 ]]; then
+  flutter run
+else
+  flutter run "${FLUTTER_ARGS[@]}"
+fi

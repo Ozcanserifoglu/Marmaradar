@@ -145,6 +145,27 @@
       ]
     },
     {
+      "endpoint": "/v1/auth/oauth",
+      "method": "POST",
+      "output_encoding": "no-op",
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "max_rate": 60,
+          "client_max_rate": 10,
+          "client_capacity": 5,
+          "every": "1m",
+          "strategy": "ip"
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/v1/auth/oauth",
+          "encoding": "no-op",
+          "host": {{ marshal .backend.host }}
+        }
+      ]
+    },
+    {
       "endpoint": "/v1/drives",
       "method": "POST",
       "output_encoding": "no-op",

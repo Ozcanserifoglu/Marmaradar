@@ -1,17 +1,39 @@
+import 'dart:convert';
+import 'dart:io';
+import 'dart:math';
+
+import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:radar_alert/data/api/auth_models.dart';
 import 'package:radar_alert/data/api/radar_api_client.dart';
+import 'package:radar_alert/data/auth/oauth_config.dart';
 import 'package:radar_alert/data/auth/token_store.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 class AuthController extends ChangeNotifier {
   AuthController({
     required TokenStore tokenStore,
     required RadarApiClient apiClient,
+    GoogleSignIn? googleSignIn,
   })  : _tokens = tokenStore,
-        _api = apiClient;
+        _api = apiClient,
+        _googleSignIn = googleSignIn ??
+            GoogleSignIn(
+              scopes: const ['email', 'openid'],
+              serverClientId: OAuthConfig.hasGoogleServerClientId
+                  ? OAuthConfig.googleServerClientId
+                  : null,
+              clientId: (!kIsWeb &&
+                      Platform.isIOS &&
+                      OAuthConfig.googleIosClientId.isNotEmpty)
+                  ? OAuthConfig.googleIosClientId
+                  : null,
+            );
 
   final TokenStore _tokens;
   final RadarApiClient _api;
+  final GoogleSignIn _googleSignIn;
 
   bool _booting = true;
   bool _busy = false;
@@ -28,6 +50,9 @@ class AuthController extends ChangeNotifier {
   String? get error => _error;
   RadarApiClient get api => _api;
   TokenStore get tokenStore => _tokens;
+
+  bool get canUseGoogleSignIn => OAuthConfig.hasGoogleServerClientId;
+  bool get showAppleSignIn => !kIsWeb && Platform.isIOS;
 
   Future<void> bootstrap() async {
     _booting = true;
@@ -70,6 +95,63 @@ class AuthController extends ChangeNotifier {
     );
   }
 
+  Future<bool> loginWithGoogle() async {
+    if (!canUseGoogleSignIn) {
+      _error =
+          'Google Sign-In yapılandırılmamış (GOOGLE_SERVER_CLIENT_ID eksik).';
+      notifyListeners();
+      return false;
+    }
+    return _authenticate(() async {
+      final account = await _googleSignIn.signIn();
+      if (account == null) {
+        throw const ApiException('auth/oauth', null, 'Google sign-in cancelled');
+      }
+      final auth = await account.authentication;
+      final idToken = auth.idToken;
+      if (idToken == null || idToken.isEmpty) {
+        throw const ApiException(
+          'auth/oauth',
+          null,
+          'Google ID token alınamadı',
+        );
+      }
+      return _api.oauthLogin(provider: 'google', idToken: idToken);
+    });
+  }
+
+  Future<bool> loginWithApple() async {
+    if (!showAppleSignIn) {
+      _error = 'Apple ile giriş yalnızca iOS üzerinde kullanılabilir.';
+      notifyListeners();
+      return false;
+    }
+    return _authenticate(() async {
+      final rawNonce = _generateNonce();
+      final hashedNonce = sha256.convert(utf8.encode(rawNonce)).toString();
+      final credential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+        nonce: hashedNonce,
+      );
+      final idToken = credential.identityToken;
+      if (idToken == null || idToken.isEmpty) {
+        throw const ApiException(
+          'auth/oauth',
+          null,
+          'Apple kimlik jetonu alınamadı',
+        );
+      }
+      return _api.oauthLogin(
+        provider: 'apple',
+        idToken: idToken,
+        nonce: rawNonce,
+      );
+    });
+  }
+
   Future<bool> _authenticate(Future<AuthTokens> Function() action) async {
     if (_busy) return false;
     _busy = true;
@@ -81,6 +163,20 @@ class AuthController extends ChangeNotifier {
       _authenticated = true;
       return true;
     } on ApiException catch (e) {
+      // User cancelled native sheet — keep silent.
+      if (e.cause == 'Google sign-in cancelled' ||
+          e.message.contains('canceled') ||
+          e.message.contains('cancelled')) {
+        _error = null;
+        return false;
+      }
+      _error = e.message;
+      return false;
+    } on SignInWithAppleAuthorizationException catch (e) {
+      if (e.code == AuthorizationErrorCode.canceled) {
+        _error = null;
+        return false;
+      }
       _error = e.message;
       return false;
     } catch (e) {
@@ -104,6 +200,9 @@ class AuthController extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    try {
+      await _googleSignIn.signOut();
+    } catch (_) {}
     await _tokens.clear();
     _authenticated = false;
     _email = null;
@@ -115,5 +214,15 @@ class AuthController extends ChangeNotifier {
   void clearError() {
     _error = null;
     notifyListeners();
+  }
+
+  static String _generateNonce([int length = 32]) {
+    const charset =
+        '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._';
+    final random = Random.secure();
+    return List.generate(
+      length,
+      (_) => charset[random.nextInt(charset.length)],
+    ).join();
   }
 }

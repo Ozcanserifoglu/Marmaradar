@@ -29,15 +29,20 @@ class ApiException implements Exception {
     if (statusCode == 429) {
       return 'Çok fazla deneme. Lütfen bir dakika bekleyip tekrar deneyin.';
     }
-    if (isServerWakingUp) {
-      return 'Sunucu uyanıyor. Lütfen birkaç saniye sonra tekrar deneyin.';
-    }
     if (body != null && body!.isNotEmpty) {
       try {
         final map = jsonDecode(body!) as Map<String, dynamic>;
         final err = map['error'];
-        if (err is String && err.isNotEmpty) return err;
+        if (err is String && err.isNotEmpty) {
+          if (err.contains('oauth provider is not configured')) {
+            return 'Google/Apple girişi sunucuda yapılandırılmamış.';
+          }
+          return err;
+        }
       } catch (_) {}
+    }
+    if (isServerWakingUp) {
+      return 'Sunucu uyanıyor. Lütfen birkaç saniye sonra tekrar deneyin.';
     }
     return toString();
   }
@@ -252,6 +257,25 @@ class RadarApiClient {
     });
     if (resp.statusCode != 200) {
       throw ApiException('auth/login', resp.statusCode, null, resp.body);
+    }
+    return AuthTokens.fromJson(jsonDecode(resp.body) as Map<String, dynamic>);
+  }
+
+  Future<AuthTokens> oauthLogin({
+    required String provider,
+    required String idToken,
+    String? nonce,
+  }) async {
+    final body = <String, dynamic>{
+      'provider': provider,
+      'id_token': idToken,
+    };
+    if (nonce != null && nonce.isNotEmpty) {
+      body['nonce'] = nonce;
+    }
+    final resp = await _postJson('/v1/auth/oauth', body);
+    if (resp.statusCode != 200) {
+      throw ApiException('auth/oauth', resp.statusCode, null, resp.body);
     }
     return AuthTokens.fromJson(jsonDecode(resp.body) as Map<String, dynamic>);
   }

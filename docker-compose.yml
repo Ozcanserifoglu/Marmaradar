@@ -31,6 +31,8 @@ services:
       TTS_WARM_ON_START: ${TTS_WARM_ON_START:-true}
       GEO_RESTRICT_COUNTRIES: ${GEO_RESTRICT_COUNTRIES:-TR}
       JWT_SECRET: ${JWT_SECRET:-}
+      GOOGLE_OAUTH_CLIENT_IDS: ${GOOGLE_OAUTH_CLIENT_IDS:-}
+      APPLE_OAUTH_CLIENT_IDS: ${APPLE_OAUTH_CLIENT_IDS:-}
     volumes:
       - tts_cache:/var/cache/tts
     expose:
