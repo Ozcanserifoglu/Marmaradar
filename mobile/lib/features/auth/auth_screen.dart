@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:radar_alert/app.dart';
 import 'package:radar_alert/core/theme/app_theme.dart';
+import 'package:radar_alert/features/auth/forgot_password_dialog.dart';
+import 'package:radar_alert/features/auth/reset_password_screen.dart';
 
 Future<bool> showAuthModal(BuildContext context) async {
   final result = await Navigator.of(context).push<bool>(
@@ -54,6 +56,34 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     if (widget.asModal) {
       Navigator.of(context).pop(true);
     }
+  }
+
+  Future<void> _forgotPassword() async {
+    final sent = await showForgotPasswordDialog(
+      context,
+      ref,
+      initialEmail: _emailCtrl.text,
+    );
+    if (!sent || !mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Şifre sıfırlama bağlantısı e-posta adresinize gönderildi.',
+        ),
+      ),
+    );
+  }
+
+  Future<void> _resetPassword() async {
+    final ok = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => const ResetPasswordScreen()),
+    );
+    if (ok != true || !mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Şifreniz güncellendi. Yeni şifrenizle giriş yapın.'),
+      ),
+    );
   }
 
   @override
@@ -184,6 +214,31 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       ),
                     ),
                   ),
+                  if (!_registerMode) ...[
+                    const SizedBox(height: 4),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: auth.isBusy ? null : _forgotPassword,
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.red,
+                          visualDensity: VisualDensity.compact,
+                        ),
+                        child: const Text('Şifremi Unuttum'),
+                      ),
+                    ),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: auth.isBusy ? null : _resetPassword,
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.whiteMuted,
+                          visualDensity: VisualDensity.compact,
+                        ),
+                        child: const Text('Sıfırlama kodum var'),
+                      ),
+                    ),
+                  ],
                   if (auth.error != null) ...[
                     const SizedBox(height: 16),
                     Text(

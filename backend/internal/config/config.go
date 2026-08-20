@@ -27,6 +27,10 @@ type Config struct {
 	TTSVoice             string `envconfig:"TTS_VOICE" default:"tr-TR-Standard-A"`
 	TTSWarmOnStart       bool   `envconfig:"TTS_WARM_ON_START" default:"true"`
 	GeoRestrictCountries string `envconfig:"GEO_RESTRICT_COUNTRIES"`
+	ResendAPIKey         string `envconfig:"RESEND_API_KEY"`
+	ResendFrom           string `envconfig:"RESEND_FROM" default:"Marmaradar <noreply@marmaradar.com>"`
+	ResendReplyTo        string `envconfig:"RESEND_REPLY_TO" default:"support@marmaradar.com"`
+	EmailAppBaseURL      string `envconfig:"EMAIL_APP_BASE_URL" default:"https://marmaradar.com"`
 }
 
 // GoogleClientIDs returns configured Google OAuth audiences (Web/iOS/Android client IDs).

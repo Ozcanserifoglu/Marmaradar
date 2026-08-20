@@ -95,6 +95,14 @@ class AuthController extends ChangeNotifier {
     );
   }
 
+  Future<void> requestPasswordReset(String email) {
+    return _api.forgotPassword(email: email.trim());
+  }
+
+  Future<void> resetPassword(String token, String password) {
+    return _api.resetPassword(token: token.trim(), password: password);
+  }
+
   Future<bool> loginWithGoogle() async {
     if (!canUseGoogleSignIn) {
       _error =

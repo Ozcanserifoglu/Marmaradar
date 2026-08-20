@@ -18,6 +18,7 @@
 | `GOOGLE_OAUTH_CLIENT_IDS` / `APPLE_OAUTH_CLIENT_IDS` (ID token audiences) | GCP VM / Cloud Run env, never git |
 | `GOOGLE_MAPS_API_KEY` (Roads snap-to-road on the API) | GCP VM / Cloud Run env, never git |
 | `GOOGLE_TTS_API_KEY` (Cloud Text-to-Speech proxy; falls back to Maps key) | GCP VM / Cloud Run env, never git |
+| `RESEND_API_KEY` (transactional email via Resend) | GCP VM / Cloud Run / Render env, never git |
 | Render deploy keys / API tokens | Render dashboard only (legacy) |
 | Android signing keystore (`.jks`, `key.properties`) | Local machine / CI secrets |
 | Firebase `google-services.json` | Not used yet; keep out of git if added |

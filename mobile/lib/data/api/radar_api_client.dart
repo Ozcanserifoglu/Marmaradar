@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -26,6 +27,9 @@ class ApiException implements Exception {
   bool get isUnauthorized => statusCode == 401;
 
   String get message {
+    if (isNetworkError) {
+      return 'Sunucuya ulaşılamadı. İnternet bağlantınızı kontrol edip tekrar deneyin.';
+    }
     if (statusCode == 429) {
       return 'Çok fazla deneme. Lütfen bir dakika bekleyip tekrar deneyin.';
     }
@@ -44,7 +48,7 @@ class ApiException implements Exception {
     if (isServerWakingUp) {
       return 'Sunucu uyanıyor. Lütfen birkaç saniye sonra tekrar deneyin.';
     }
-    return toString();
+    return 'Bir hata oluştu. Lütfen tekrar deneyin.';
   }
 
   @override
@@ -259,6 +263,58 @@ class RadarApiClient {
       throw ApiException('auth/login', resp.statusCode, null, resp.body);
     }
     return AuthTokens.fromJson(jsonDecode(resp.body) as Map<String, dynamic>);
+  }
+
+  Future<void> forgotPassword({required String email}) async {
+    try {
+      final resp = await _postJson('/v1/auth/forgot-password', {
+        'email': email,
+      });
+      if (resp.statusCode != 200) {
+        throw ApiException(
+          'auth/forgot-password',
+          resp.statusCode,
+          null,
+          resp.body,
+        );
+      }
+    } on ApiException {
+      rethrow;
+    } on SocketException catch (e) {
+      throw ApiException('auth/forgot-password', null, e);
+    } on http.ClientException catch (e) {
+      throw ApiException('auth/forgot-password', null, e);
+    } on TimeoutException catch (e) {
+      throw ApiException('auth/forgot-password', null, e);
+    }
+  }
+
+  Future<void> resetPassword({
+    required String token,
+    required String password,
+  }) async {
+    try {
+      final resp = await _postJson('/v1/auth/reset-password', {
+        'token': token,
+        'password': password,
+      });
+      if (resp.statusCode != 200) {
+        throw ApiException(
+          'auth/reset-password',
+          resp.statusCode,
+          null,
+          resp.body,
+        );
+      }
+    } on ApiException {
+      rethrow;
+    } on SocketException catch (e) {
+      throw ApiException('auth/reset-password', null, e);
+    } on http.ClientException catch (e) {
+      throw ApiException('auth/reset-password', null, e);
+    } on TimeoutException catch (e) {
+      throw ApiException('auth/reset-password', null, e);
+    }
   }
 
   Future<AuthTokens> oauthLogin({

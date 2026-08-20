@@ -25,6 +25,14 @@ services:
         sync: false
       - key: GOOGLE_TTS_API_KEY
         sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM
+        sync: false
+      - key: RESEND_REPLY_TO
+        sync: false
+      - key: EMAIL_APP_BASE_URL
+        sync: false
       - key: TTS_CACHE_DIR
         value: "/tmp/tts"
       - key: TTS_WARM_ON_START

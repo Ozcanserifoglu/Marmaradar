@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	ErrTTSUnavailable  = errors.New("tts unavailable")
+	ErrTTSUnavailable   = errors.New("tts unavailable")
 	ErrTTSUnknownPhrase = errors.New("unknown phrase key")
 	ErrTTSInvalidParams = errors.New("invalid tts params")
 )
@@ -44,10 +44,10 @@ type SpeakRequest struct {
 }
 
 type SpeakResult struct {
-	Audio   []byte
+	Audio    []byte
 	CacheKey string
 	CacheHit bool
-	Text    string
+	Text     string
 }
 
 type CatalogEntry struct {

@@ -12,11 +12,13 @@ import (
 	"github.com/radar-alert/backend/internal/auth"
 	"github.com/radar-alert/backend/internal/client/distancematrix"
 	"github.com/radar-alert/backend/internal/client/places"
+	"github.com/radar-alert/backend/internal/client/resend"
 	"github.com/radar-alert/backend/internal/client/roads"
 	"github.com/radar-alert/backend/internal/client/tts"
 	"github.com/radar-alert/backend/internal/config"
 	"github.com/radar-alert/backend/internal/db"
 	"github.com/radar-alert/backend/internal/db/migrate"
+	"github.com/radar-alert/backend/internal/email"
 	"github.com/radar-alert/backend/internal/georestrict"
 	"github.com/radar-alert/backend/internal/handler"
 	"github.com/radar-alert/backend/internal/service"
@@ -63,7 +65,14 @@ func main() {
 
 	jwtMgr := auth.NewJWTManager(cfg.JWTSecret, cfg.AccessTokenTTL, cfg.RefreshTokenTTL)
 	geo := service.NewGeoService(pool)
-	authSvc := service.NewAuthService(pool, jwtMgr, cfg.GoogleClientIDs(), cfg.AppleClientIDs())
+	resendClient := resend.NewClient(cfg.ResendAPIKey)
+	mailer := email.NewMailer(resendClient, cfg.ResendFrom, cfg.ResendReplyTo)
+	if mailer.Enabled() {
+		slog.Info("resend email enabled", "from", cfg.ResendFrom)
+	} else {
+		slog.Info("resend email disabled; set RESEND_API_KEY to enable")
+	}
+	authSvc := service.NewAuthService(pool, jwtMgr, cfg.GoogleClientIDs(), cfg.AppleClientIDs(), mailer, cfg.EmailAppBaseURL)
 	roadsClient := roads.NewClient(cfg.GoogleMapsAPIKey)
 	if roadsClient.Enabled() {
 		slog.Info("roads snap-to-road enabled")
@@ -166,6 +175,7 @@ func main() {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{"status":"ok"}`))
 	})
+	r.Get("/reset-password", authHandler.ResetPasswordPage)
 
 	r.Route("/v1", func(r chi.Router) {
 		r.Get("/cameras/nearby", handler.NewCameraHandler(geo).Nearby)
@@ -177,6 +187,8 @@ func main() {
 		r.Post("/auth/login", authHandler.Login)
 		r.Post("/auth/refresh", authHandler.Refresh)
 		r.Post("/auth/oauth", authHandler.OAuth)
+		r.Post("/auth/forgot-password", authHandler.ForgotPassword)
+		r.Post("/auth/reset-password", authHandler.ResetPassword)
 
 		r.Group(func(r chi.Router) {
 			r.Use(auth.Middleware(jwtMgr))

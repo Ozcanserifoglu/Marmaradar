@@ -33,6 +33,10 @@ services:
       JWT_SECRET: ${JWT_SECRET:-}
       GOOGLE_OAUTH_CLIENT_IDS: ${GOOGLE_OAUTH_CLIENT_IDS:-}
       APPLE_OAUTH_CLIENT_IDS: ${APPLE_OAUTH_CLIENT_IDS:-}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RESEND_FROM: "${RESEND_FROM:-Marmaradar <noreply@marmaradar.com>}"
+      RESEND_REPLY_TO: ${RESEND_REPLY_TO:-support@marmaradar.com}
+      EMAIL_APP_BASE_URL: ${EMAIL_APP_BASE_URL:-https://marmaradar.com}
     volumes:
       - tts_cache:/var/cache/tts
     expose:

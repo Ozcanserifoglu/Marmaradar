@@ -1,0 +1,7 @@
+Marmaradar'a hoş geldiniz
+
+Merhaba{{if .Email}} {{.Email}}{{end}}, Marmaradar'a kaydolduğunuz için teşekkürler.
+
+Yola çıktığınızda radar ve hız denetimlerini haritada görebilir, canlı sürücü bildirimleriyle daha güvenli ilerleyebilirsiniz.
+
+Bu e-postayı siz kaydolmadıysanız yok sayabilirsiniz.

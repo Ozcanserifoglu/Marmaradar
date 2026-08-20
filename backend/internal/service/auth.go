@@ -13,6 +13,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/radar-alert/backend/internal/auth"
+	"github.com/radar-alert/backend/internal/email"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -22,30 +23,40 @@ var (
 	ErrInvalidRefresh     = errors.New("invalid or expired refresh token")
 	ErrInvalidOAuthToken  = errors.New("invalid oauth identity token")
 	ErrOAuthNotConfigured = errors.New("oauth provider is not configured")
+	ErrInvalidResetToken  = errors.New("invalid or expired reset token")
 )
 
 const (
 	ProviderGoogle = "google"
 	ProviderApple  = "apple"
+
+	passwordResetTTL      = time.Hour
+	passwordResetCooldown = 5 * time.Minute
 )
 
 type AuthService struct {
-	pool   *pgxpool.Pool
-	jwt    *auth.JWTManager
-	google *auth.GoogleIDTokenVerifier
-	apple  *auth.AppleIDTokenVerifier
+	pool       *pgxpool.Pool
+	jwt        *auth.JWTManager
+	google     *auth.GoogleIDTokenVerifier
+	apple      *auth.AppleIDTokenVerifier
+	mailer     *email.Mailer
+	appBaseURL string
 }
 
 func NewAuthService(
 	pool *pgxpool.Pool,
 	jwt *auth.JWTManager,
 	googleAudiences, appleAudiences []string,
+	mailer *email.Mailer,
+	appBaseURL string,
 ) *AuthService {
 	return &AuthService{
-		pool:   pool,
-		jwt:    jwt,
-		google: auth.NewGoogleIDTokenVerifier(googleAudiences),
-		apple:  auth.NewAppleIDTokenVerifier(appleAudiences),
+		pool:       pool,
+		jwt:        jwt,
+		google:     auth.NewGoogleIDTokenVerifier(googleAudiences),
+		apple:      auth.NewAppleIDTokenVerifier(appleAudiences),
+		mailer:     mailer,
+		appBaseURL: strings.TrimSpace(appBaseURL),
 	}
 }
 
@@ -84,6 +95,7 @@ func (s *AuthService) Register(ctx context.Context, email, password string) (*Au
 		return nil, fmt.Errorf("insert user: %w", err)
 	}
 
+	s.enqueueWelcome(email)
 	return s.issueTokens(ctx, userID, email)
 }
 
@@ -147,9 +159,12 @@ func (s *AuthService) OAuthLogin(ctx context.Context, provider, idToken, nonce s
 		return nil, ErrInvalidOAuthToken
 	}
 
-	userID, email, err := s.findOrCreateOAuthUser(ctx, provider, claims)
+	userID, email, created, err := s.findOrCreateOAuthUser(ctx, provider, claims)
 	if err != nil {
 		return nil, err
+	}
+	if created {
+		s.enqueueWelcome(email)
 	}
 	return s.issueTokens(ctx, userID, email)
 }
@@ -172,7 +187,7 @@ func (s *AuthService) findOrCreateOAuthUser(
 	ctx context.Context,
 	provider string,
 	claims *auth.IdentityClaims,
-) (uuid.UUID, string, error) {
+) (uuid.UUID, string, bool, error) {
 	var userID uuid.UUID
 	var email string
 	err := s.pool.QueryRow(ctx, `
@@ -182,15 +197,15 @@ func (s *AuthService) findOrCreateOAuthUser(
 		WHERE ai.provider = $1 AND ai.provider_subject = $2
 	`, provider, claims.Subject).Scan(&userID, &email)
 	if err == nil {
-		return userID, email, nil
+		return userID, email, false, nil
 	}
 	if !errors.Is(err, pgx.ErrNoRows) {
-		return uuid.Nil, "", fmt.Errorf("lookup identity: %w", err)
+		return uuid.Nil, "", false, fmt.Errorf("lookup identity: %w", err)
 	}
 
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
-		return uuid.Nil, "", fmt.Errorf("begin oauth tx: %w", err)
+		return uuid.Nil, "", false, fmt.Errorf("begin oauth tx: %w", err)
 	}
 	defer tx.Rollback(ctx)
 
@@ -203,12 +218,12 @@ func (s *AuthService) findOrCreateOAuthUser(
 	`, provider, claims.Subject).Scan(&userID, &email)
 	if err == nil {
 		if err := tx.Commit(ctx); err != nil {
-			return uuid.Nil, "", err
+			return uuid.Nil, "", false, err
 		}
-		return userID, email, nil
+		return userID, email, false, nil
 	}
 	if !errors.Is(err, pgx.ErrNoRows) {
-		return uuid.Nil, "", fmt.Errorf("lookup identity tx: %w", err)
+		return uuid.Nil, "", false, fmt.Errorf("lookup identity tx: %w", err)
 	}
 
 	linkEmail := ""
@@ -218,15 +233,15 @@ func (s *AuthService) findOrCreateOAuthUser(
 			Scan(&userID, &email)
 		if err == nil {
 			if err := s.insertIdentity(ctx, tx, userID, provider, claims.Subject, linkEmail); err != nil {
-				return uuid.Nil, "", err
+				return uuid.Nil, "", false, err
 			}
 			if err := tx.Commit(ctx); err != nil {
-				return uuid.Nil, "", err
+				return uuid.Nil, "", false, err
 			}
-			return userID, email, nil
+			return userID, email, false, nil
 		}
 		if !errors.Is(err, pgx.ErrNoRows) {
-			return uuid.Nil, "", fmt.Errorf("lookup user by email: %w", err)
+			return uuid.Nil, "", false, fmt.Errorf("lookup user by email: %w", err)
 		}
 	}
 
@@ -235,6 +250,7 @@ func (s *AuthService) findOrCreateOAuthUser(
 		email = syntheticOAuthEmail(provider, claims.Subject)
 	}
 
+	created := true
 	err = tx.QueryRow(ctx, `
 		INSERT INTO users (email, password_hash) VALUES ($1, NULL) RETURNING id
 	`, email).Scan(&userID)
@@ -244,20 +260,21 @@ func (s *AuthService) findOrCreateOAuthUser(
 			err = tx.QueryRow(ctx, `SELECT id, email FROM users WHERE email = $1`, email).
 				Scan(&userID, &email)
 			if err != nil {
-				return uuid.Nil, "", fmt.Errorf("resolve email race: %w", err)
+				return uuid.Nil, "", false, fmt.Errorf("resolve email race: %w", err)
 			}
+			created = false
 		} else {
-			return uuid.Nil, "", fmt.Errorf("insert oauth user: %w", err)
+			return uuid.Nil, "", false, fmt.Errorf("insert oauth user: %w", err)
 		}
 	}
 
 	if err := s.insertIdentity(ctx, tx, userID, provider, claims.Subject, claims.Email); err != nil {
-		return uuid.Nil, "", err
+		return uuid.Nil, "", false, err
 	}
 	if err := tx.Commit(ctx); err != nil {
-		return uuid.Nil, "", err
+		return uuid.Nil, "", false, err
 	}
-	return userID, email, nil
+	return userID, email, created, nil
 }
 
 func (s *AuthService) insertIdentity(
@@ -358,6 +375,131 @@ func validateCredentials(email, password string) error {
 		return errors.New("password must be at least 8 characters")
 	}
 	return nil
+}
+
+func (s *AuthService) ForgotPassword(ctx context.Context, rawEmail string) error {
+	address := normalizeEmail(rawEmail)
+	if !email.Deliverable(address) {
+		return nil
+	}
+
+	var userID uuid.UUID
+	err := s.pool.QueryRow(ctx, `SELECT id FROM users WHERE email = $1`, address).Scan(&userID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil
+		}
+		return fmt.Errorf("lookup user for reset: %w", err)
+	}
+
+	var recent time.Time
+	err = s.pool.QueryRow(ctx, `
+		SELECT created_at FROM password_reset_tokens
+		WHERE user_id = $1 AND created_at > $2
+		ORDER BY created_at DESC
+		LIMIT 1
+	`, userID, time.Now().Add(-passwordResetCooldown)).Scan(&recent)
+	if err == nil {
+		return nil
+	}
+	if !errors.Is(err, pgx.ErrNoRows) {
+		return fmt.Errorf("lookup reset cooldown: %w", err)
+	}
+
+	plain, err := auth.NewRefreshToken()
+	if err != nil {
+		return fmt.Errorf("generate reset token: %w", err)
+	}
+
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("begin reset tx: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	_, err = tx.Exec(ctx, `
+		UPDATE password_reset_tokens
+		SET used_at = now()
+		WHERE user_id = $1 AND used_at IS NULL
+	`, userID)
+	if err != nil {
+		return fmt.Errorf("invalidate prior reset tokens: %w", err)
+	}
+
+	_, err = tx.Exec(ctx, `
+		INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
+		VALUES ($1, $2, $3)
+	`, userID, hashToken(plain), time.Now().Add(passwordResetTTL))
+	if err != nil {
+		return fmt.Errorf("store reset token: %w", err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
+
+	if s.mailer != nil {
+		s.mailer.EnqueuePasswordReset(address, email.ResetPasswordURL(s.appBaseURL, plain))
+	}
+	return nil
+}
+
+func (s *AuthService) ResetPassword(ctx context.Context, token, password string) error {
+	token = strings.TrimSpace(token)
+	if token == "" {
+		return ErrInvalidResetToken
+	}
+	if len(password) < 8 {
+		return errors.New("password must be at least 8 characters")
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("hash password: %w", err)
+	}
+
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("begin password reset: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	var tokenID uuid.UUID
+	var userID uuid.UUID
+	err = tx.QueryRow(ctx, `
+		SELECT id, user_id FROM password_reset_tokens
+		WHERE token_hash = $1 AND used_at IS NULL AND expires_at > now()
+		FOR UPDATE
+	`, hashToken(token)).Scan(&tokenID, &userID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrInvalidResetToken
+		}
+		return fmt.Errorf("lookup reset token: %w", err)
+	}
+
+	_, err = tx.Exec(ctx, `UPDATE users SET password_hash = $1 WHERE id = $2`, string(hash), userID)
+	if err != nil {
+		return fmt.Errorf("update password: %w", err)
+	}
+	_, err = tx.Exec(ctx, `UPDATE password_reset_tokens SET used_at = now() WHERE id = $1`, tokenID)
+	if err != nil {
+		return fmt.Errorf("consume reset token: %w", err)
+	}
+	_, err = tx.Exec(ctx, `DELETE FROM refresh_tokens WHERE user_id = $1`, userID)
+	if err != nil {
+		return fmt.Errorf("revoke refresh tokens: %w", err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *AuthService) enqueueWelcome(address string) {
+	if s.mailer == nil {
+		return
+	}
+	s.mailer.EnqueueWelcome(address)
 }
 
 func hashToken(plain string) string {

@@ -24,6 +24,26 @@
       ]
     },
     {
+      "endpoint": "/reset-password",
+      "method": "GET",
+      "output_encoding": "no-op",
+      "input_query_strings": ["token"],
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "max_rate": 40,
+          "client_max_rate": 10,
+          "strategy": "ip"
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/reset-password",
+          "encoding": "no-op",
+          "host": {{ marshal .backend.host }}
+        }
+      ]
+    },
+    {
       "endpoint": "/v1/cameras/nearby",
       "method": "GET",
       "output_encoding": "no-op",
@@ -160,6 +180,48 @@
       "backend": [
         {
           "url_pattern": "/v1/auth/oauth",
+          "encoding": "no-op",
+          "host": {{ marshal .backend.host }}
+        }
+      ]
+    },
+    {
+      "endpoint": "/v1/auth/forgot-password",
+      "method": "POST",
+      "output_encoding": "no-op",
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "max_rate": 20,
+          "client_max_rate": 3,
+          "client_capacity": 3,
+          "every": "1m",
+          "strategy": "ip"
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/v1/auth/forgot-password",
+          "encoding": "no-op",
+          "host": {{ marshal .backend.host }}
+        }
+      ]
+    },
+    {
+      "endpoint": "/v1/auth/reset-password",
+      "method": "POST",
+      "output_encoding": "no-op",
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "max_rate": 30,
+          "client_max_rate": 5,
+          "client_capacity": 5,
+          "every": "1m",
+          "strategy": "ip"
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/v1/auth/reset-password",
           "encoding": "no-op",
           "host": {{ marshal .backend.host }}
         }

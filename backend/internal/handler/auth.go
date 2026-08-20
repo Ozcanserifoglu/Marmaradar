@@ -32,6 +32,15 @@ type oauthBody struct {
 	Nonce    string `json:"nonce"`
 }
 
+type forgotPasswordBody struct {
+	Email string `json:"email"`
+}
+
+type resetPasswordBody struct {
+	Token    string `json:"token"`
+	Password string `json:"password"`
+}
+
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var body credentialsBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -96,6 +105,34 @@ func (h *AuthHandler) OAuth(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, result)
 }
 
+func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
+	var body forgotPasswordBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeBadRequest(w, "invalid JSON body")
+		return
+	}
+
+	if err := h.auth.ForgotPassword(r.Context(), body.Email); err != nil {
+		writeAuthError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
+}
+
+func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
+	var body resetPasswordBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeBadRequest(w, "invalid JSON body")
+		return
+	}
+
+	if err := h.auth.ResetPassword(r.Context(), body.Token, body.Password); err != nil {
+		writeAuthError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
+}
+
 func writeAuthError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, service.ErrEmailTaken):
@@ -104,6 +141,8 @@ func writeAuthError(w http.ResponseWriter, err error) {
 		errors.Is(err, service.ErrInvalidRefresh),
 		errors.Is(err, service.ErrInvalidOAuthToken):
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": err.Error()})
+	case errors.Is(err, service.ErrInvalidResetToken):
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 	case errors.Is(err, service.ErrOAuthNotConfigured):
 		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": err.Error()})
 	case strings.Contains(err.Error(), "email") || strings.Contains(err.Error(), "password") ||
