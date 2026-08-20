@@ -1,0 +1,106 @@
+.app-shell {
+  position: relative;
+  min-height: 100vh;
+}
+
+.page-section {
+  position: relative;
+  padding: 4rem 0;
+}
+
+.section-head {
+  margin-bottom: 2.25rem;
+  max-width: 36ch;
+}
+
+.section-head h2 {
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  letter-spacing: -0.03em;
+  margin-bottom: 0.65rem;
+}
+
+.section-head p {
+  color: var(--color-text-secondary);
+  max-width: 42ch;
+}
+
+.features-section {
+  background: var(--color-bg-alt);
+}
+
+.feature-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .feature-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (min-width: 960px) {
+  .feature-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.faq-section {
+  background: var(--color-bg-alt);
+}
+
+.faq-list {
+  display: grid;
+  gap: 0.75rem;
+  max-width: 720px;
+}
+
+.faq-item {
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border-glass);
+  background: var(--color-surface-glass);
+  padding: 1.15rem 1.25rem;
+}
+
+.faq-item h3 {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  margin-bottom: 0.4rem;
+}
+
+.faq-item p {
+  color: var(--color-text-secondary);
+  font-size: 0.92rem;
+}
+
+.final-cta {
+  padding: 2rem 0 4rem;
+}
+
+.final-cta-box {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+  border: 1px solid rgba(232, 38, 45, 0.25);
+  background:
+    radial-gradient(ellipse 80% 80% at 50% 120%, rgba(232, 38, 45, 0.35), transparent 55%),
+    radial-gradient(ellipse 60% 50% at 20% 0%, rgba(59, 130, 246, 0.2), transparent 50%),
+    var(--color-surface);
+  box-shadow: 0 0 80px rgba(232, 38, 45, 0.18);
+}
+
+.final-cta-box h2 {
+  font-family: var(--font-display);
+  font-size: clamp(1.6rem, 4vw, 2.25rem);
+  letter-spacing: -0.03em;
+  margin-bottom: 0.65rem;
+}
+
+.final-cta-box p {
+  color: var(--color-text-secondary);
+  max-width: 40ch;
+  margin: 0 auto 1.5rem;
+}
