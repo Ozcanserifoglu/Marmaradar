@@ -58,8 +58,8 @@ void main() {
       );
 
       var fires = 0;
-      engine.onLocation(snap, [report], (_, __, ___) => fires++);
-      engine.onLocation(snap, [report], (_, __, ___) => fires++);
+      engine.onLocation(snap, [report], (_, _, _) => fires++);
+      engine.onLocation(snap, [report], (_, _, _) => fires++);
       expect(fires, 1);
     });
 
@@ -91,7 +91,7 @@ void main() {
       );
 
       var fires = 0;
-      engine.onLocation(snap, [pending, optimistic], (_, __, ___) => fires++);
+      engine.onLocation(snap, [pending, optimistic], (_, _, _) => fires++);
       expect(fires, 0);
     });
   });
