@@ -131,7 +131,7 @@ All client traffic should go through KrakenD, not the Go API directly.
 | Environment | Entry URL |
 |-------------|-----------|
 | Local | http://localhost:8081 |
-| Production | http://34.59.226.182:8081 (GCP VM) |
+| Production | http://35.239.129.237:8081 (GCP VM) |
 
 Config lives in [`gateway/config/`](gateway/config/). Rate limits on `/v1/*`: 100 req/s global, 10 req/s per IP.
 
@@ -171,7 +171,7 @@ No database env vars needed. On the GCP VM the gateway proxies to the `api` cont
 
 ### GCP VM (current production)
 
-The Flutter app talks to the KrakenD gateway at `http://34.59.226.182:8081`. Do **not** publish the Go API port (8080) to the internet.
+The Flutter app talks to the KrakenD gateway at `http://35.239.129.237:8081`. Do **not** publish the Go API port (8080) to the internet.
 
 Reserve the VM's external IP as **static** (VPC network → IP addresses). An ephemeral IP changes when the VM stops, which breaks every installed app until it is rebuilt.
 

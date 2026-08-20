@@ -13,6 +13,7 @@ import (
 	"github.com/radar-alert/backend/internal/client/distancematrix"
 	"github.com/radar-alert/backend/internal/client/places"
 	"github.com/radar-alert/backend/internal/client/roads"
+	"github.com/radar-alert/backend/internal/client/tts"
 	"github.com/radar-alert/backend/internal/config"
 	"github.com/radar-alert/backend/internal/db"
 	"github.com/radar-alert/backend/internal/db/migrate"
@@ -81,6 +82,17 @@ func main() {
 	} else {
 		slog.Info("places amenities disabled; set GOOGLE_MAPS_API_KEY to enable")
 	}
+	ttsAPIKey := cfg.GoogleTTSAPIKey
+	if ttsAPIKey == "" {
+		ttsAPIKey = cfg.GoogleMapsAPIKey
+	}
+	ttsClient := tts.NewClient(ttsAPIKey, cfg.TTSVoice)
+	ttsSvc := service.NewTTSService(ttsClient, cfg.TTSCacheDir)
+	if ttsSvc.Enabled() {
+		slog.Info("tts voice alerts enabled", "voice", cfg.TTSVoice, "cache_dir", cfg.TTSCacheDir)
+	} else {
+		slog.Info("tts voice alerts disabled; set GOOGLE_TTS_API_KEY or GOOGLE_MAPS_API_KEY to enable")
+	}
 	driveSvc := service.NewDriveService(pool, roadsClient)
 	statsSvc := service.NewStatsService(pool)
 	reportSvc := service.NewReportService(pool)
@@ -95,6 +107,7 @@ func main() {
 	liveReportHandler := handler.NewLiveReportHandler(liveReportSvc)
 	etaHandler := handler.NewEtaHandler(etaSvc)
 	amenitiesHandler := handler.NewAmenitiesHandler(amenitiesSvc)
+	ttsHandler := handler.NewTTSHandler(ttsSvc)
 
 	// Soft-expire stale crowd reports in the background.
 	go func() {
@@ -119,6 +132,19 @@ func main() {
 			<-ticker.C
 		}
 	}()
+
+	if cfg.TTSWarmOnStart && ttsSvc.Enabled() {
+		go func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+			defer cancel()
+			warmed, err := ttsSvc.WarmCatalog(ctx)
+			if err != nil {
+				slog.Warn("tts catalog warm incomplete", "warmed", warmed, "error", err)
+				return
+			}
+			slog.Info("tts catalog warm complete", "synthesized", warmed)
+		}()
+	}
 
 	geoGuard, err := georestrict.New(georestrict.ParseCountries(cfg.GeoRestrictCountries))
 	if err != nil {
@@ -164,6 +190,8 @@ func main() {
 			r.Post("/live-reports/{id}/vote", liveReportHandler.Vote)
 			r.Post("/eta/cameras", etaHandler.Cameras)
 			r.Post("/amenities/cells", amenitiesHandler.Cells)
+			r.Post("/tts/speak", ttsHandler.Speak)
+			r.Get("/tts/catalog", ttsHandler.Catalog)
 		})
 	})
 

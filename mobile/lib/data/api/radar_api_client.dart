@@ -54,7 +54,7 @@ class RadarApiClient {
   })  : baseUrl = baseUrl ?? _resolveBaseUrl(),
         _tokens = tokenStore ?? SecureTokenStore();
 
-  static const _productionBaseUrl = 'http://34.59.226.182:8081';
+  static const _productionBaseUrl = 'http://35.239.129.237:8081';
   static const _androidEmulatorLocalBaseUrl = 'http://10.0.2.2:8081';
   static const _localhostBaseUrl = 'http://127.0.0.1:8081';
 
@@ -516,6 +516,56 @@ class RadarApiClient {
         .cast<Map<String, dynamic>>()
         .map(AmenityPlace.fromJson)
         .toList();
+  }
+
+  Future<Uint8List> speakTts({
+    required String phraseKey,
+    Map<String, dynamic> params = const {},
+  }) async {
+    final resp = await _postJson(
+      '/v1/tts/speak',
+      {
+        'phrase_key': phraseKey,
+        'params': params,
+      },
+      auth: true,
+      timeout: const Duration(seconds: 20),
+    );
+    if (resp.statusCode != 200) {
+      throw ApiException('tts/speak', resp.statusCode, null, resp.body);
+    }
+    return resp.bodyBytes;
+  }
+
+  Future<List<TtsCatalogEntry>> fetchTtsCatalog() async {
+    final uri = Uri.parse('$baseUrl/v1/tts/catalog');
+    final resp = await _getAuthed(uri);
+    if (resp.statusCode != 200) {
+      throw ApiException('tts/catalog', resp.statusCode, null, resp.body);
+    }
+    final map = jsonDecode(resp.body) as Map<String, dynamic>;
+    final list = map['entries'] as List<dynamic>? ?? const [];
+    return list
+        .cast<Map<String, dynamic>>()
+        .map(TtsCatalogEntry.fromJson)
+        .toList();
+  }
+}
+
+class TtsCatalogEntry {
+  const TtsCatalogEntry({
+    required this.phraseKey,
+    this.distanceM,
+  });
+
+  final String phraseKey;
+  final int? distanceM;
+
+  factory TtsCatalogEntry.fromJson(Map<String, dynamic> json) {
+    return TtsCatalogEntry(
+      phraseKey: json['phrase_key'] as String? ?? '',
+      distanceM: (json['distance_m'] as num?)?.toInt(),
+    );
   }
 }
 

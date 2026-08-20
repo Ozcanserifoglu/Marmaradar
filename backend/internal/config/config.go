@@ -20,6 +20,10 @@ type Config struct {
 	AccessTokenTTL       int    `envconfig:"ACCESS_TOKEN_TTL" default:"900"`
 	RefreshTokenTTL      int    `envconfig:"REFRESH_TOKEN_TTL" default:"2592000"`
 	GoogleMapsAPIKey     string `envconfig:"GOOGLE_MAPS_API_KEY"`
+	GoogleTTSAPIKey      string `envconfig:"GOOGLE_TTS_API_KEY"`
+	TTSCacheDir          string `envconfig:"TTS_CACHE_DIR" default:"/var/cache/tts"`
+	TTSVoice             string `envconfig:"TTS_VOICE" default:"tr-TR-Standard-A"`
+	TTSWarmOnStart       bool   `envconfig:"TTS_WARM_ON_START" default:"true"`
 	GeoRestrictCountries string `envconfig:"GEO_RESTRICT_COUNTRIES"`
 }
 

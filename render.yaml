@@ -17,6 +17,12 @@ services:
         sync: false
       - key: GOOGLE_MAPS_API_KEY
         sync: false
+      - key: GOOGLE_TTS_API_KEY
+        sync: false
+      - key: TTS_CACHE_DIR
+        value: "/tmp/tts"
+      - key: TTS_WARM_ON_START
+        value: "true"
 
   - type: web
     name: marmaradar-gateway

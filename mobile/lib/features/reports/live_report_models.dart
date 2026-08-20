@@ -28,6 +28,7 @@ class LiveReport {
     required this.type,
     required this.createdAt,
     this.userId,
+    this.verificationState = 'pending',
     this.isOptimistic = false,
   });
 
@@ -37,11 +38,15 @@ class LiveReport {
   final double lng;
   final LiveReportType type;
   final DateTime createdAt;
+  final String verificationState;
   final bool isOptimistic;
+
+  bool get isConfirmed => verificationState == 'confirmed';
 
   LiveReport copyWith({
     String? id,
     String? userId,
+    String? verificationState,
     bool? isOptimistic,
   }) {
     return LiveReport(
@@ -51,6 +56,7 @@ class LiveReport {
       lng: lng,
       type: type,
       createdAt: createdAt,
+      verificationState: verificationState ?? this.verificationState,
       isOptimistic: isOptimistic ?? this.isOptimistic,
     );
   }
@@ -65,6 +71,8 @@ class LiveReport {
       createdAt: json['created_at'] is String
           ? DateTime.parse(json['created_at'] as String).toLocal()
           : DateTime.now(),
+      verificationState:
+          json['verification_state'] as String? ?? 'pending',
     );
   }
 }

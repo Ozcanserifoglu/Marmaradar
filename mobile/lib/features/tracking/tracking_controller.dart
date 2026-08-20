@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart'
     show LocationServiceDisabledException;
 import 'package:radar_alert/core/audio/alert_player.dart';
+import 'package:radar_alert/core/audio/voice_phrases.dart';
 import 'package:radar_alert/core/geo/bearing.dart';
 import 'package:radar_alert/core/geo/map_pin_filter.dart';
 import 'package:radar_alert/core/location/background_location_service.dart';
@@ -12,6 +13,7 @@ import 'package:radar_alert/data/api/radar_api_client.dart';
 import 'package:radar_alert/data/local/app_database.dart';
 import 'package:radar_alert/features/alerts/alert_engine.dart';
 import 'package:radar_alert/features/alerts/eta_repository.dart';
+import 'package:radar_alert/features/alerts/live_report_alert_engine.dart';
 import 'package:radar_alert/features/alerts/road_eta_models.dart';
 import 'package:radar_alert/features/amenities/amenities_repository.dart';
 import 'package:radar_alert/features/amenities/amenity_models.dart';
@@ -75,6 +77,7 @@ class TrackingController extends ChangeNotifier {
   }) : _db = database ?? AppDatabase(),
        _location = locationService ?? BackgroundLocationService(),
        _alerts = AlertEngine(),
+       _liveReportAlerts = LiveReportAlertEngine(),
        _corridors = CorridorTracker(),
        _player = alertPlayer ?? AlertPlayer(),
        _api = apiClient ?? RadarApiClient(),
@@ -90,6 +93,7 @@ class TrackingController extends ChangeNotifier {
       _liveReportPollInterval,
       (_) => _refreshLiveReports(),
     );
+    unawaited(_player.prefetchCatalog());
   }
 
   static const _driveStartSpeedMps = 4.2;
@@ -107,6 +111,7 @@ class TrackingController extends ChangeNotifier {
   late final EtaRepository _eta;
   late final AmenitiesRepository _amenities;
   final AlertEngine _alerts;
+  final LiveReportAlertEngine _liveReportAlerts;
   final CorridorTracker _corridors;
   final AlertPlayer _player;
   bool _etaRefreshScheduled = false;
@@ -310,6 +315,7 @@ class TrackingController extends ChangeNotifier {
 
     await _location.stopIdleWatch();
     await _player.init();
+    unawaited(_player.prefetchCatalog());
     await _loadMapData();
     await _recorder.begin();
     _driveUploadStatus = DriveUploadStatus.recording;
@@ -341,6 +347,7 @@ class TrackingController extends ChangeNotifier {
     _pendingVerify = null;
     _verifyPromptedIds.clear();
     _alerts.reset();
+    _liveReportAlerts.reset();
     _corridors.reset();
     _eta.clear();
     _etaRefreshScheduled = false;
@@ -466,7 +473,14 @@ class TrackingController extends ChangeNotifier {
         final road = cam.roadName ?? 'Hız kamerası';
         final limitText = limit != null ? ' — limit $limit km/s' : '';
         _lastAlert = '$road: ${dist.round()} m, ~${tta.round()} sn$limitText';
-        await _player.showCameraAlert(
+        final phraseKey = VoicePhrases.cameraPhraseKey(
+          cam.cameraType,
+          isCrowd: isCrowdCameraId(cam.id),
+        );
+        final bucket = VoicePhrases.bucketDistance(dist);
+        await _player.speakAlert(
+          phraseKey: phraseKey,
+          params: {'distance_m': bucket},
           title: 'Hız Kamerası Uyarısı',
           body: _lastAlert!,
         );
@@ -483,13 +497,30 @@ class TrackingController extends ChangeNotifier {
       },
     );
 
+    _liveReportAlerts.onLocation(snap, _liveReports, (report, dist, tta) async {
+      final label = report.type.label;
+      _lastAlert = '$label: ${dist.round()} m, ~${tta.round()} sn';
+      final phraseKey = VoicePhrases.reportPhraseKey(report.type.apiValue);
+      final bucket = VoicePhrases.bucketDistance(dist);
+      await _player.speakAlert(
+        phraseKey: phraseKey,
+        params: {'distance_m': bucket},
+        title: '$label Uyarısı',
+        body: _lastAlert!,
+      );
+      notifyListeners();
+    });
+
     _corridors.onLocation(snap, _mapCorridors, (corridor, avgKmh, level) async {
+      final phraseKey =
+          level >= 2 ? VoicePhrases.corridorOver : VoicePhrases.corridorWarn;
       final prefix = level >= 2
           ? 'Hız limiti aşıldı'
           : 'Hız limitine yaklaşıyorsunuz';
       _lastAlert =
           '$prefix — ${corridor.name}: ${avgKmh.round()} km/s (limit ${corridor.maxspeedKmh})';
-      await _player.showCorridorWarning(
+      await _player.speakAlert(
+        phraseKey: phraseKey,
         title: 'Hız Koridoru',
         body: _lastAlert!,
       );
@@ -921,6 +952,7 @@ class TrackingController extends ChangeNotifier {
     _location.stopIdleWatch();
     _eta.clear();
     _amenities.clear();
+    unawaited(_player.dispose());
     _db.close();
     super.dispose();
   }
