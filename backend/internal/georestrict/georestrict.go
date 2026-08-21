@@ -148,12 +148,27 @@ func requestIP(r *http.Request) net.IP {
 		return remote
 	}
 
+	// Cloudflare sets CF-Connecting-IP to the original visitor address when
+	// traffic is proxied. Prefer it over X-Forwarded-For, which may only
+	// contain the Cloudflare edge hop (e.g. Amsterdam) after KrakenD.
+	if ip := headerClientIP(r.Header.Get("CF-Connecting-IP")); ip != nil {
+		return ip
+	}
+
 	// Behind our own proxy. Each hop appends to X-Forwarded-For, so the last
 	// entry is the one our proxy wrote; anything earlier may be client-supplied.
 	if ip := lastForwardedIP(r.Header.Values("X-Forwarded-For")); ip != nil {
 		return ip
 	}
 	return remote
+}
+
+func headerClientIP(raw string) net.IP {
+	ip := net.ParseIP(strings.TrimSpace(raw))
+	if ip == nil || isTrustedHop(ip) {
+		return nil
+	}
+	return ip
 }
 
 func lastForwardedIP(headers []string) net.IP {

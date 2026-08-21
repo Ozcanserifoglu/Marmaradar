@@ -187,6 +187,76 @@ func TestMiddlewareIgnoresSpoofedForwardedForOnPublicHop(t *testing.T) {
 	}
 }
 
+func TestMiddlewarePrefersCFConnectingIPOverForwardedFor(t *testing.T) {
+	g, err := New([]string{"TR"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ok := g.Middleware(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+
+	// Cloudflare edge in X-Forwarded-For, real Turkish visitor in CF-Connecting-IP.
+	req := httptest.NewRequest(http.MethodGet, "/v1/sync", nil)
+	req.RemoteAddr = "172.18.0.2:8080"
+	req.Header.Set("X-Forwarded-For", "1.1.1.1")
+	req.Header.Set("CF-Connecting-IP", "5.24.0.1")
+	rec := httptest.NewRecorder()
+	ok.ServeHTTP(rec, req)
+	if rec.Code != http.StatusNoContent {
+		body, _ := io.ReadAll(rec.Body)
+		t.Fatalf("status = %d, want 204 when CF-Connecting-IP is Turkish; body=%s", rec.Code, body)
+	}
+
+	req = httptest.NewRequest(http.MethodGet, "/v1/sync", nil)
+	req.RemoteAddr = "172.18.0.2:8080"
+	req.Header.Set("X-Forwarded-For", "5.24.0.1")
+	req.Header.Set("CF-Connecting-IP", "8.8.8.8")
+	rec = httptest.NewRecorder()
+	ok.ServeHTTP(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, want 403 when CF-Connecting-IP is foreign", rec.Code)
+	}
+}
+
+func TestMiddlewareIgnoresSpoofedCFConnectingIPOnPublicHop(t *testing.T) {
+	g, err := New([]string{"TR"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ok := g.Middleware(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/sync", nil)
+	req.RemoteAddr = "8.8.8.8:12345"
+	req.Header.Set("CF-Connecting-IP", "5.24.0.1")
+	rec := httptest.NewRecorder()
+	ok.ServeHTTP(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, want 403 when public client spoofs CF-Connecting-IP", rec.Code)
+	}
+}
+
+func TestMiddlewareFallsBackToForwardedForWithoutCFConnectingIP(t *testing.T) {
+	g, err := New([]string{"TR"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ok := g.Middleware(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/sync", nil)
+	req.RemoteAddr = "172.18.0.2:8080"
+	req.Header.Set("X-Forwarded-For", "5.24.0.1")
+	rec := httptest.NewRecorder()
+	ok.ServeHTTP(rec, req)
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("status = %d, want 204 falling back to X-Forwarded-For", rec.Code)
+	}
+}
+
 func TestParseCountries(t *testing.T) {
 	got := ParseCountries(" tr ,TR, ")
 	if len(got) != 2 || got[0] != "tr" || got[1] != "TR" {
