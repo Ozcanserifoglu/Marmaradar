@@ -21,7 +21,8 @@ services:
       context: backend
       dockerfile: Dockerfile
     environment:
-      DATABASE_URL: postgres://radar:radar@db:5432/radar_alert?sslmode=disable
+      # Override via .env DATABASE_URL on the GCP VM (Neon). Local default is the compose db service.
+      DATABASE_URL: ${DATABASE_URL:-postgres://radar:radar@db:5432/radar_alert?sslmode=disable}
       PORT: "8080"
       MIGRATIONS_DIR: /migrations
       GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY:-}
