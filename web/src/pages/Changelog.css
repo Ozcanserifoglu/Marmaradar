@@ -1,0 +1,155 @@
+.changelog-page {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.changelog-body {
+  position: relative;
+  flex: 1;
+  padding: 2rem 0 4rem;
+  overflow: hidden;
+}
+
+.changelog-container {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 720px;
+}
+
+.changelog-head {
+  margin-bottom: 2rem;
+}
+
+.changelog-head h1 {
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 5vw, 2.35rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  margin-bottom: 0.5rem;
+}
+
+.changelog-head p {
+  color: var(--color-text-secondary);
+  font-size: 0.98rem;
+  max-width: 36rem;
+}
+
+.changelog-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.changelog-card {
+  position: relative;
+  padding: 1.35rem 1.25rem;
+  border-radius: var(--radius);
+  background: var(--color-surface-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--color-border-glass);
+  transition: transform 0.3s var(--ease), border-color 0.3s var(--ease), box-shadow 0.3s var(--ease);
+  overflow: hidden;
+}
+
+.changelog-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: var(--gradient-sea);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+
+.changelog-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 40px rgba(8, 8, 12, 0.35);
+}
+
+.changelog-card:hover::before {
+  opacity: 0.85;
+}
+
+.changelog-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.85rem;
+  margin-bottom: 0.55rem;
+  font-size: 0.82rem;
+  color: var(--color-text-secondary);
+}
+
+.changelog-version {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.changelog-title {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.75rem;
+}
+
+.changelog-changes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.changelog-changes li {
+  position: relative;
+  padding-left: 1.1rem;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: var(--color-text-secondary);
+}
+
+.changelog-changes li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-accent-teal);
+}
+
+@media (min-width: 768px) {
+  .changelog-body {
+    padding: 2.75rem 0 5rem;
+  }
+
+  .changelog-card {
+    padding: 1.5rem 1.5rem;
+  }
+
+  .changelog-title {
+    font-size: 1.25rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .changelog-card:hover {
+    transform: none;
+  }
+}

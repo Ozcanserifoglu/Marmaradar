@@ -1,0 +1,52 @@
+[
+  {
+    "version": "1.4.0",
+    "date": "2026-08-21",
+    "title": "Tanıtım sitesi yayında",
+    "changes": [
+      "Marmaradar web sitesi açıldı — özellikler, SSS ve beta indirme tek yerde"
+    ]
+  },
+  {
+    "version": "1.3.0",
+    "date": "2026-08-20",
+    "title": "Giriş, e-posta ve sesli uyarılar",
+    "changes": [
+      "Google ve Apple ile hızlı giriş eklendi",
+      "Şifre sıfırlama ve bildirimler için e-posta desteği geldi",
+      "Sesli uyarılar eklendi — yola bakarken de haberin olsun"
+    ]
+  },
+  {
+    "version": "1.2.0",
+    "date": "2026-08-19",
+    "title": "Canlı bildirimler ve topluluk oyları",
+    "changes": [
+      "Yoldaki durumları anlık olarak bildirebilirsin",
+      "Bildirimlere oy vererek güvenilirliği artırmaya yardımcı ol",
+      "Katkılarına göre itibar puanı takip edilir"
+    ]
+  },
+  {
+    "version": "1.1.0",
+    "date": "2026-08-16",
+    "title": "Topluluk kameraları ve uygulama cilası",
+    "changes": [
+      "Eksik kameraları bildirip oylayabilirsin",
+      "Kullanıcı istatistikleri ve başarımlar eklendi",
+      "Açılış ekranı ve uygulama ikonu yenilendi",
+      "Harita ve kamera verilerinde daha güncel, daha stabil deneyim"
+    ]
+  },
+  {
+    "version": "1.0.0",
+    "date": "2026-07-17",
+    "title": "İlk sürüm: harita, uyarılar ve sürüş",
+    "changes": [
+      "Hesap oluşturma ve sürüş yönetimi eklendi",
+      "Canlı haritada EDS ve ortalama hız koridor uyarıları",
+      "Rota üzerinde yol takibi ve tahmini varış süresi",
+      "Yakındaki yerler ve map-first sürüş arayüzü"
+    ]
+  }
+]

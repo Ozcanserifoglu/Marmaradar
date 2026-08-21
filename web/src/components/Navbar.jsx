@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { Mail, Menu, X } from 'lucide-react'
 import './Navbar.css'
 
@@ -11,6 +11,8 @@ const BETA_MAILTO =
 export default function Navbar({ minimal = false }) {
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const { pathname } = useLocation()
+  const onChangelog = pathname === '/changelog'
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24)
@@ -40,9 +42,16 @@ export default function Navbar({ minimal = false }) {
 
           {!minimal && (
             <nav className="nav-links" aria-label="Ana menü">
-              <a href="#features">Özellikler</a>
-              <a href="#how">Nasıl Çalışır</a>
-              <a href="#faq">SSS</a>
+              <a href="/#features">Özellikler</a>
+              <a href="/#how">Nasıl Çalışır</a>
+              <a href="/#faq">SSS</a>
+              <Link
+                to="/changelog"
+                className={onChangelog ? 'active' : undefined}
+                aria-current={onChangelog ? 'page' : undefined}
+              >
+                Güncellemeler
+              </Link>
             </nav>
           )}
 
@@ -74,9 +83,17 @@ export default function Navbar({ minimal = false }) {
 
         {!minimal && (
           <div className={`mobile-menu${menuOpen ? ' open' : ''}`} id="mobileMenu">
-            <a href="#features" onClick={closeMenu}>Özellikler</a>
-            <a href="#how" onClick={closeMenu}>Nasıl Çalışır</a>
-            <a href="#faq" onClick={closeMenu}>SSS</a>
+            <a href="/#features" onClick={closeMenu}>Özellikler</a>
+            <a href="/#how" onClick={closeMenu}>Nasıl Çalışır</a>
+            <a href="/#faq" onClick={closeMenu}>SSS</a>
+            <Link
+              to="/changelog"
+              className={onChangelog ? 'active' : undefined}
+              aria-current={onChangelog ? 'page' : undefined}
+              onClick={closeMenu}
+            >
+              Güncellemeler
+            </Link>
             <a href={BETA_MAILTO} onClick={closeMenu} aria-label="Beta programı için e-posta gönder">
               <Mail size={16} aria-hidden="true" />
               Beta&apos;ya Katıl

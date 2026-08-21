@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import Home from './pages/Home'
 import ResetPassword from './pages/ResetPassword'
+import Changelog from './pages/Changelog'
 import './App.css'
 
 export default function App() {
@@ -11,6 +12,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/changelog" element={<Changelog />} />
         </Routes>
       </div>
     </BrowserRouter>
