@@ -29,7 +29,9 @@ class AuthController extends ChangeNotifier {
                       OAuthConfig.googleIosClientId.isNotEmpty)
                   ? OAuthConfig.googleIosClientId
                   : null,
-            );
+            ) {
+    _api.onAuthLost = _onAuthLost;
+  }
 
   final TokenStore _tokens;
   final RadarApiClient _api;
@@ -74,11 +76,20 @@ class AuthController extends ChangeNotifier {
         }
       }
       _authenticated = await _tokens.hasSession;
+      if (_authenticated) {
+        await _api.ensureFreshAccess();
+        _authenticated = await _tokens.hasSession;
+        if (!_authenticated) {
+          _email = null;
+          _userId = null;
+        }
+      }
     } catch (_) {
-      await _tokens.clear();
-      _authenticated = false;
-      _email = null;
-      _userId = null;
+      _authenticated = await _tokens.hasSession;
+      if (!_authenticated) {
+        _email = null;
+        _userId = null;
+      }
     } finally {
       _booting = false;
       notifyListeners();
@@ -197,14 +208,31 @@ class AuthController extends ChangeNotifier {
   }
 
   Future<void> _persist(AuthTokens tokens) async {
-    await _tokens.saveSession(
-      accessToken: tokens.accessToken,
-      refreshToken: tokens.refreshToken,
-      userId: tokens.userId,
-      email: tokens.email,
-    );
+      await _tokens.saveSession(
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        userId: tokens.userId,
+        email: tokens.email,
+        expiresIn: tokens.expiresIn,
+      );
     _email = tokens.email;
     _userId = tokens.userId;
+  }
+
+  Future<void> ensureSession() async {
+    if (!_authenticated) return;
+    await _api.ensureFreshAccess();
+    final has = await _tokens.hasSession;
+    if (!has) {
+      _onAuthLost();
+    }
+  }
+
+  void _onAuthLost() {
+    _authenticated = false;
+    _email = null;
+    _userId = null;
+    notifyListeners();
   }
 
   Future<void> logout() async {

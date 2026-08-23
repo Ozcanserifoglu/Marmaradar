@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:drift/drift.dart';
 import 'package:radar_alert/core/geo/bearing.dart';
 import 'package:radar_alert/core/location/background_location_service.dart';
@@ -48,6 +50,16 @@ class DriveRecorder {
   bool get isRecording => _activeDriveId != null;
   bool get hasPendingUpload => _pendingUploadDriveId != null;
 
+  double get tripDistanceM => _tripDistanceM;
+  double? get tripMinSpeedMps => _tripMinMps;
+  double? get tripMaxSpeedMps => _tripMaxMps;
+  DateTime? get tripStartedAt => _tripStartedAt;
+
+  double _tripDistanceM = 0;
+  double? _tripMinMps;
+  double? _tripMaxMps;
+  DateTime? _tripStartedAt;
+
   Future<void> begin() async {
     if (_activeDriveId != null) return;
 
@@ -65,6 +77,10 @@ class DriveRecorder {
     _sequence = 0;
     _uploadStatus = DriveUploadStatus.recording;
     _lastError = null;
+    _tripDistanceM = 0;
+    _tripMinMps = null;
+    _tripMaxMps = null;
+    _tripStartedAt = now;
   }
 
   Future<void> maybeAppend(DriverSnapshot snap) async {
@@ -78,6 +94,12 @@ class DriveRecorder {
       if (dist < sampleDistanceM && elapsed < sampleInterval) {
         return;
       }
+      _tripDistanceM += dist;
+    }
+    final speed = snap.speedMps;
+    if (speed >= 1 && speed <= 70) {
+      _tripMinMps = _tripMinMps == null ? speed : math.min(_tripMinMps!, speed);
+      _tripMaxMps = _tripMaxMps == null ? speed : math.max(_tripMaxMps!, speed);
     }
 
     await _db.insertDrivePoint(

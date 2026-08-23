@@ -66,6 +66,8 @@ class DrivePointPayload {
       };
 }
 
+const _unset = Object();
+
 class DriveSummary {
   const DriveSummary({
     required this.id,
@@ -74,6 +76,10 @@ class DriveSummary {
     required this.endedAt,
     required this.lengthM,
     required this.pointCount,
+    this.avgSpeedKmh,
+    this.minSpeedKmh,
+    this.maxSpeedKmh,
+    this.isLocal = false,
   });
 
   final String id;
@@ -82,18 +88,26 @@ class DriveSummary {
   final DateTime endedAt;
   final double lengthM;
   final int pointCount;
+  final double? avgSpeedKmh;
+  final double? minSpeedKmh;
+  final double? maxSpeedKmh;
+  final bool isLocal;
 
   Duration get duration => endedAt.difference(startedAt);
 
   bool get hasName => name != null && name!.trim().isNotEmpty;
 
-  DriveSummary copyWith({String? name}) => DriveSummary(
+  DriveSummary copyWith({Object? name = _unset}) => DriveSummary(
         id: id,
-        name: name ?? this.name,
+        name: identical(name, _unset) ? this.name : name as String?,
         startedAt: startedAt,
         endedAt: endedAt,
         lengthM: lengthM,
         pointCount: pointCount,
+        avgSpeedKmh: avgSpeedKmh,
+        minSpeedKmh: minSpeedKmh,
+        maxSpeedKmh: maxSpeedKmh,
+        isLocal: isLocal,
       );
 
   factory DriveSummary.fromJson(Map<String, dynamic> json) {
@@ -104,6 +118,9 @@ class DriveSummary {
       endedAt: DateTime.parse(json['ended_at'] as String).toLocal(),
       lengthM: (json['length_m'] as num).toDouble(),
       pointCount: json['point_count'] as int,
+      avgSpeedKmh: (json['avg_speed_kmh'] as num?)?.toDouble(),
+      minSpeedKmh: (json['min_speed_kmh'] as num?)?.toDouble(),
+      maxSpeedKmh: (json['max_speed_kmh'] as num?)?.toDouble(),
     );
   }
 }

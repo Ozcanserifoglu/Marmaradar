@@ -51,12 +51,15 @@ type DriveResult struct {
 }
 
 type DriveSummary struct {
-	ID         string    `json:"id"`
-	Name       *string   `json:"name"`
-	StartedAt  time.Time `json:"started_at"`
-	EndedAt    time.Time `json:"ended_at"`
-	LengthM    float64   `json:"length_m"`
-	PointCount int       `json:"point_count"`
+	ID          string    `json:"id"`
+	Name        *string   `json:"name"`
+	StartedAt   time.Time `json:"started_at"`
+	EndedAt     time.Time `json:"ended_at"`
+	LengthM     float64   `json:"length_m"`
+	PointCount  int       `json:"point_count"`
+	AvgSpeedKmh *float64  `json:"avg_speed_kmh,omitempty"`
+	MinSpeedKmh *float64  `json:"min_speed_kmh,omitempty"`
+	MaxSpeedKmh *float64  `json:"max_speed_kmh,omitempty"`
 }
 
 type DriveDetail struct {
@@ -147,6 +150,14 @@ func (s *DriveService) Create(ctx context.Context, userID uuid.UUID, in CreateDr
 		return nil, fmt.Errorf("insert drive: %w", err)
 	}
 
+	avg, minKmh, maxKmh := computeSpeedStats(in.Points, lengthM, in.StartedAt, in.EndedAt)
+	if _, err := tx.Exec(ctx, `
+		UPDATE drives SET avg_speed_kmh = $2, min_speed_kmh = $3, max_speed_kmh = $4
+		WHERE id = $1
+	`, id, avg, minKmh, maxKmh); err != nil {
+		return nil, fmt.Errorf("update drive speed stats: %w", err)
+	}
+
 	if err := applyDriveToStats(ctx, tx, userID, id, lengthM, in.StartedAt, in.EndedAt, in.Points); err != nil {
 		return nil, err
 	}
@@ -164,7 +175,8 @@ func (s *DriveService) Create(ctx context.Context, userID uuid.UUID, in CreateDr
 
 func (s *DriveService) List(ctx context.Context, userID uuid.UUID) ([]DriveSummary, error) {
 	rows, err := s.pool.Query(ctx, `
-		SELECT id, name, started_at, ended_at, length_m, point_count
+		SELECT id, name, started_at, ended_at, length_m, point_count,
+			avg_speed_kmh, min_speed_kmh, max_speed_kmh
 		FROM drives
 		WHERE user_id = $1
 		ORDER BY started_at DESC
@@ -181,7 +193,17 @@ func (s *DriveService) List(ctx context.Context, userID uuid.UUID) ([]DriveSumma
 			id      uuid.UUID
 			summary DriveSummary
 		)
-		if err := rows.Scan(&id, &summary.Name, &summary.StartedAt, &summary.EndedAt, &summary.LengthM, &summary.PointCount); err != nil {
+		if err := rows.Scan(
+			&id,
+			&summary.Name,
+			&summary.StartedAt,
+			&summary.EndedAt,
+			&summary.LengthM,
+			&summary.PointCount,
+			&summary.AvgSpeedKmh,
+			&summary.MinSpeedKmh,
+			&summary.MaxSpeedKmh,
+		); err != nil {
 			return nil, fmt.Errorf("scan drive: %w", err)
 		}
 		summary.ID = id.String()
@@ -206,7 +228,8 @@ func (s *DriveService) Get(ctx context.Context, userID uuid.UUID, driveID string
 		snappedJSON []byte
 	)
 	err = s.pool.QueryRow(ctx, `
-		SELECT id, name, started_at, ended_at, length_m, point_count, points, snapped_points
+		SELECT id, name, started_at, ended_at, length_m, point_count,
+			avg_speed_kmh, min_speed_kmh, max_speed_kmh, points, snapped_points
 		FROM drives
 		WHERE id = $1 AND user_id = $2
 	`, id, userID).Scan(
@@ -216,6 +239,9 @@ func (s *DriveService) Get(ctx context.Context, userID uuid.UUID, driveID string
 		&detail.EndedAt,
 		&detail.LengthM,
 		&detail.PointCount,
+		&detail.AvgSpeedKmh,
+		&detail.MinSpeedKmh,
+		&detail.MaxSpeedKmh,
 		&pointsJSON,
 		&snappedJSON,
 	)
@@ -234,6 +260,18 @@ func (s *DriveService) Get(ctx context.Context, userID uuid.UUID, driveID string
 	}
 	if detail.Points == nil {
 		detail.Points = make([]DrivePoint, 0)
+	}
+	if detail.AvgSpeedKmh == nil || detail.MinSpeedKmh == nil || detail.MaxSpeedKmh == nil {
+		avg, minKmh, maxKmh := computeSpeedStats(detail.Points, detail.LengthM, detail.StartedAt, detail.EndedAt)
+		if detail.AvgSpeedKmh == nil {
+			detail.AvgSpeedKmh = avg
+		}
+		if detail.MinSpeedKmh == nil {
+			detail.MinSpeedKmh = minKmh
+		}
+		if detail.MaxSpeedKmh == nil {
+			detail.MaxSpeedKmh = maxKmh
+		}
 	}
 
 	if len(snappedJSON) > 0 {
@@ -282,6 +320,40 @@ func (s *DriveService) Rename(ctx context.Context, userID uuid.UUID, driveID, na
 		return ErrDriveNotFound
 	}
 	return nil
+}
+
+func computeSpeedStats(points []DrivePoint, lengthM float64, started, ended time.Time) (avg, minKmh, maxKmh *float64) {
+	const idleMps = 1.0
+	const implausibleMps = 70.0
+	var minMps, maxMps *float64
+	for _, p := range points {
+		if p.SpeedMps < idleMps || p.SpeedMps > implausibleMps {
+			continue
+		}
+		s := p.SpeedMps
+		if minMps == nil || s < *minMps {
+			v := s
+			minMps = &v
+		}
+		if maxMps == nil || s > *maxMps {
+			v := s
+			maxMps = &v
+		}
+	}
+	dur := ended.Sub(started).Seconds()
+	if lengthM > 0 && dur > 0 {
+		v := (lengthM / dur) * 3.6
+		avg = &v
+	}
+	if minMps != nil {
+		v := *minMps * 3.6
+		minKmh = &v
+	}
+	if maxMps != nil {
+		v := *maxMps * 3.6
+		maxKmh = &v
+	}
+	return avg, minKmh, maxKmh
 }
 
 func validateDrive(in CreateDriveInput) error {

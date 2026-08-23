@@ -4,6 +4,7 @@ import 'package:audio_session/audio_session.dart';
 import 'package:audioplayers/audioplayers.dart' hide AVAudioSessionCategory;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'package:radar_alert/core/audio/voice_clip_cache.dart';
 import 'package:radar_alert/core/audio/voice_phrases.dart';
 import 'package:radar_alert/data/api/radar_api_client.dart';
@@ -16,11 +17,13 @@ class AlertPlayer {
   })  : _api = api ?? RadarApiClient(),
         _cache = cache ?? VoiceClipCache(),
         _audio = audioPlayer ?? AudioPlayer(),
+        _tts = FlutterTts(),
         _notifications = FlutterLocalNotificationsPlugin();
 
   final RadarApiClient _api;
   final VoiceClipCache _cache;
   final AudioPlayer _audio;
+  final FlutterTts _tts;
   final FlutterLocalNotificationsPlugin _notifications;
 
   bool _initialized = false;
@@ -28,6 +31,14 @@ class AlertPlayer {
   bool _speaking = false;
   String? _currentKey;
   bool _prefetchStarted = false;
+  Completer<void>? _ttsDone;
+
+  void _onTtsFinished() {
+    final done = _ttsDone;
+    if (done != null && !done.isCompleted) {
+      done.complete();
+    }
+  }
 
   Future<void> init() async {
     if (_initialized) return;
@@ -39,6 +50,14 @@ class AlertPlayer {
     );
     await _configureAudioSession();
     await _audio.setReleaseMode(ReleaseMode.stop);
+    try {
+      await _tts.setLanguage('tr-TR');
+      await _tts.setSpeechRate(0.48);
+      await _tts.setVolume(1);
+      _tts.setCompletionHandler(_onTtsFinished);
+      _tts.setCancelHandler(_onTtsFinished);
+      _tts.setErrorHandler((_) => _onTtsFinished());
+    } catch (_) {}
     _initialized = true;
   }
 
@@ -163,21 +182,46 @@ class AlertPlayer {
       } catch (_) {}
 
       await _audio.stop();
+      await _audio.setVolume(1);
       await _audio.play(DeviceFileSource(file.path));
-      unawaited(_clearSpeakingWhenDone(cacheKey));
+      if (_audio.state != PlayerState.playing) {
+        throw StateError('voice clip did not start');
+      }
+      unawaited(_clearSpeakingWhenDone(
+        cacheKey,
+        _audio.onPlayerComplete.first,
+      ));
       return true;
     } catch (_) {
-      if (_currentKey == cacheKey) {
-        _speaking = false;
-        _currentKey = null;
+      try {
+        final spoken = VoicePhrases.spokenText(phraseKey, params);
+        await _tts.stop();
+        final ttsDone = Completer<void>();
+        _ttsDone = ttsDone;
+        try {
+          _tts.setCompletionHandler(_onTtsFinished);
+          _tts.setCancelHandler(_onTtsFinished);
+          _tts.setErrorHandler((_) => _onTtsFinished());
+        } catch (_) {}
+        final spokenOk = await _tts.speak(spoken);
+        if (spokenOk != 1) {
+          throw StateError('on-device tts did not start');
+        }
+        unawaited(_clearSpeakingWhenDone(cacheKey, ttsDone.future));
+        return true;
+      } catch (e) {
+        if (_currentKey == cacheKey) {
+          _speaking = false;
+          _currentKey = null;
+        }
+        rethrow;
       }
-      rethrow;
     }
   }
 
-  Future<void> _clearSpeakingWhenDone(String cacheKey) async {
+  Future<void> _clearSpeakingWhenDone(String cacheKey, Future<void> wait) async {
     try {
-      await _audio.onPlayerComplete.first.timeout(const Duration(seconds: 12));
+      await wait.timeout(const Duration(seconds: 12));
     } catch (_) {}
     if (_currentKey == cacheKey) {
       _speaking = false;

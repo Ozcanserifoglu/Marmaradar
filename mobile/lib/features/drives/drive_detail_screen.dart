@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:gal/gal.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:radar_alert/app.dart';
 import 'package:radar_alert/core/theme/app_theme.dart';
 import 'package:radar_alert/data/api/auth_models.dart';
 import 'package:radar_alert/features/drives/drive_format.dart';
 import 'package:radar_alert/features/drives/drive_replay_controller.dart';
-import 'package:radar_alert/features/drives/drive_video_exporter.dart';
+import 'package:radar_alert/features/drives/drive_speed_stats.dart';
+import 'package:radar_alert/features/drives/drive_video_download.dart';
 import 'package:radar_alert/features/drives/rename_drive_dialog.dart';
 import 'package:radar_alert/features/tracking/widgets/map_marker_icons.dart';
-import 'package:share_plus/share_plus.dart';
 
 class DriveDetailScreen extends ConsumerStatefulWidget {
   const DriveDetailScreen({super.key, required this.driveId});
@@ -50,71 +49,15 @@ class _DriveDetailScreenState extends ConsumerState<DriveDetailScreen> {
     }
   }
 
-  void _snack(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
-  }
-
   Future<void> _downloadVideo(DriveDetail detail) async {
     if (_exporting) return;
     setState(() => _exporting = true);
-    final progress = ValueNotifier<double>(0);
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => _ExportProgressDialog(progress: progress),
+    await downloadDriveVideo(
+      context,
+      detail: detail,
+      nameOverride: _effectiveName,
     );
-
-    String? path;
-    Object? error;
-    try {
-      path = await DriveVideoExporter.export(
-        points: detail.points,
-        displayPoints: detail.displayPoints,
-        title: driveDisplayName(_effectiveName, detail.summary.startedAt),
-        lengthM: detail.summary.lengthM,
-        duration: detail.summary.duration,
-        onProgress: (p) => progress.value = p,
-      );
-    } catch (e) {
-      error = e;
-    }
-
-    if (!mounted) {
-      progress.dispose();
-      return;
-    }
-    Navigator.of(context, rootNavigator: true).pop();
-    setState(() => _exporting = false);
-    progress.dispose();
-
-    if (error != null || path == null) {
-      _snack('Video oluşturulamadı.');
-      return;
-    }
-
-    try {
-      await Gal.requestAccess();
-      await Gal.putVideo(path);
-      _snack('Galeriye kaydedildi');
-    } catch (_) {
-    }
-
-    if (!mounted) return;
-    try {
-      final box = context.findRenderObject() as RenderBox?;
-      await SharePlus.instance.share(
-        ShareParams(
-          files: [XFile(path)],
-          text: 'Marmaradar sürüş kaydı',
-          sharePositionOrigin:
-              box != null ? box.localToGlobal(Offset.zero) & box.size : null,
-        ),
-      );
-    } catch (_) {
-    }
+    if (mounted) setState(() => _exporting = false);
   }
 
   @override
@@ -185,7 +128,7 @@ class _DriveDetailScreenState extends ConsumerState<DriveDetailScreen> {
               icon: const Icon(Icons.download_rounded),
               onPressed: _exporting ? null : () => _downloadVideo(detail),
             ),
-          if (detail != null)
+          if (detail != null && !detail.summary.isLocal)
             IconButton(
               tooltip: 'Yeniden adlandır',
               icon: const Icon(Icons.edit_rounded),
@@ -219,7 +162,7 @@ class _DriveDetailScreenState extends ConsumerState<DriveDetailScreen> {
     final route = replay.routePoints;
     return Column(
       children: [
-        _SummaryBar(summary: detail.summary),
+        _SummaryBar(summary: detail.summary, points: detail.points),
         Expanded(
           child: ListenableBuilder(
             listenable: replay,
@@ -331,7 +274,7 @@ class _DriveDetailScreenState extends ConsumerState<DriveDetailScreen> {
   Widget _tooShort(DriveDetail detail) {
     return Column(
       children: [
-        _SummaryBar(summary: detail.summary),
+        _SummaryBar(summary: detail.summary, points: detail.points),
         const Expanded(
           child: Center(
             child: Padding(
@@ -350,12 +293,22 @@ class _DriveDetailScreenState extends ConsumerState<DriveDetailScreen> {
 }
 
 class _SummaryBar extends StatelessWidget {
-  const _SummaryBar({required this.summary});
+  const _SummaryBar({required this.summary, required this.points});
 
   final DriveSummary summary;
+  final List<DrivePoint> points;
 
   @override
   Widget build(BuildContext context) {
+    final computed = DriveSpeedStats.fromPoints(
+      [for (final p in points) (speedMps: p.speedMps)],
+      lengthM: summary.lengthM,
+      duration: summary.duration,
+    );
+    final avg = summary.avgSpeedKmh ?? computed.avgKmh;
+    final minV = summary.minSpeedKmh ?? computed.minKmh;
+    final maxV = summary.maxSpeedKmh ?? computed.maxKmh;
+
     return Container(
       width: double.infinity,
       color: AppColors.surface,
@@ -374,18 +327,17 @@ class _SummaryBar extends StatelessWidget {
           const SizedBox(height: 8),
           Row(
             children: [
-              _Stat(
-                label: 'Mesafe',
-                value: formatDistance(summary.lengthM),
-              ),
-              _Stat(
-                label: 'Süre',
-                value: formatDuration(summary.duration),
-              ),
-              _Stat(
-                label: 'Nokta',
-                value: '${summary.pointCount}',
-              ),
+              _Stat(label: 'Mesafe', value: formatDistance(summary.lengthM)),
+              _Stat(label: 'Süre', value: formatDuration(summary.duration)),
+              _Stat(label: 'Ort', value: formatSpeedKmh(avg)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              _Stat(label: 'Min', value: formatSpeedKmh(minV)),
+              _Stat(label: 'Max', value: formatSpeedKmh(maxV)),
+              _Stat(label: 'Nokta', value: '${summary.pointCount}'),
             ],
           ),
         ],
@@ -473,13 +425,25 @@ class _PlaybackBar extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Text(
-                      '${speedKmh(replay.carSpeedMps)} km/s',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.white,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${speedKmh(replay.carSpeedMps)} km/s',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.white,
+                          ),
+                        ),
+                        Text(
+                          '${formatDistance(replay.traveledM)} / ${formatDistance(replay.routeLengthM)}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.whiteMuted,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   for (final option in DriveReplayController.speedOptions)
@@ -497,46 +461,6 @@ class _PlaybackBar extends StatelessWidget {
           ),
         );
       },
-    );
-  }
-}
-
-class _ExportProgressDialog extends StatelessWidget {
-  const _ExportProgressDialog({required this.progress});
-
-  final ValueNotifier<double> progress;
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      backgroundColor: AppColors.surface,
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text(
-            'Video hazırlanıyor...',
-            style: TextStyle(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 20),
-          ValueListenableBuilder<double>(
-            valueListenable: progress,
-            builder: (context, value, _) => Column(
-              children: [
-                LinearProgressIndicator(
-                  value: value == 0 ? null : value,
-                  color: AppColors.red,
-                  backgroundColor: AppColors.outline,
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  '${(value * 100).round()}%',
-                  style: const TextStyle(color: AppColors.whiteMuted),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

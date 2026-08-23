@@ -60,8 +60,11 @@ class RadarApiClient {
   RadarApiClient({
     String? baseUrl,
     TokenStore? tokenStore,
+    this.onAuthLost,
   })  : baseUrl = baseUrl ?? _resolveBaseUrl(),
         _tokens = tokenStore ?? SecureTokenStore();
+
+  void Function()? onAuthLost;
 
   static const _productionBaseUrl = 'http://35.239.129.237:8081';
   static const _androidEmulatorLocalBaseUrl = 'http://10.0.2.2:8081';
@@ -229,12 +232,32 @@ class RadarApiClient {
         refreshToken: tokens.refreshToken,
         userId: tokens.userId,
         email: tokens.email,
+        expiresIn: tokens.expiresIn,
       );
       return true;
+    } on ApiException catch (e) {
+      if (e.statusCode == 401 || e.statusCode == 403) {
+        await _tokens.clear();
+        onAuthLost?.call();
+      }
+      return false;
     } catch (_) {
-      await _tokens.clear();
       return false;
     }
+  }
+
+  Future<bool> ensureFreshAccess() async {
+    final expires = await _tokens.accessExpiresAt;
+    if (expires != null) {
+      final stillValid =
+          DateTime.now().toUtc().isBefore(expires.subtract(const Duration(minutes: 1)));
+      if (stillValid) return true;
+    }
+    final access = await _tokens.accessToken;
+    if (access != null && access.isNotEmpty && expires == null) {
+      return true;
+    }
+    return _tryRefresh();
   }
 
   Future<AuthTokens> register({

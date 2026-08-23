@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:radar_alert/app.dart';
 import 'package:radar_alert/core/theme/app_theme.dart';
 import 'package:radar_alert/features/auth/auth_screen.dart';
+import 'package:radar_alert/features/drives/drive_format.dart';
 import 'package:radar_alert/features/drives/drives_history_screen.dart';
 import 'package:radar_alert/features/profile/profile_screen.dart';
 import 'package:radar_alert/features/tracking/tracking_controller.dart';
@@ -100,6 +101,30 @@ class DrivePanel extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 16),
+          if (running)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Row(
+                children: [
+                  _TripStat(
+                    label: 'Mesafe',
+                    value: formatDistance(controller.tripDistanceM),
+                  ),
+                  _TripStat(
+                    label: 'Ort',
+                    value: formatSpeedKmh(controller.tripAvgKmh),
+                  ),
+                  _TripStat(
+                    label: 'Min',
+                    value: formatSpeedKmh(controller.tripMinKmh),
+                  ),
+                  _TripStat(
+                    label: 'Max',
+                    value: formatSpeedKmh(controller.tripMaxKmh),
+                  ),
+                ],
+              ),
+            ),
           Row(
             children: [
               _SyncButton(controller: controller),
@@ -150,10 +175,6 @@ class _HistoryButton extends ConsumerWidget {
   const _HistoryButton();
 
   Future<void> _open(BuildContext context, WidgetRef ref) async {
-    final authenticated = ref.read(authControllerProvider).isAuthenticated;
-    if (!authenticated) {
-      await showAuthModal(context);
-    }
     if (!context.mounted) return;
     await Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const DrivesHistoryScreen()),
@@ -257,6 +278,36 @@ class _AutoDriveToggle extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _TripStat extends StatelessWidget {
+  const _TripStat({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              color: AppColors.white,
+            ),
+          ),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 11, color: AppColors.whiteMuted),
+          ),
+        ],
       ),
     );
   }

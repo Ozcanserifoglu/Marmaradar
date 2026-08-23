@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.5.0",
+    "date": "2026-08-23",
+    "title": "Sürüş kaydı, ses ve oturum iyileştirmeleri",
+    "changes": [
+      "Sürüşlerim listesinden videoyu indir — üç nokta menüsünden paylaş veya galeriye kaydet",
+      "İndirilen videoda artık çevredeki harita görünür; mesafe, süre, ortalama / min / max hız videonun üzerinde",
+      "Sürüş tekrarında 1x / 2x / 4x ile birlikte kilometre sayacı arabayla birlikte ilerler",
+      "Sürüş özetinde ortalama, minimum ve maksimum hız; canlı takipte de trip istatistikleri",
+      "Sesli kamera ve koridor uyarıları güçlendirildi — ağ olmasa da cihaz içi Türkçe ses devreye girer",
+      "Sürüş sırasında ekran Google Maps gibi açık kalır",
+      "Oturum günlük giriş istemez; sürüşler telefonda kaydedilir, girişten sonra buluta yüklenir"
+    ]
+  },
+  {
     "version": "1.4.0",
     "date": "2026-08-21",
     "title": "Tanıtım sitesi yayında",

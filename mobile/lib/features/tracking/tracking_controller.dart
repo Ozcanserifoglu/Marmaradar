@@ -22,6 +22,7 @@ import 'package:radar_alert/features/corridors/corridor_tracker.dart';
 import 'package:radar_alert/features/reports/live_report_models.dart';
 import 'package:radar_alert/features/sync/region_sync_service.dart';
 import 'package:radar_alert/features/tracking/drive_recorder.dart';
+import 'package:radar_alert/core/device/screen_wakelock.dart';
 import 'package:uuid/uuid.dart';
 
 class ApproachingCamera {
@@ -163,6 +164,18 @@ class TrackingController extends ChangeNotifier {
   DriveUploadStatus get driveUploadStatus => _driveUploadStatus;
 
   double get speedKmh => (_lastSnapshot?.speedMps ?? 0) * 3.6;
+  double get tripDistanceM => _recorder.tripDistanceM;
+  double? get tripAvgKmh {
+    final started = _recorder.tripStartedAt;
+    if (started == null || tripDistanceM <= 0) return null;
+    final sec = DateTime.now().toUtc().difference(started).inMilliseconds / 1000.0;
+    if (sec <= 0) return null;
+    return (tripDistanceM / sec) * 3.6;
+  }
+  double? get tripMinKmh =>
+      _recorder.tripMinSpeedMps == null ? null : _recorder.tripMinSpeedMps! * 3.6;
+  double? get tripMaxKmh =>
+      _recorder.tripMaxSpeedMps == null ? null : _recorder.tripMaxSpeedMps! * 3.6;
 
   void setActiveRoute(List<GeoPoint>? points) {
     final next = (points != null && points.length >= 2) ? points : null;
@@ -182,6 +195,10 @@ class TrackingController extends ChangeNotifier {
       _mapAmenities = const [];
     }
     notifyListeners();
+  }
+
+  void prefetchVoiceAlerts() {
+    unawaited(_player.prefetchCatalog());
   }
 
   CorridorStatus? get corridorStatus {
@@ -323,6 +340,7 @@ class TrackingController extends ChangeNotifier {
     _autoStarted = auto;
     _status = auto ? 'Sürüş algılandı — takip başladı' : 'Takip aktif';
     notifyListeners();
+    await ScreenWakelock.acquire();
 
     await _location.start(
       _onLocation,
@@ -331,6 +349,7 @@ class TrackingController extends ChangeNotifier {
             ? 'Cihaz konumu kapalı — konumu açıp tekrar başlatın'
             : 'Konum hatası: $error';
         _running = false;
+        unawaited(ScreenWakelock.release());
         notifyListeners();
         _startIdleWatch();
       },
@@ -338,6 +357,7 @@ class TrackingController extends ChangeNotifier {
   }
 
   Future<void> stop() async {
+    await ScreenWakelock.release();
     await _location.stop();
     _running = false;
     _autoStarted = false;

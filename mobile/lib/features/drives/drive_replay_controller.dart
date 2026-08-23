@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:radar_alert/core/device/screen_wakelock.dart';
 import 'package:radar_alert/core/geo/bearing.dart';
 import 'package:radar_alert/data/api/auth_models.dart';
 
@@ -17,6 +18,18 @@ class DriveReplayController extends ChangeNotifier {
         ) {
     _buildTimeline();
     _buildRouteDistances();
+  }
+
+  bool _wakeHeld = false;
+
+  Future<void> _holdWake(bool on) async {
+    if (on == _wakeHeld) return;
+    _wakeHeld = on;
+    if (on) {
+      await ScreenWakelock.acquire();
+    } else {
+      await ScreenWakelock.release();
+    }
   }
 
   final List<DrivePoint> _points;
@@ -45,6 +58,8 @@ class DriveReplayController extends ChangeNotifier {
   bool get canPlay => _points.length >= 2 && _route.length >= 2;
 
   List<LatLng> get routePoints => _route;
+  double get routeLengthM => _routeLengthM;
+  double get traveledM => _progress.clamp(0.0, 1.0) * _routeLengthM;
 
   LatLng? get start => _route.isEmpty ? null : _route.first;
   LatLng? get end => _route.isEmpty ? null : _route.last;
@@ -102,6 +117,7 @@ class DriveReplayController extends ChangeNotifier {
     _playing = true;
     _lastTick = DateTime.now();
     _timer = Timer.periodic(const Duration(milliseconds: 40), _tick);
+    unawaited(_holdWake(true));
     notifyListeners();
   }
 
@@ -110,6 +126,7 @@ class DriveReplayController extends ChangeNotifier {
     _timer = null;
     _playing = false;
     _lastTick = null;
+    unawaited(_holdWake(false));
     notifyListeners();
   }
 
@@ -216,6 +233,7 @@ class DriveReplayController extends ChangeNotifier {
   @override
   void dispose() {
     _timer?.cancel();
+    unawaited(_holdWake(false));
     super.dispose();
   }
 }

@@ -39,4 +39,9 @@ String formatDistance(double meters) {
   return '${(meters / 1000).toStringAsFixed(1)} km';
 }
 
+String formatSpeedKmh(double? kmh) {
+  if (kmh == null) return '—';
+  return '${kmh.round()} km/s';
+}
+
 int speedKmh(double mps) => (mps * 3.6).round();

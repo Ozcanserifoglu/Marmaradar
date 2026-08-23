@@ -142,6 +142,17 @@ class AppDatabase extends _$AppDatabase {
     }
   }
 
+  Future<List<LocalDrive>> pendingLocalDrives() {
+    return (select(localDrives)
+          ..where((d) => d.status.isNotIn(['recording', 'uploaded']))
+          ..orderBy([(d) => OrderingTerm.desc(d.startedAt)]))
+        .get();
+  }
+
+  Future<LocalDrive?> localDriveById(String id) {
+    return (select(localDrives)..where((d) => d.id.equals(id))).getSingleOrNull();
+  }
+
   Future<void> insertDrive(LocalDrivesCompanion row) async {
     await into(localDrives).insert(row);
   }

@@ -7,6 +7,7 @@ import 'package:radar_alert/features/auth/auth_screen.dart';
 import 'package:radar_alert/features/drives/drive_detail_screen.dart';
 import 'package:radar_alert/features/drives/drive_format.dart';
 import 'package:radar_alert/features/drives/drives_controller.dart';
+import 'package:radar_alert/features/drives/drive_video_download.dart';
 import 'package:radar_alert/features/drives/rename_drive_dialog.dart';
 
 class DrivesHistoryScreen extends ConsumerStatefulWidget {
@@ -24,16 +25,14 @@ class _DrivesHistoryScreenState extends ConsumerState<DrivesHistoryScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final authenticated = ref.read(authControllerProvider).isAuthenticated;
-      if (authenticated) {
-        ref.read(drivesControllerProvider).load();
-      }
+      ref.read(drivesControllerProvider).load(authenticated: authenticated);
     });
   }
 
   Future<void> _login() async {
     final ok = await showAuthModal(context);
     if (ok && mounted) {
-      await ref.read(drivesControllerProvider).load();
+      await ref.read(drivesControllerProvider).load(authenticated: true);
     }
   }
 
@@ -49,15 +48,11 @@ class _DrivesHistoryScreenState extends ConsumerState<DrivesHistoryScreen> {
         backgroundColor: AppColors.night,
         foregroundColor: AppColors.white,
       ),
-      body: SafeArea(
-        child: !authenticated
-            ? _GuestState(onLogin: _login)
-            : _body(controller),
-      ),
+      body: SafeArea(child: _body(controller, authenticated)),
     );
   }
 
-  Widget _body(DrivesController controller) {
+  Widget _body(DrivesController controller, bool authenticated) {
     switch (controller.state) {
       case DrivesLoadState.idle:
       case DrivesLoadState.loading:
@@ -67,21 +62,30 @@ class _DrivesHistoryScreenState extends ConsumerState<DrivesHistoryScreen> {
       case DrivesLoadState.error:
         return _ErrorState(
           message: controller.error ?? 'Sürüşler yüklenemedi.',
-          onRetry: () => ref.read(drivesControllerProvider).load(),
+          onRetry: () => ref
+              .read(drivesControllerProvider)
+              .load(authenticated: authenticated),
         );
       case DrivesLoadState.ready:
         if (controller.drives.isEmpty) {
-          return const _EmptyState();
+          return authenticated
+              ? const _EmptyState()
+              : _GuestState(onLogin: _login);
         }
         return RefreshIndicator(
           color: AppColors.red,
-          onRefresh: () => ref.read(drivesControllerProvider).load(),
+          onRefresh: () => ref
+              .read(drivesControllerProvider)
+              .load(authenticated: authenticated),
           child: ListView.separated(
             padding: const EdgeInsets.all(16),
-            itemCount: controller.drives.length,
+            itemCount: controller.drives.length + (authenticated ? 0 : 1),
             separatorBuilder: (_, _) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
-              final drive = controller.drives[index];
+              if (!authenticated && index == 0) {
+                return _LoginBanner(onLogin: _login);
+              }
+              final drive = controller.drives[authenticated ? index : index - 1];
               return _DriveCard(
                 drive: drive,
                 onTap: () => Navigator.of(context).push(
@@ -89,12 +93,28 @@ class _DrivesHistoryScreenState extends ConsumerState<DrivesHistoryScreen> {
                     builder: (_) => DriveDetailScreen(driveId: drive.id),
                   ),
                 ),
-                onRename: () => showRenameDriveDialog(
-                  context,
-                  ref,
-                  driveId: drive.id,
-                  currentName: drive.name,
-                ),
+                onRename: drive.isLocal
+                    ? null
+                    : () => showRenameDriveDialog(
+                          context,
+                          ref,
+                          driveId: drive.id,
+                          currentName: drive.name,
+                        ),
+                onDownload: () async {
+                  try {
+                    final detail = await ref
+                        .read(drivesControllerProvider)
+                        .loadDetail(drive.id);
+                    if (!context.mounted) return;
+                    await downloadDriveVideo(context, detail: detail);
+                  } catch (_) {
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Video oluşturulamadı.')),
+                    );
+                  }
+                },
               );
             },
           ),
@@ -107,12 +127,14 @@ class _DriveCard extends StatelessWidget {
   const _DriveCard({
     required this.drive,
     required this.onTap,
-    required this.onRename,
+    required this.onDownload,
+    this.onRename,
   });
 
   final DriveSummary drive;
   final VoidCallback onTap;
-  final VoidCallback onRename;
+  final VoidCallback onDownload;
+  final VoidCallback? onRename;
 
   @override
   Widget build(BuildContext context) {
@@ -177,10 +199,11 @@ class _DriveCard extends StatelessWidget {
                           icon: Icons.schedule_rounded,
                           label: formatDuration(drive.duration),
                         ),
-                        _Metric(
-                          icon: Icons.place_rounded,
-                          label: '${drive.pointCount} nokta',
-                        ),
+                        if (drive.avgSpeedKmh != null)
+                          _Metric(
+                            icon: Icons.speed_rounded,
+                            label: formatSpeedKmh(drive.avgSpeedKmh),
+                          ),
                       ],
                     ),
                   ],
@@ -193,13 +216,19 @@ class _DriveCard extends StatelessWidget {
                 ),
                 color: AppColors.surfaceHigh,
                 onSelected: (value) {
-                  if (value == 'rename') onRename();
+                  if (value == 'rename') onRename?.call();
+                  if (value == 'download') onDownload();
                 },
-                itemBuilder: (context) => const [
-                  PopupMenuItem(
-                    value: 'rename',
-                    child: Text('Yeniden adlandır'),
+                itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: 'download',
+                    child: Text('Videoyu indir'),
                   ),
+                  if (onRename != null)
+                    const PopupMenuItem(
+                      value: 'rename',
+                      child: Text('Yeniden adlandır'),
+                    ),
                 ],
               ),
             ],
@@ -228,6 +257,38 @@ class _Metric extends StatelessWidget {
           style: const TextStyle(fontSize: 13, color: AppColors.whiteMuted),
         ),
       ],
+    );
+  }
+}
+
+class _LoginBanner extends StatelessWidget {
+  const _LoginBanner({required this.onLogin});
+
+  final VoidCallback onLogin;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.surface,
+      borderRadius: BorderRadius.circular(18),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            const Expanded(
+              child: Text(
+                'Buluttaki sürüşler için giriş yapın. Yerel kayıtlar bu cihazda durur.',
+                style: TextStyle(color: AppColors.whiteMuted, fontSize: 13),
+              ),
+            ),
+            const SizedBox(width: 12),
+            FilledButton(
+              onPressed: onLogin,
+              child: const Text('Giriş'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

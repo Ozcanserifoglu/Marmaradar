@@ -13,6 +13,7 @@ FROM alpine:3.20
 RUN apk add --no-cache ca-certificates
 
 COPY --from=builder /api /api
+# SQL is also embedded in the binary; this copy is only used if MIGRATIONS_DIR is set.
 COPY migrations /migrations
 
 ENV MIGRATIONS_DIR=/migrations

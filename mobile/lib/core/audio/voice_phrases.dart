@@ -46,6 +46,31 @@ class VoicePhrases {
     }
   }
 
+  static String spokenText(String phraseKey, Map<String, dynamic> params) {
+    final dist = params['distance_m'];
+    final meters = dist is num ? dist.round() : dist;
+    switch (phraseKey) {
+      case cameraFixed:
+        return 'Dikkat, sabit hız kamerası, $meters metre ileride.';
+      case cameraMobile:
+        return 'Dikkat, mobil radar, $meters metre ileride.';
+      case cameraRedLight:
+        return 'Dikkat, kırmızı ışık kamerası, $meters metre ileride.';
+      case cameraUnknown:
+        return 'Dikkat, hız kamerası, $meters metre ileride.';
+      case reportPolice:
+        return 'Dikkat, polis kontrolü, $meters metre ileride.';
+      case reportAccident:
+        return 'Dikkat, kaza, $meters metre ileride.';
+      case corridorWarn:
+        return 'Hız limitine yaklaşıyorsunuz.';
+      case corridorOver:
+        return 'Hız limiti aşıldı.';
+      default:
+        return 'Dikkat, hız kamerası uyarısı.';
+    }
+  }
+
   static String localCacheKey(String phraseKey, Map<String, dynamic> params) {
     final dist = params['distance_m'];
     if (dist != null) return '$phraseKey:$dist';

@@ -44,20 +44,15 @@ func main() {
 	}
 
 	migrationsDir := cfg.MigrationsDir
-	if migrationsDir == "" {
-		migrationsDir, err = migrate.ResolveDir()
-		if err != nil {
-			slog.Error("migrations directory not found", "error", err)
-			os.Exit(1)
-		}
-	}
-
-	slog.Info("running database migrations", "dir", migrationsDir)
-	if err := migrate.Run(ctx, pool, migrationsDir); err != nil {
-		slog.Error("database migration failed", "error", err)
+	slog.Info("running database migrations before serving traffic")
+	result, err := migrate.RunFS(ctx, pool, migrationsDir)
+	if err != nil {
+		slog.Error("database migration failed; refusing to start HTTP server", "error", err)
 		os.Exit(1)
 	}
-	slog.Info("database migrations complete")
+	if result.UpToDate() {
+		slog.Info("database already up to date", "source", result.Source)
+	}
 
 	if cfg.JWTSecret == config.DevJWTSecret {
 		slog.Warn("JWT_SECRET is unset, falling back to the public dev secret; anyone can forge tokens against this instance")

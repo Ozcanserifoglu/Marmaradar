@@ -9,11 +9,12 @@ import 'package:radar_alert/core/geo/bearing.dart';
 import 'package:radar_alert/core/theme/app_theme.dart';
 import 'package:radar_alert/data/api/auth_models.dart';
 import 'package:radar_alert/features/drives/drive_format.dart';
+import 'package:radar_alert/features/drives/static_map_backdrop.dart';
 
 class DriveVideoExporter {
   DriveVideoExporter._();
 
-  static const int size = 720;
+  static const int size = 1080;
   static const int fps = 30;
   static const double travelSeconds = 8.0;
   static const double tailSeconds = 1.4;
@@ -28,6 +29,9 @@ class DriveVideoExporter {
     required String title,
     required double lengthM,
     required Duration duration,
+    double? avgSpeedKmh,
+    double? minSpeedKmh,
+    double? maxSpeedKmh,
     void Function(double progress)? onProgress,
   }) async {
     final route = displayPoints.length >= 2
@@ -39,7 +43,10 @@ class DriveVideoExporter {
       throw StateError('Not enough points to render a video.');
     }
 
-    final projector = _RouteProjector(route, size.toDouble(), size * 0.14);
+    final map = await StaticMapBackdrop.fetch(route);
+    final projector = map == null
+        ? _RouteProjector(route, size.toDouble(), size * 0.14)
+        : _MapProjector(map, size.toDouble());
     final routeSampler = _RouteSampler(route);
     final projected = [
       for (final p in route) projector.project(p.lat, p.lon),
@@ -49,13 +56,18 @@ class DriveVideoExporter {
     final filepath =
         '${dir.path}/drive_${DateTime.now().millisecondsSinceEpoch}.mp4';
 
-    final subtitle = '${formatDistance(lengthM)}  -  ${formatDuration(duration)}';
+    final statsLine =
+        '${formatDistance(lengthM)}  ·  ${formatDuration(duration)}'
+        '${avgSpeedKmh != null ? '  ·  Ort ${avgSpeedKmh.round()} km/s' : ''}';
+    final minMaxLine = (minSpeedKmh != null || maxSpeedKmh != null)
+        ? 'Min ${formatSpeedKmh(minSpeedKmh)}   Max ${formatSpeedKmh(maxSpeedKmh)}'
+        : null;
 
     await FlutterQuickVideoEncoder.setup(
       width: size,
       height: size,
       fps: fps,
-      videoBitrate: 5000000,
+      videoBitrate: 8000000,
       profileLevel: ProfileLevel.any,
       audioChannels: 0,
       audioBitrate: 0,
@@ -72,9 +84,11 @@ class DriveVideoExporter {
           projected: projected,
           routeSampler: routeSampler,
           projector: projector,
+          mapImage: map?.image,
           travelFraction: travel.clamp(0.0, 1.0),
           title: title,
-          subtitle: subtitle,
+          subtitle: statsLine,
+          extraLine: minMaxLine,
         );
         await FlutterQuickVideoEncoder.appendVideoFrame(rgba);
         onProgress?.call((frame + 1) / _totalFrames);
@@ -85,16 +99,19 @@ class DriveVideoExporter {
       rethrow;
     }
 
+    map?.image.dispose();
     return filepath;
   }
 
   static Future<Uint8List> _renderFrame({
     required List<Offset> projected,
     required _RouteSampler routeSampler,
-    required _RouteProjector projector,
+    required _GeoProjector projector,
+    ui.Image? mapImage,
     required double travelFraction,
     required String title,
     required String subtitle,
+    String? extraLine,
   }) async {
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
@@ -104,6 +121,14 @@ class DriveVideoExporter {
       Rect.fromLTWH(0, 0, s, s),
       Paint()..color = AppColors.night,
     );
+    if (mapImage != null) {
+      paintImage(
+        canvas: canvas,
+        rect: Rect.fromLTWH(0, 0, s, s),
+        image: mapImage,
+        fit: BoxFit.cover,
+      );
+    }
 
     final fullPath = Path()..moveTo(projected.first.dx, projected.first.dy);
     for (final o in projected.skip(1)) {
@@ -166,11 +191,22 @@ class DriveVideoExporter {
       canvas,
       subtitle,
       const Offset(24, 62),
-      fontSize: 20,
+      fontSize: 18,
       weight: FontWeight.w600,
       color: AppColors.whiteMuted,
       maxWidth: s - 48,
     );
+    if (extraLine != null) {
+      _drawText(
+        canvas,
+        extraLine,
+        const Offset(24, 90),
+        fontSize: 16,
+        weight: FontWeight.w600,
+        color: AppColors.whiteMuted,
+        maxWidth: s - 48,
+      );
+    }
     _drawText(
       canvas,
       'Marmaradar',
@@ -251,7 +287,25 @@ class DriveVideoExporter {
   }
 }
 
-class _RouteProjector {
+abstract class _GeoProjector {
+  Offset project(double lat, double lon);
+}
+
+class _MapProjector implements _GeoProjector {
+  _MapProjector(this._map, this._canvasSize);
+
+  final StaticMapBackdrop _map;
+  final double _canvasSize;
+
+  @override
+  Offset project(double lat, double lon) {
+    final p = _map.project(lat, lon);
+    final scale = _canvasSize / _map.size;
+    return Offset(p.dx * scale, p.dy * scale);
+  }
+}
+
+class _RouteProjector implements _GeoProjector {
   _RouteProjector(List<SnappedPoint> points, double size, double pad) {
     var minLat = points.first.lat, maxLat = points.first.lat;
     var minLon = points.first.lon, maxLon = points.first.lon;
@@ -287,6 +341,7 @@ class _RouteProjector {
   late final double _offsetY;
   late final double _worldH;
 
+  @override
   Offset project(double lat, double lon) {
     final x = ((lon - _minLon) * _cosLat) * _scale;
     final y = (lat - _minLat) * _scale;
