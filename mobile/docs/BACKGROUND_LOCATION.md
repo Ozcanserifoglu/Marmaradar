@@ -1,10 +1,13 @@
 # Background Location — Testing & Hardening
 
+Display name **Marmaradar**. Implementation: `mobile/lib/core/location/background_location_service.dart`.
+
 ## Current implementation
 
 - **Package:** `geolocator` with `ForegroundNotificationConfig` on Android
 - **iOS:** `AppleSettings` with `ActivityType.automotiveNavigation` and `UIBackgroundModes: location`
 - **Alerts:** `flutter_local_notifications` for audio/visual warnings when screen is off
+- **Permissions:** always-on location is required for lock-screen / background camera and corridor alerts (see the public [privacy page](https://www.marmaradar.com/gizlilik))
 
 ## Recommended soak test (2+ hours)
 

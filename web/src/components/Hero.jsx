@@ -1,4 +1,5 @@
 import { Download } from 'lucide-react'
+import ApkDisclaimer from './ApkDisclaimer'
 import './Hero.css'
 
 export default function Hero() {
@@ -38,6 +39,9 @@ export default function Hero() {
 
           {/* TODO: update version number and file size once real APK is finalized */}
           <p className="hero-meta reveal-hero d5">Android 8.0+ · v0.x Beta</p>
+          <div className="reveal-hero d5">
+            <ApkDisclaimer />
+          </div>
         </div>
 
         <div className="phone-wrap reveal-hero d6" aria-hidden="true">

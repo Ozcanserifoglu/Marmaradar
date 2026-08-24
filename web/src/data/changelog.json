@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.6.0",
+    "date": "2026-08-24",
+    "title": "Gizlilik, kullanım şartları ve beta APK uyarısı",
+    "changes": [
+      "Sitede Gizlilik / KVKK ve Kullanım Şartları sayfaları yayınlandı — alt bilgi linkleri artık bu sayfalara gider",
+      "Beta APK indirmeden önce sideload ve sorumluluk uyarısı gösterilir; indirerek şartları kabul etmiş olursun",
+      "SSS güncellendi: konum verisi (sürüş kaydı ve topluluk raporları) ve APK kurulumu / Play Protect"
+    ]
+  },
+  {
     "version": "1.5.0",
     "date": "2026-08-23",
     "title": "Sürüş kaydı, ses ve oturum iyileştirmeleri",

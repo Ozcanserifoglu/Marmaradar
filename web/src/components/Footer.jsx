@@ -22,8 +22,8 @@ export default function Footer() {
         <div className="footer-bottom">
           <p>© 2026 Marmaradar. Tüm hakları saklıdır.</p>
           <div className="footer-legal">
-            <a href="#">Gizlilik</a>
-            <a href="#">Kullanım Şartları</a>
+            <Link to="/gizlilik">Gizlilik</Link>
+            <Link to="/kullanim-sartlari">Kullanım Şartları</Link>
           </div>
         </div>
       </div>

@@ -74,6 +74,12 @@
   font-size: 0.92rem;
 }
 
+.faq-item p a {
+  color: var(--color-accent-teal);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .final-cta {
   padding: 2rem 0 4rem;
 }

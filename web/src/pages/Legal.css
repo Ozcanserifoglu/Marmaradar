@@ -1,0 +1,125 @@
+.legal-page {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.legal-body {
+  position: relative;
+  flex: 1;
+  padding: 2rem 0 4rem;
+  overflow: hidden;
+}
+
+.legal-container {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 720px;
+}
+
+.legal-head {
+  margin-bottom: 2rem;
+}
+
+.legal-head h1 {
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 5vw, 2.35rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  margin-bottom: 0.5rem;
+}
+
+.legal-updated {
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+}
+
+.legal-prose {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+.legal-prose h2 {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.65rem;
+}
+
+.legal-prose p,
+.legal-prose li {
+  color: var(--color-text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.65;
+}
+
+.legal-prose p + p {
+  margin-top: 0.75rem;
+}
+
+.legal-prose ul {
+  margin: 0.65rem 0 0;
+  padding: 0 0 0 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.legal-prose a {
+  color: var(--color-accent-teal);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.legal-prose a:hover {
+  color: var(--color-text-primary);
+}
+
+.legal-callout {
+  padding: 1.15rem 1.2rem;
+  border-radius: var(--radius);
+  border: 1px solid rgba(232, 38, 45, 0.35);
+  background: rgba(232, 38, 45, 0.1);
+}
+
+.legal-callout h2 {
+  color: var(--color-text-primary);
+}
+
+.legal-callout p {
+  color: var(--color-text-primary);
+  opacity: 0.9;
+}
+
+.apk-disclaimer {
+  max-width: 42rem;
+  margin-top: 0.85rem;
+  font-size: 0.78rem;
+  line-height: 1.55;
+  color: var(--color-text-secondary);
+}
+
+.apk-disclaimer a {
+  color: var(--color-accent-teal);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.final-cta-box .apk-disclaimer {
+  margin: 0.85rem auto 0;
+  max-width: 36rem;
+}
+
+@media (min-width: 768px) {
+  .legal-body {
+    padding: 2.75rem 0 5rem;
+  }
+
+  .legal-prose h2 {
+    font-size: 1.25rem;
+  }
+}

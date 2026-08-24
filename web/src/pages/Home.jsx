@@ -1,4 +1,5 @@
 import { Download, Map, Camera, Gauge, BellRing } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import GradientBlobs from '../components/GradientBlobs'
 import Hero from '../components/Hero'
@@ -6,6 +7,7 @@ import StoreBadges from '../components/StoreBadges'
 import FeatureCard from '../components/FeatureCard'
 import HowItWorks from '../components/HowItWorks'
 import Footer from '../components/Footer'
+import ApkDisclaimer from '../components/ApkDisclaimer'
 import { useScrollReveal } from '../hooks/useScrollReveal'
 import './Home.css'
 
@@ -50,7 +52,8 @@ export default function Home() {
   const faqRef1 = useScrollReveal({ staggerClass: 'stagger-1' })
   const faqRef2 = useScrollReveal({ staggerClass: 'stagger-2' })
   const faqRef3 = useScrollReveal({ staggerClass: 'stagger-3' })
-  const faqRefs = [faqRef1, faqRef2, faqRef3]
+  const faqRef4 = useScrollReveal({ staggerClass: 'stagger-4' })
+  const faqRefs = [faqRef1, faqRef2, faqRef3, faqRef4]
 
   const finalCtaRef = useScrollReveal()
 
@@ -113,7 +116,18 @@ export default function Home() {
             <div className="faq-item" ref={faqRefs[2]}>
               <h3>Konum verisi ne için kullanılıyor?</h3>
               <p>
-                Yalnızca sürüş uyarıları ve harita takibi için. Reklam veya sosyal özellik yok.
+                Harita, EDS ve koridor uyarıları için. Giriş yaptıysan sürüş kaydı sunucuya
+                yüklenebilir; topluluk raporları da konumla ilişkilendirilebilir. Reklam ağı
+                yok. Ayrıntılar <Link to="/gizlilik">gizlilik sayfasında</Link>.
+              </p>
+            </div>
+            <div className="faq-item" ref={faqRefs[3]}>
+              <h3>APK’yı nasıl kurarım? Güvenli mi?</h3>
+              <p>
+                Google Play henüz yok; Android’de bilinmeyen kaynaklardan kurulum gerekir. Play
+                Protect uyarabilir. İndirme ve kurulum tamamen senin riskin; Marmaradar oluşan
+                hiçbir sonuçtan sorumlu değildir. Kurulumdan önce{' '}
+                <Link to="/kullanim-sartlari">kullanım şartlarını</Link> oku.
               </p>
             </div>
           </div>
@@ -136,6 +150,7 @@ export default function Home() {
               <Download size={18} aria-hidden="true" />
               APK İndir (Beta)
             </a>
+            <ApkDisclaimer />
           </div>
         </div>
       </section>
