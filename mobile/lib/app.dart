@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:radar_alert/core/theme/app_theme.dart';
+import 'package:radar_alert/core/theme/appearance_controller.dart';
 import 'package:radar_alert/data/api/radar_api_client.dart';
 import 'package:radar_alert/data/auth/token_store.dart';
 import 'package:radar_alert/data/local/app_database.dart';
@@ -54,12 +55,23 @@ class _MarmaradarAppState extends ConsumerState<MarmaradarApp>
 
   @override
   Widget build(BuildContext context) {
+    final appearance = ref.watch(appearanceControllerProvider);
+    final brightness = appearance.themeMode == ThemeMode.light
+        ? Brightness.light
+        : Brightness.dark;
+    final scaffold = brightness == Brightness.light
+        ? AppColors.paper
+        : AppColors.night;
+    final iconBrightness = brightness == Brightness.light
+        ? Brightness.dark
+        : Brightness.light;
+
     SystemChrome.setSystemUIOverlayStyle(
-      const SystemUiOverlayStyle(
+      SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.light,
-        systemNavigationBarColor: AppColors.night,
-        systemNavigationBarIconBrightness: Brightness.light,
+        statusBarIconBrightness: iconBrightness,
+        systemNavigationBarColor: scaffold,
+        systemNavigationBarIconBrightness: iconBrightness,
       ),
     );
 
@@ -82,7 +94,9 @@ class _MarmaradarAppState extends ConsumerState<MarmaradarApp>
     return MaterialApp(
       title: 'Marmaradar',
       debugShowCheckedModeBanner: false,
-      theme: buildAppTheme(),
+      theme: buildLightTheme(),
+      darkTheme: buildDarkTheme(),
+      themeMode: appearance.themeMode,
       home: home,
     );
   }
@@ -96,6 +110,13 @@ class MarmaradarRoot extends StatelessWidget {
     return const ProviderScope(child: MarmaradarApp());
   }
 }
+
+final appearanceControllerProvider =
+    ChangeNotifierProvider<AppearanceController>((ref) {
+  final controller = AppearanceController();
+  controller.load();
+  return controller;
+});
 
 final authControllerProvider =
     ChangeNotifierProvider<AuthController>((ref) {

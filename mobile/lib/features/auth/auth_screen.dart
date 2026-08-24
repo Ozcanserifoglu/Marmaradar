@@ -126,17 +126,20 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   Text(
                     _registerMode ? 'Hesap oluştur' : 'Giriş yap',
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.white,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                     'Sürüş kayıtlarını kaydetmek için hesabınıza giriş yapın.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: AppColors.whiteMuted, fontSize: 14),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontSize: 14,
+                    ),
                   ),
                   const SizedBox(height: 28),
                   OutlinedButton.icon(
@@ -146,8 +149,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     icon: const Icon(Icons.g_mobiledata, size: 28),
                     label: const Text('Google ile devam et'),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.white,
-                      side: const BorderSide(color: AppColors.whiteMuted),
+                      foregroundColor: Theme.of(context).colorScheme.onSurface,
+                      side: BorderSide(
+                        color: Theme.of(context).colorScheme.outline,
+                      ),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
                   ),

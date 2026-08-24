@@ -19,6 +19,7 @@ class DrivePanel extends ConsumerWidget {
     final running = controller.isRunning;
     final hasFix = controller.lastSnapshot != null;
     final authenticated = ref.watch(authControllerProvider).isAuthenticated;
+    final scheme = Theme.of(context).colorScheme;
 
     return Container(
       padding: EdgeInsets.fromLTRB(
@@ -28,10 +29,10 @@ class DrivePanel extends ConsumerWidget {
         16 + MediaQuery.paddingOf(context).bottom,
       ),
       decoration: BoxDecoration(
-        color: AppColors.night.withValues(alpha: 0.94),
+        color: scheme.surface.withValues(alpha: 0.96),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-        border: const Border(
-          top: BorderSide(color: AppColors.outline),
+        border: Border(
+          top: BorderSide(color: scheme.outline),
         ),
         boxShadow: [
           BoxShadow(
@@ -71,9 +72,9 @@ class DrivePanel extends ConsumerWidget {
                               fontSize: 12,
                               fontWeight: FontWeight.w800,
                               letterSpacing: 1.2,
-                              color: running
-                                  ? AppColors.success
-                                  : AppColors.whiteMuted,
+                                  color: running
+                                      ? AppColors.success
+                                      : scheme.onSurfaceVariant,
                             ),
                           ),
                         ),
@@ -90,9 +91,9 @@ class DrivePanel extends ConsumerWidget {
                       controller.status,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
-                        color: AppColors.whiteMuted,
+                        color: scheme.onSurfaceVariant,
                       ),
                     ),
                   ],
@@ -156,7 +157,7 @@ class DrivePanel extends ConsumerWidget {
                   style: FilledButton.styleFrom(
                     backgroundColor:
                         running ? AppColors.surfaceHigh : AppColors.red,
-                    foregroundColor: AppColors.white,
+                    foregroundColor: scheme.onSurface,
                     minimumSize: const Size.fromHeight(56),
                   ),
                   icon: Icon(running ? Icons.stop_rounded : Icons.radar),
@@ -208,6 +209,7 @@ class _AmenitiesToggle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final on = controller.amenitiesVisible;
+    final scheme = Theme.of(context).colorScheme;
     return Tooltip(
       message: on ? 'Durakları gizle' : 'Durakları göster',
       child: InkWell(
@@ -220,16 +222,16 @@ class _AmenitiesToggle extends StatelessWidget {
           decoration: BoxDecoration(
             color: on
                 ? AppColors.route.withValues(alpha: 0.2)
-                : AppColors.surfaceHigh,
+                : scheme.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: on ? AppColors.route : AppColors.outline,
+              color: on ? AppColors.route : scheme.outline,
             ),
           ),
           child: Icon(
             Icons.local_gas_station,
             size: 16,
-            color: on ? AppColors.route : AppColors.whiteMuted,
+            color: on ? AppColors.route : scheme.onSurfaceVariant,
           ),
         ),
       ),
@@ -245,6 +247,7 @@ class _AutoDriveToggle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final on = controller.autoDriveEnabled;
+    final scheme = Theme.of(context).colorScheme;
     return InkWell(
       onTap: controller.toggleAutoDrive,
       borderRadius: BorderRadius.circular(20),
@@ -253,10 +256,10 @@ class _AutoDriveToggle extends StatelessWidget {
         decoration: BoxDecoration(
           color: on
               ? AppColors.red.withValues(alpha: 0.18)
-              : AppColors.surfaceHigh,
+              : scheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: on ? AppColors.red : AppColors.outline,
+            color: on ? AppColors.red : scheme.outline,
           ),
         ),
         child: Row(
@@ -265,7 +268,7 @@ class _AutoDriveToggle extends StatelessWidget {
             Icon(
               Icons.auto_mode,
               size: 14,
-              color: on ? AppColors.red : AppColors.whiteMuted,
+              color: on ? AppColors.red : scheme.onSurfaceVariant,
             ),
             const SizedBox(width: 5),
             Text(
@@ -273,7 +276,7 @@ class _AutoDriveToggle extends StatelessWidget {
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
-                color: on ? AppColors.white : AppColors.whiteMuted,
+                color: on ? scheme.onSurface : scheme.onSurfaceVariant,
               ),
             ),
           ],
@@ -297,15 +300,18 @@ class _TripStat extends StatelessWidget {
         children: [
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w800,
-              color: AppColors.white,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           Text(
             label,
-            style: const TextStyle(fontSize: 11, color: AppColors.whiteMuted),
+            style: TextStyle(
+              fontSize: 11,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
         ],
       ),
@@ -326,15 +332,16 @@ class _SpeedReadout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       width: 92,
       height: 92,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: AppColors.surface,
+        color: scheme.surface,
         border: Border.all(
-          color: active ? AppColors.red : AppColors.outline,
+          color: active ? AppColors.red : scheme.outline,
           width: 3,
         ),
         boxShadow: active
@@ -351,17 +358,17 @@ class _SpeedReadout extends StatelessWidget {
         children: [
           Text(
             hasFix ? '${speedKmh.round()}' : '--',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 30,
               fontWeight: FontWeight.w900,
               height: 1,
-              color: AppColors.white,
+              color: scheme.onSurface,
             ),
           ),
           const SizedBox(height: 2),
-          const Text(
+          Text(
             'km/s',
-            style: TextStyle(fontSize: 11, color: AppColors.whiteMuted),
+            style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant),
           ),
         ],
       ),

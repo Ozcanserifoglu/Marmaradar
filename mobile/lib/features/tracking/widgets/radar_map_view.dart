@@ -75,6 +75,7 @@ class _RadarMapViewState extends State<RadarMapView> {
   Set<Polyline> _polylines = {};
   Set<Circle> _circles = {};
   int _overlayGen = 0;
+  final Map<String, List<LatLng>> _polylineCache = {};
 
   @override
   void initState() {
@@ -85,8 +86,7 @@ class _RadarMapViewState extends State<RadarMapView> {
   @override
   void didUpdateWidget(covariant RadarMapView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.snapshot != widget.snapshot ||
-        oldWidget.cameras != widget.cameras ||
+    if (oldWidget.cameras != widget.cameras ||
         oldWidget.corridors != widget.corridors ||
         oldWidget.approaching != widget.approaching ||
         oldWidget.amenities != widget.amenities ||
@@ -95,7 +95,43 @@ class _RadarMapViewState extends State<RadarMapView> {
         oldWidget.destination != widget.destination ||
         oldWidget.destinationTitle != widget.destinationTitle) {
       _rebuildOverlays();
+      return;
     }
+    if (oldWidget.snapshot != widget.snapshot) {
+      _syncUserMarker();
+    }
+  }
+
+  List<LatLng> _decodeCorridor(int id, String encoded) {
+    return _polylineCache.putIfAbsent(
+      '$id|$encoded',
+      () => decodePolyline(encoded),
+    );
+  }
+
+  Future<void> _syncUserMarker() async {
+    final gen = ++_overlayGen;
+    final snapshot = widget.snapshot;
+    final next = Set<Marker>.from(_markers)
+      ..removeWhere((m) => m.markerId == const MarkerId('user'));
+    if (snapshot != null) {
+      next.add(await _userMarker(snapshot));
+    }
+    if (!mounted || gen != _overlayGen) return;
+    setState(() => _markers = next);
+  }
+
+  Future<Marker> _userMarker(DriverSnapshot snapshot) async {
+    final userIcon = await MapMarkerIcons.user();
+    return Marker(
+      markerId: const MarkerId('user'),
+      position: LatLng(snapshot.lat, snapshot.lon),
+      icon: userIcon,
+      anchor: const Offset(0.5, 0.5),
+      flat: true,
+      rotation: snapshot.headingDeg,
+      zIndexInt: 10,
+    );
   }
 
   Future<void> _rebuildOverlays() async {
@@ -110,7 +146,7 @@ class _RadarMapViewState extends State<RadarMapView> {
     for (final item in corridors) {
       final encoded = item.corridor.polyline;
       if (encoded != null && encoded.isNotEmpty) {
-        final points = decodePolyline(encoded);
+        final points = _decodeCorridor(item.corridor.id, encoded);
         if (points.length >= 2) {
           polylines.add(
             Polyline(
@@ -244,19 +280,8 @@ class _RadarMapViewState extends State<RadarMapView> {
     }
 
     if (snapshot != null) {
-      final userIcon = await MapMarkerIcons.user();
       if (gen != _overlayGen) return;
-      markers.add(
-        Marker(
-          markerId: const MarkerId('user'),
-          position: LatLng(snapshot.lat, snapshot.lon),
-          icon: userIcon,
-          anchor: const Offset(0.5, 0.5),
-          flat: true,
-          rotation: snapshot.headingDeg,
-          zIndexInt: 10,
-        ),
-      );
+      markers.add(await _userMarker(snapshot));
     }
 
     final destination = widget.destination;

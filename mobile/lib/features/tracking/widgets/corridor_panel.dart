@@ -18,13 +18,14 @@ class CorridorPanel extends StatelessWidget {
             ? AppColors.warning
             : AppColors.success;
 
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: AppColors.surface.withValues(alpha: 0.95),
+        color: scheme.surface.withValues(alpha: 0.95),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: over ? AppColors.red : AppColors.outline,
+          color: over ? AppColors.red : scheme.outline,
           width: over ? 2 : 1,
         ),
       ),
@@ -40,20 +41,20 @@ class CorridorPanel extends StatelessWidget {
                   status.corridor.name.toUpperCase(),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 1,
-                    color: AppColors.whiteMuted,
+                    color: scheme.onSurfaceVariant,
                   ),
                 ),
               ),
               Text(
                 'LİMİT ${status.corridor.maxspeedKmh}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w800,
-                  color: AppColors.white,
+                  color: scheme.onSurface,
                 ),
               ),
             ],
@@ -68,15 +69,15 @@ class CorridorPanel extends StatelessWidget {
                   fontSize: 32,
                   fontWeight: FontWeight.w900,
                   height: 1,
-                  color: over ? AppColors.red : AppColors.white,
+                  color: over ? AppColors.red : scheme.onSurface,
                 ),
               ),
               const SizedBox(width: 6),
-              const Padding(
-                padding: EdgeInsets.only(bottom: 2),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 2),
                 child: Text(
                   'km/s ortalama',
-                  style: TextStyle(fontSize: 12, color: AppColors.whiteMuted),
+                  style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
                 ),
               ),
               const Spacer(),

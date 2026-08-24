@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:radar_alert/app.dart';
 import 'package:radar_alert/core/theme/app_theme.dart';
+import 'package:radar_alert/features/tracking/widgets/radar_map_view.dart';
 import 'package:radar_alert/data/api/auth_models.dart';
 import 'package:radar_alert/features/drives/drive_format.dart';
 import 'package:radar_alert/features/drives/drive_replay_controller.dart';
@@ -119,8 +120,6 @@ class _DriveDetailScreenState extends ConsumerState<DriveDetailScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
-        backgroundColor: AppColors.night,
-        foregroundColor: AppColors.white,
         actions: [
           if (detail != null && detail.points.length >= 2)
             IconButton(
@@ -164,38 +163,16 @@ class _DriveDetailScreenState extends ConsumerState<DriveDetailScreen> {
       children: [
         _SummaryBar(summary: detail.summary, points: detail.points),
         Expanded(
-          child: ListenableBuilder(
-            listenable: replay,
-            builder: (context, _) {
-              return GoogleMap(
-                initialCameraPosition: CameraPosition(
-                  target: replay.start ?? const LatLng(40.1885, 29.0610),
-                  zoom: 13,
-                ),
-                style: googleMapsDarkStyleJson,
-                myLocationEnabled: false,
-                myLocationButtonEnabled: false,
-                zoomControlsEnabled: false,
-                mapToolbarEnabled: false,
-                compassEnabled: false,
-                onMapCreated: (c) {
-                  _mapController = c;
-                  _fitToRoute(route);
-                },
-                polylines: {
-                  Polyline(
-                    polylineId: const PolylineId('drive_route'),
-                    points: route,
-                    width: 6,
-                    color: AppColors.red.withValues(alpha: 0.9),
-                    jointType: JointType.round,
-                    startCap: Cap.roundCap,
-                    endCap: Cap.roundCap,
-                  ),
-                },
-                markers: _markers(replay),
-              );
+          child: _ReplayMap(
+            replay: replay,
+            route: route,
+            carIcon: _carIcon,
+            style: ref.watch(appearanceControllerProvider).resolvedMapStyle,
+            onCreated: (c) {
+              _mapController = c;
+              _fitToRoute(route);
             },
+            markersFor: _markers,
           ),
         ),
         _PlaybackBar(replay: replay),
@@ -387,7 +364,7 @@ class _PlaybackBar extends StatelessWidget {
       listenable: replay,
       builder: (context, _) {
         return Container(
-          color: AppColors.night,
+          color: Theme.of(context).colorScheme.surface,
           padding: EdgeInsets.fromLTRB(
             12,
             8,
@@ -499,6 +476,85 @@ class _SpeedChip extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _ReplayMap extends StatefulWidget {
+  const _ReplayMap({
+    required this.replay,
+    required this.route,
+    required this.carIcon,
+    required this.style,
+    required this.onCreated,
+    required this.markersFor,
+  });
+
+  final DriveReplayController replay;
+  final List<LatLng> route;
+  final BitmapDescriptor? carIcon;
+  final MapStyle style;
+  final void Function(GoogleMapController controller) onCreated;
+  final Set<Marker> Function(DriveReplayController replay) markersFor;
+
+  @override
+  State<_ReplayMap> createState() => _ReplayMapState();
+}
+
+class _ReplayMapState extends State<_ReplayMap> {
+  late final Set<Polyline> _polylines = {
+    Polyline(
+      polylineId: const PolylineId('drive_route'),
+      points: widget.route,
+      width: 6,
+      color: AppColors.red.withValues(alpha: 0.9),
+      jointType: JointType.round,
+      startCap: Cap.roundCap,
+      endCap: Cap.roundCap,
+    ),
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    widget.replay.addListener(_onTick);
+  }
+
+  @override
+  void didUpdateWidget(covariant _ReplayMap oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.replay != widget.replay) {
+      oldWidget.replay.removeListener(_onTick);
+      widget.replay.addListener(_onTick);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.replay.removeListener(_onTick);
+    super.dispose();
+  }
+
+  void _onTick() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GoogleMap(
+      initialCameraPosition: CameraPosition(
+        target: widget.replay.start ?? const LatLng(40.1885, 29.0610),
+        zoom: 13,
+      ),
+      style: widget.style == MapStyle.dark ? googleMapsDarkStyleJson : null,
+      myLocationEnabled: false,
+      myLocationButtonEnabled: false,
+      zoomControlsEnabled: false,
+      mapToolbarEnabled: false,
+      compassEnabled: false,
+      onMapCreated: widget.onCreated,
+      polylines: _polylines,
+      markers: widget.markersFor(widget.replay),
     );
   }
 }

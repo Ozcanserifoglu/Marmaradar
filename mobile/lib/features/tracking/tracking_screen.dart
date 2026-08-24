@@ -36,7 +36,9 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
   bool _wasDriving = false;
   bool _programmaticMove = false;
   double _currentZoom = 15.5;
-  MapStyle _mapStyle = MapStyle.dark;
+  DateTime? _lastDriveCameraAt;
+  final _panelKey = GlobalKey();
+  double _panelHeight = 168;
 
   int _fittedRouteLen = 0;
 
@@ -87,8 +89,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
     try {
       await controller.animateCamera(update);
     } finally {
-      // Let the platform deliver move-started before treating the next move as user-driven.
-      Future<void>.delayed(const Duration(milliseconds: 80), () {
+      Future<void>.delayed(const Duration(milliseconds: 280), () {
         _programmaticMove = false;
       });
     }
@@ -132,6 +133,13 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
     if (!_follow) return;
 
     if (driving && snap.speedMps >= _headingMinSpeedMps) {
+      final now = DateTime.now();
+      if (_lastDriveCameraAt != null &&
+          now.difference(_lastDriveCameraAt!) <
+              const Duration(milliseconds: 100)) {
+        return;
+      }
+      _lastDriveCameraAt = now;
       await _driveCamera(snap);
       return;
     }
@@ -164,7 +172,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
       lookAheadM,
       snap.headingDeg,
     );
-    await _moveCamera(
+    await _animateCamera(
       CameraUpdate.newCameraPosition(
         CameraPosition(
           target: target,
@@ -216,9 +224,15 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
   }
 
   void _toggleMapStyle() {
-    setState(() {
-      _mapStyle = _mapStyle == MapStyle.dark ? MapStyle.light : MapStyle.dark;
-    });
+    ref.read(appearanceControllerProvider).toggleMapOverride();
+  }
+
+  void _syncPanelHeight() {
+    final box = _panelKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize) return;
+    final height = box.size.height;
+    if ((height - _panelHeight).abs() < 1) return;
+    setState(() => _panelHeight = height);
   }
 
   void _onClearSearch() {
@@ -672,18 +686,24 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
       }
     });
 
+    final appearance = ref.watch(appearanceControllerProvider);
+    final mapStyle = appearance.resolvedMapStyle;
     final controller = ref.watch(trackingControllerProvider);
     final directions = ref.watch(directionsControllerProvider);
     final approaching = controller.approaching;
     final corridorStatus = controller.corridorStatus;
     final padding = MediaQuery.paddingOf(context);
 
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _syncPanelHeight();
+    });
+
     return Scaffold(
       body: Stack(
         children: [
           Positioned.fill(
             child: RadarMapView(
-              style: _mapStyle,
+              style: mapStyle,
               snapshot: controller.lastSnapshot,
               cameras: controller.mapCameras,
               corridors: controller.mapCorridors,
@@ -776,9 +796,17 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
             ),
           ),
 
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: KeyedSubtree(
+              key: _panelKey,
+              child: DrivePanel(controller: controller),
+            ),
+          ),
+
           Positioned(
             right: 16,
-            bottom: 200 + padding.bottom,
+            bottom: _panelHeight + 12,
             child: Column(
               children: [
                 if (controller.isRunning) ...[
@@ -793,30 +821,25 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                   const SizedBox(height: 10),
                 ],
                 _MapButton(
-                  icon: _mapStyle == MapStyle.dark
+                  icon: mapStyle == MapStyle.dark
                       ? Icons.light_mode
                       : Icons.dark_mode,
-                  tooltip: _mapStyle == MapStyle.dark
+                  tooltip: mapStyle == MapStyle.dark
                       ? 'Açık harita'
                       : 'Koyu harita',
                   onTap: _toggleMapStyle,
                 ),
-                if (!_follow) ...[
-                  const SizedBox(height: 10),
-                  _MapButton(
-                    icon: Icons.my_location,
-                    tooltip: 'Konumuma dön',
-                    highlighted: true,
-                    onTap: _recenter,
-                  ),
-                ],
+                const SizedBox(height: 10),
+                _MapButton(
+                  icon: _follow ? Icons.my_location : Icons.location_searching,
+                  tooltip: 'Konumuma dön',
+                  highlighted: true,
+                  size: 72,
+                  iconSize: 32,
+                  onTap: _recenter,
+                ),
               ],
             ),
-          ),
-
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: DrivePanel(controller: controller),
           ),
         ],
       ),
@@ -836,22 +859,27 @@ class _MapButton extends StatelessWidget {
     required this.tooltip,
     required this.onTap,
     this.highlighted = false,
+    this.size = 52,
+    this.iconSize = 24,
   });
 
   final IconData icon;
   final String tooltip;
   final VoidCallback onTap;
   final bool highlighted;
+  final double size;
+  final double iconSize;
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Tooltip(
       message: tooltip,
       child: Material(
-        color: highlighted ? AppColors.red : AppColors.night,
+        color: highlighted ? AppColors.red : scheme.surface,
         shape: CircleBorder(
           side: BorderSide(
-            color: highlighted ? AppColors.white : AppColors.outline,
+            color: highlighted ? scheme.onPrimary : scheme.outline,
             width: 1.5,
           ),
         ),
@@ -860,9 +888,13 @@ class _MapButton extends StatelessWidget {
           onTap: onTap,
           customBorder: const CircleBorder(),
           child: SizedBox(
-            width: 52,
-            height: 52,
-            child: Icon(icon, color: AppColors.white, size: 24),
+            width: size,
+            height: size,
+            child: Icon(
+              icon,
+              color: highlighted ? AppColors.white : scheme.onSurface,
+              size: iconSize,
+            ),
           ),
         ),
       ),

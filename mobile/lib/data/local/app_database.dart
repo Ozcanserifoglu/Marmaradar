@@ -104,8 +104,17 @@ class AppDatabase extends _$AppDatabase {
     double lon,
     double radiusM,
   ) async {
-    final all = await select(cachedCameras).get();
-    return all.where((c) {
+    final latDelta = radiusM / 111320;
+    final lonScale = 111320 * math.cos(lat * math.pi / 180);
+    final lonDelta = lonScale.abs() < 1 ? 180.0 : radiusM / lonScale.abs();
+    final nearby = await (select(cachedCameras)
+          ..where(
+            (c) =>
+                c.lat.isBetweenValues(lat - latDelta, lat + latDelta) &
+                c.lon.isBetweenValues(lon - lonDelta, lon + lonDelta),
+          ))
+        .get();
+    return nearby.where((c) {
       final dLat = (c.lat - lat) * 111320;
       final dLon = (c.lon - lon) * 111320 * math.cos(lat * math.pi / 180);
       return (dLat * dLat + dLon * dLon) <= radiusM * radiusM;

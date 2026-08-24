@@ -5,6 +5,7 @@ import 'package:radar_alert/core/theme/app_theme.dart';
 import 'package:radar_alert/features/auth/auth_screen.dart';
 import 'package:radar_alert/features/drives/drive_format.dart';
 import 'package:radar_alert/features/drives/drives_history_screen.dart';
+import 'package:radar_alert/features/profile/appearance_section.dart';
 import 'package:radar_alert/features/profile/profile_controller.dart';
 import 'package:radar_alert/features/profile/profile_models.dart';
 
@@ -49,8 +50,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profil'),
-        backgroundColor: AppColors.night,
-        foregroundColor: AppColors.white,
         actions: [
           if (auth.isAuthenticated)
             TextButton(onPressed: _logout, child: const Text('Çıkış')),
@@ -83,6 +82,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [
+          const AppearanceSection(),
+          const SizedBox(height: 28),
           _Header(email: email ?? '', stats: stats),
           const SizedBox(height: 20),
           if (showSkeleton)
@@ -106,12 +107,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
           ],
           const SizedBox(height: 28),
-          const Text(
+          Text(
             'Başarımlar',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w800,
-              color: AppColors.white,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 12),
@@ -143,6 +144,7 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Row(
       children: [
         Container(
@@ -150,11 +152,11 @@ class _Header extends StatelessWidget {
           height: 56,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: AppColors.surfaceHigh,
+            color: scheme.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: AppColors.outline),
+            border: Border.all(color: scheme.outline),
           ),
-          child: const Icon(Icons.person, color: AppColors.white, size: 28),
+          child: Icon(Icons.person, color: scheme.onSurface, size: 28),
         ),
         const SizedBox(width: 14),
         Expanded(
@@ -166,7 +168,7 @@ class _Header extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w800,
-                  color: AppColors.white,
+                  color: scheme.onSurface,
                 ),
               ),
               const SizedBox(height: 4),
@@ -175,9 +177,9 @@ class _Header extends StatelessWidget {
                   '${stats!.rankTitle} • ${stats!.xp} XP',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.whiteMuted,
+                    color: scheme.onSurfaceVariant,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -186,9 +188,9 @@ class _Header extends StatelessWidget {
                 email,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
-                  color: AppColors.whiteMuted,
+                  color: scheme.onSurfaceVariant,
                 ),
               ),
             ],
@@ -267,32 +269,33 @@ class _MetricTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: scheme.surface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.outline),
+        border: Border.all(color: scheme.outline),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 18, color: AppColors.whiteMuted),
+          Icon(icon, size: 18, color: scheme.onSurfaceVariant),
           const Spacer(),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w900,
-              color: AppColors.white,
+              color: scheme.onSurface,
             ),
           ),
           const SizedBox(height: 2),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
-              color: AppColors.whiteMuted,
+              color: scheme.onSurfaceVariant,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -472,34 +475,35 @@ class _ReputationSection extends StatelessWidget {
               : 1 -
                     (stats.xpToNextRank /
                         (stats.xp + stats.xpToNextRank).clamp(1, 1 << 30)));
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: scheme.surface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.outline),
+        border: Border.all(color: scheme.outline),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.workspace_premium, color: AppColors.white),
+              Icon(Icons.workspace_premium, color: scheme.onSurface),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   stats.rankTitle,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.white,
+                    color: scheme.onSurface,
                   ),
                 ),
               ),
               Text(
                 '${stats.eloRating.toStringAsFixed(0)} ELO',
-                style: const TextStyle(
-                  color: AppColors.whiteMuted,
+                style: TextStyle(
+                  color: scheme.onSurfaceVariant,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -652,28 +656,22 @@ class _GuestState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.person_outline,
-              size: 48,
-              color: AppColors.whiteMuted,
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'İstatistiklerinizi görmek için giriş yapın',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16, color: AppColors.whiteMuted),
-            ),
-            const SizedBox(height: 20),
-            FilledButton(onPressed: onLogin, child: const Text('Giriş Yap')),
-          ],
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      children: [
+        const AppearanceSection(),
+        const SizedBox(height: 48),
+        Icon(Icons.person_outline, size: 48, color: muted),
+        const SizedBox(height: 16),
+        Text(
+          'İstatistiklerinizi görmek için giriş yapın',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 16, color: muted),
         ),
-      ),
+        const SizedBox(height: 20),
+        FilledButton(onPressed: onLogin, child: const Text('Giriş Yap')),
+      ],
     );
   }
 }

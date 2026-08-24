@@ -45,8 +45,6 @@ class _DrivesHistoryScreenState extends ConsumerState<DrivesHistoryScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Sürüşlerim'),
-        backgroundColor: AppColors.night,
-        foregroundColor: AppColors.white,
       ),
       body: SafeArea(child: _body(controller, authenticated)),
     );

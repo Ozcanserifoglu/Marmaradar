@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.7.0",
+    "date": "2026-08-25",
+    "title": "Açık / koyu görünüm ve daha akıcı sürüş haritası",
+    "changes": [
+      "Profilde açık ve koyu tema seçimi; tercih cihazda hatırlanır",
+      "Harita stili temayı takip eder; sürüş ekranındaki düğmeyle açık / koyu harita değiştirilebilir",
+      "Sürüş sırasında harita takibi daha akıcı — kamera daha seyrek ve daha yumuşak hareket eder",
+      "Yakındaki EDS kameraları konumuna göre daha hızlı sorgulanır",
+      "Konum düğmesi sürücü paneline göre hizalanır"
+    ]
+  },
+  {
     "version": "1.6.0",
     "date": "2026-08-24",
     "title": "Gizlilik, kullanım şartları ve beta APK uyarısı",

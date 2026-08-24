@@ -21,8 +21,9 @@ class RouteInfoBanner extends StatelessWidget {
         ? distanceKm.toStringAsFixed(0)
         : distanceKm.toStringAsFixed(1);
 
+    final scheme = Theme.of(context).colorScheme;
     return Material(
-      color: AppColors.surface,
+      color: scheme.surface,
       elevation: 6,
       borderRadius: BorderRadius.circular(14),
       child: Padding(
@@ -51,8 +52,8 @@ class RouteInfoBanner extends StatelessWidget {
                     destinationName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: AppColors.white,
+                    style: TextStyle(
+                      color: scheme.onSurface,
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                     ),
@@ -60,8 +61,8 @@ class RouteInfoBanner extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     '$distanceLabel km · ~$durationMin dk',
-                    style: const TextStyle(
-                      color: AppColors.whiteMuted,
+                    style: TextStyle(
+                      color: scheme.onSurfaceVariant,
                       fontSize: 13,
                     ),
                   ),
@@ -71,7 +72,7 @@ class RouteInfoBanner extends StatelessWidget {
             IconButton(
               tooltip: 'Rotayı temizle',
               onPressed: onClear,
-              icon: const Icon(Icons.close, color: AppColors.whiteMuted),
+              icon: Icon(Icons.close, color: scheme.onSurfaceVariant),
             ),
           ],
         ),

@@ -60,24 +60,25 @@ class _DestinationSearchBarState extends State<DestinationSearchBar> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Material(
-          color: AppColors.surface,
+          color: scheme.surface,
           elevation: 6,
           borderRadius: BorderRadius.circular(14),
           child: TextField(
             controller: _controller,
             focusNode: _focusNode,
             onChanged: widget.onQueryChanged,
-            style: const TextStyle(color: AppColors.white, fontSize: 16),
+            style: TextStyle(color: scheme.onSurface, fontSize: 16),
             cursorColor: AppColors.red,
             textInputAction: TextInputAction.search,
             decoration: InputDecoration(
               hintText: 'Nereye?',
-              hintStyle: const TextStyle(color: AppColors.whiteMuted),
-              prefixIcon: const Icon(Icons.search, color: AppColors.whiteMuted),
+              hintStyle: TextStyle(color: scheme.onSurfaceVariant),
+              prefixIcon: Icon(Icons.search, color: scheme.onSurfaceVariant),
               suffixIcon: _buildSuffix(),
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(
@@ -117,7 +118,7 @@ class _DestinationSearchBarState extends State<DestinationSearchBar> {
         if (widget.predictions.isNotEmpty) ...[
           const SizedBox(height: 6),
           Material(
-            color: AppColors.surface,
+            color: scheme.surface,
             elevation: 8,
             borderRadius: BorderRadius.circular(14),
             child: ListView.separated(
@@ -125,9 +126,9 @@ class _DestinationSearchBarState extends State<DestinationSearchBar> {
               padding: EdgeInsets.zero,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: widget.predictions.length.clamp(0, 6),
-              separatorBuilder: (_, _) => const Divider(
+              separatorBuilder: (_, _) => Divider(
                 height: 1,
-                color: AppColors.outline,
+                color: scheme.outline,
               ),
               itemBuilder: (context, index) {
                 final p = widget.predictions[index];
@@ -142,8 +143,8 @@ class _DestinationSearchBarState extends State<DestinationSearchBar> {
                     p.description,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: AppColors.white,
+                    style: TextStyle(
+                      color: scheme.onSurface,
                       fontSize: 14,
                     ),
                   ),
@@ -161,15 +162,16 @@ class _DestinationSearchBarState extends State<DestinationSearchBar> {
   }
 
   Widget? _buildSuffix() {
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
     if (widget.isSearching) {
-      return const Padding(
-        padding: EdgeInsets.all(14),
+      return Padding(
+        padding: const EdgeInsets.all(14),
         child: SizedBox(
           width: 18,
           height: 18,
           child: CircularProgressIndicator(
             strokeWidth: 2,
-            color: AppColors.whiteMuted,
+            color: muted,
           ),
         ),
       );
@@ -177,7 +179,7 @@ class _DestinationSearchBarState extends State<DestinationSearchBar> {
     if (widget.query.isEmpty) return null;
     return IconButton(
       tooltip: 'Temizle',
-      icon: const Icon(Icons.close, color: AppColors.whiteMuted),
+      icon: Icon(Icons.close, color: muted),
       onPressed: () {
         _controller.clear();
         widget.onClear();
