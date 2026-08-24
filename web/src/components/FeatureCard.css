@@ -1,67 +1,84 @@
 .feature-card {
   position: relative;
-  padding: 1.35rem;
-  border-radius: var(--radius);
-  background: var(--color-surface-glass);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--color-border-glass);
-  transition: transform 0.3s var(--ease), border-color 0.3s var(--ease), box-shadow 0.3s var(--ease);
-  overflow: hidden;
-}
-
-.feature-card::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  padding: 1px;
-  background: var(--gradient-sea);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  opacity: 0;
-  transition: opacity 0.3s;
-  pointer-events: none;
+  padding: 1.5rem 1.35rem 1.75rem;
+  background: var(--color-surface);
+  transition: background 0.3s var(--ease);
 }
 
 .feature-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 16px 40px rgba(8, 8, 12, 0.35);
-}
-
-.feature-card:hover::before {
-  opacity: 0.85;
+  background: var(--color-surface-high);
 }
 
 .feature-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--gradient-sea);
-  margin-bottom: 1rem;
-  color: #0A0A12;
+  color: var(--color-brand-red);
+  margin-bottom: 1.1rem;
 }
 
 .feature-card h3 {
   font-family: var(--font-display);
-  font-size: 1.05rem;
+  font-size: 1rem;
   font-weight: 600;
-  margin-bottom: 0.45rem;
+  letter-spacing: -0.01em;
+  margin-bottom: 0.4rem;
 }
 
 .feature-card p {
   font-size: 0.92rem;
   color: var(--color-text-secondary);
   line-height: 1.55;
+  max-width: 34ch;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .feature-card:hover {
-    transform: none;
+/* Lead cell: same surface treatment as the rest, scaled up by importance. */
+.feature-card-lead {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  background:
+    radial-gradient(ellipse 90% 70% at 8% 100%, rgba(232, 38, 45, 0.14), transparent 60%),
+    var(--color-surface);
+}
+
+.feature-card-lead .feature-icon {
+  margin-bottom: 1.5rem;
+  flex-shrink: 0;
+}
+
+.feature-card-lead h3 {
+  font-size: 1.4rem;
+  letter-spacing: -0.025em;
+  margin-top: auto;
+  margin-bottom: 0.55rem;
+}
+
+.feature-card-lead p {
+  font-size: 1rem;
+  max-width: 30ch;
+}
+
+.feature-card-lead:hover {
+  background:
+    radial-gradient(ellipse 90% 70% at 8% 100%, rgba(232, 38, 45, 0.18), transparent 60%),
+    var(--color-surface-high);
+}
+
+@media (min-width: 960px) {
+  .feature-card {
+    padding: 1.75rem 1.6rem 2rem;
+  }
+
+  .feature-card-lead {
+    padding: 2.25rem 2rem;
+    min-height: 19rem;
+  }
+
+  .feature-card-wide {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .feature-card-wide .feature-icon {
+    margin-bottom: 0.9rem;
   }
 }

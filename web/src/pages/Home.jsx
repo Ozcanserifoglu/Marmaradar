@@ -1,4 +1,5 @@
-import { Download, Map, Camera, Gauge, BellRing } from 'lucide-react'
+import { useId, useState } from 'react'
+import { ChevronDown, Download, Map, Camera, Gauge, BellRing } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import GradientBlobs from '../components/GradientBlobs'
@@ -16,6 +17,8 @@ const FEATURES = [
     icon: Map,
     title: 'Canlı Harita',
     description: 'Konumun, yakındaki kameralar ve koridor hatları haritada net görünür.',
+    className: 'feature-card-lead',
+    lead: true,
   },
   {
     icon: Camera,
@@ -31,16 +34,43 @@ const FEATURES = [
     icon: BellRing,
     title: 'Arka Plan Uyarıları',
     description: 'Ekran kapalıyken bile uyarılar çalışmaya devam eder — yola odaklan.',
+    className: 'feature-card-wide',
   },
 ]
 
+function FaqItem({ question, children, itemRef }) {
+  const [open, setOpen] = useState(false)
+  const baseId = useId()
+  const panelId = `${baseId}-panel`
+  const buttonId = `${baseId}-button`
+
+  return (
+    <div className={`faq-item${open ? ' open' : ''}`} ref={itemRef}>
+      <h3>
+        <button
+          type="button"
+          id={buttonId}
+          className="faq-q"
+          aria-expanded={open}
+          aria-controls={panelId}
+          onClick={() => setOpen((value) => !value)}
+        >
+          {question}
+          <ChevronDown className="faq-icon" size={18} aria-hidden="true" />
+        </button>
+      </h3>
+      <div className="faq-a" id={panelId} role="region" aria-labelledby={buttonId}>
+        <div>
+          <p>{children}</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function Home() {
   const featuresHeadRef = useScrollReveal()
-  const featureRef1 = useScrollReveal({ staggerClass: 'stagger-1' })
-  const featureRef2 = useScrollReveal({ staggerClass: 'stagger-2' })
-  const featureRef3 = useScrollReveal({ staggerClass: 'stagger-3' })
-  const featureRef4 = useScrollReveal({ staggerClass: 'stagger-4' })
-  const featureRefs = [featureRef1, featureRef2, featureRef3, featureRef4]
+  const featureGridRef = useScrollReveal({ staggerClass: 'stagger-1' })
 
   const howHeadRef = useScrollReveal()
   const howStep1 = useScrollReveal({ staggerClass: 'stagger-1' })
@@ -70,20 +100,21 @@ export default function Home() {
 
       <section className="page-section features-section" id="features">
         <div className="container">
-          <div className="section-head" ref={featuresHeadRef}>
+          <div className="section-head section-head-split" ref={featuresHeadRef}>
             <h2>Neden Marmaradar?</h2>
             <p>Sürüş sırasında ihtiyacın olan uyarılar — gereksiz gürültü yok.</p>
           </div>
 
-          <div className="feature-grid">
-            {FEATURES.map((feature, index) => (
-              <div key={feature.title} ref={featureRefs[index]}>
-                <FeatureCard
-                  icon={feature.icon}
-                  title={feature.title}
-                  description={feature.description}
-                />
-              </div>
+          <div className="feature-grid" ref={featureGridRef}>
+            {FEATURES.map((feature) => (
+              <FeatureCard
+                key={feature.title}
+                icon={feature.icon}
+                title={feature.title}
+                description={feature.description}
+                className={feature.className}
+                lead={feature.lead}
+              />
             ))}
           </div>
         </div>
@@ -92,44 +123,32 @@ export default function Home() {
       <HowItWorks stepRefs={{ head: howHeadRef, items: howStepRefs }} />
 
       <section className="page-section faq-section" id="faq">
-        <div className="container">
+        <div className="container faq-layout">
           <div className="section-head" ref={faqHeadRef}>
             <h2>Sık sorulanlar</h2>
             <p>Beta hakkında bilmen gerekenler.</p>
           </div>
 
           <div className="faq-list">
-            <div className="faq-item" ref={faqRefs[0]}>
-              <h3>Mağazalarda ne zaman olacak?</h3>
-              <p>
-                Google Play ve App Store yayınları henüz hazır değil. Şimdilik Android beta APK ile
-                erken erişim sunuyoruz.
-              </p>
-            </div>
-            <div className="faq-item" ref={faqRefs[1]}>
-              <h3>Hangi bölgeleri kapsıyor?</h3>
-              <p>
-                Türkiye genelinde EDS ve ortalama hız koridorlarını takip ediyoruz; kapsam
-                sürekli genişliyor.
-              </p>
-            </div>
-            <div className="faq-item" ref={faqRefs[2]}>
-              <h3>Konum verisi ne için kullanılıyor?</h3>
-              <p>
-                Harita, EDS ve koridor uyarıları için. Giriş yaptıysan sürüş kaydı sunucuya
-                yüklenebilir; topluluk raporları da konumla ilişkilendirilebilir. Reklam ağı
-                yok. Ayrıntılar <Link to="/gizlilik">gizlilik sayfasında</Link>.
-              </p>
-            </div>
-            <div className="faq-item" ref={faqRefs[3]}>
-              <h3>APK’yı nasıl kurarım? Güvenli mi?</h3>
-              <p>
-                Google Play henüz yok; Android’de bilinmeyen kaynaklardan kurulum gerekir. Play
-                Protect uyarabilir. İndirme ve kurulum tamamen senin riskin; Marmaradar oluşan
-                hiçbir sonuçtan sorumlu değildir. Kurulumdan önce{' '}
-                <Link to="/kullanim-sartlari">kullanım şartlarını</Link> oku.
-              </p>
-            </div>
+            <FaqItem question="Mağazalarda ne zaman olacak?" itemRef={faqRefs[0]}>
+              Google Play ve App Store yayınları henüz hazır değil. Şimdilik Android beta APK ile
+              erken erişim sunuyoruz.
+            </FaqItem>
+            <FaqItem question="Hangi bölgeleri kapsıyor?" itemRef={faqRefs[1]}>
+              Türkiye genelinde EDS ve ortalama hız koridorlarını takip ediyoruz; kapsam
+              sürekli genişliyor.
+            </FaqItem>
+            <FaqItem question="Konum verisi ne için kullanılıyor?" itemRef={faqRefs[2]}>
+              Harita, EDS ve koridor uyarıları için. Giriş yaptıysan sürüş kaydı sunucuya
+              yüklenebilir; topluluk raporları da konumla ilişkilendirilebilir. Reklam ağı
+              yok. Ayrıntılar <Link to="/gizlilik">gizlilik sayfasında</Link>.
+            </FaqItem>
+            <FaqItem question="APK’yı nasıl kurarım? Güvenli mi?" itemRef={faqRefs[3]}>
+              Google Play henüz yok; Android’de bilinmeyen kaynaklardan kurulum gerekir. Play
+              Protect uyarabilir. İndirme ve kurulum tamamen senin riskin; Marmaradar oluşan
+              hiçbir sonuçtan sorumlu değildir. Kurulumdan önce{' '}
+              <Link to="/kullanim-sartlari">kullanım şartlarını</Link> oku.
+            </FaqItem>
           </div>
         </div>
       </section>
@@ -137,19 +156,23 @@ export default function Home() {
       <section className="final-cta">
         <div className="container">
           <div className="final-cta-box" ref={finalCtaRef}>
-            <h2>Beta’ya katıl, yolda bir adım önde ol</h2>
-            <p>
-              Marmaradar Android beta’sını şimdi indir; mağaza açılışından önce geri bildiriminle
-              şekillendir.
-            </p>
-            <a
-              className="btn btn-primary btn-lg"
-              href="/downloads/marmaradar-beta.apk"
-              download
-            >
-              <Download size={18} aria-hidden="true" />
-              APK İndir (Beta)
-            </a>
+            <div className="final-cta-copy">
+              <h2>Beta’ya katıl, yolda bir adım önde ol</h2>
+              <p>
+                Marmaradar Android beta’sını şimdi indir; mağaza açılışından önce geri bildiriminle
+                şekillendir.
+              </p>
+            </div>
+            <div className="final-cta-action">
+              <a
+                className="btn btn-primary btn-lg"
+                href="/downloads/marmaradar-beta.apk"
+                download
+              >
+                <Download size={18} aria-hidden="true" />
+                APK İndir (Beta)
+              </a>
+            </div>
             <ApkDisclaimer />
           </div>
         </div>

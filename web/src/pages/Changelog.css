@@ -25,10 +25,11 @@
 
 .changelog-head h1 {
   font-family: var(--font-display);
-  font-size: clamp(1.75rem, 5vw, 2.35rem);
+  font-size: clamp(2.1rem, 5.5vw, 3.25rem);
   font-weight: 700;
-  letter-spacing: -0.03em;
-  margin-bottom: 0.5rem;
+  line-height: 1.05;
+  letter-spacing: -0.045em;
+  margin-bottom: 0.6rem;
 }
 
 .changelog-head p {
@@ -37,50 +38,31 @@
   max-width: 36rem;
 }
 
+/* Timeline rail instead of one boxed card per release. */
 .changelog-list {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 2.5rem;
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: 0 0 0 1.75rem;
+  border-left: 1px solid var(--color-border-glass);
 }
 
 .changelog-card {
   position: relative;
-  padding: 1.35rem 1.25rem;
-  border-radius: var(--radius);
-  background: var(--color-surface-glass);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--color-border-glass);
-  transition: transform 0.3s var(--ease), border-color 0.3s var(--ease), box-shadow 0.3s var(--ease);
-  overflow: hidden;
 }
 
 .changelog-card::before {
   content: "";
   position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  padding: 1px;
-  background: var(--gradient-sea);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  opacity: 0;
-  transition: opacity 0.3s;
-  pointer-events: none;
-}
-
-.changelog-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 16px 40px rgba(8, 8, 12, 0.35);
-}
-
-.changelog-card:hover::before {
-  opacity: 0.85;
+  left: calc(-1.75rem - 4px);
+  top: 0.55rem;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-brand-red);
+  box-shadow: 0 0 0 4px var(--color-bg);
 }
 
 .changelog-meta {
@@ -139,17 +121,15 @@
     padding: 2.75rem 0 5rem;
   }
 
-  .changelog-card {
-    padding: 1.5rem 1.5rem;
+  .changelog-list {
+    padding-left: 2.25rem;
+  }
+
+  .changelog-card::before {
+    left: calc(-2.25rem - 4px);
   }
 
   .changelog-title {
     font-size: 1.25rem;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .changelog-card:hover {
-    transform: none;
   }
 }

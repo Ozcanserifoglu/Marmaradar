@@ -15,7 +15,7 @@ export default function Hero() {
           </div>
 
           <h1 className="reveal-hero d2">
-            Marmara&apos;nın <span className="gradient-text">Nabzı</span> Artık Cebinde
+            Marmara&apos;nın <span className="headline-mark">Nabzı</span> Artık Cebinde
           </h1>
 
           <p className="hero-lead reveal-hero d3">
@@ -47,10 +47,38 @@ export default function Hero() {
         <div className="phone-wrap reveal-hero d6" aria-hidden="true">
           <div className="phone">
             <div className="phone-screen">
-              <div className="phone-map-grid" />
-              <div className="phone-route" />
-              <div className="phone-pin" />
-              <div className="phone-pin cam" />
+              <svg
+                className="phone-map"
+                viewBox="0 0 240 420"
+                preserveAspectRatio="xMidYMid slice"
+                aria-hidden="true"
+              >
+                <g className="map-roads-minor">
+                  <path d="M-20 118 L260 92" />
+                  <path d="M-20 246 L260 226" />
+                  <path d="M-20 358 L260 336" />
+                  <path d="M36 -20 L58 440" />
+                  <path d="M186 -20 L172 440" />
+                  <path d="M110 -20 L118 118" />
+                  <path d="M58 300 L172 288" />
+                </g>
+                <g className="map-roads-major">
+                  <path d="M-20 190 C 60 176, 120 214, 260 168" />
+                  <path d="M124 -20 L112 440" />
+                </g>
+                <path
+                  className="map-route-glow"
+                  d="M64 372 L70 250 L118 244 L112 150 L196 138"
+                />
+                <path
+                  className="map-route"
+                  d="M64 372 L70 250 L118 244 L112 150 L196 138"
+                />
+                <circle className="map-cam-halo" cx="112" cy="150" r="13" />
+                <circle className="map-cam" cx="112" cy="150" r="5" />
+                <circle className="map-here-halo" cx="70" cy="250" r="15" />
+                <circle className="map-here" cx="70" cy="250" r="6" />
+              </svg>
 
               <div className="phone-status">
                 <span className="live">

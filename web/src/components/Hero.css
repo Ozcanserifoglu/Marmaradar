@@ -86,6 +86,23 @@
   letter-spacing: -0.04em;
   margin-bottom: 1.25rem;
   max-width: 14ch;
+  color: var(--color-text-primary);
+}
+
+.headline-mark {
+  position: relative;
+  white-space: nowrap;
+}
+
+.headline-mark::after {
+  content: "";
+  position: absolute;
+  left: -0.04em;
+  right: -0.04em;
+  bottom: 0.02em;
+  height: 0.085em;
+  border-radius: 2px;
+  background: var(--color-brand-red);
 }
 
 .hero-lead {
@@ -184,48 +201,55 @@
   gap: 0.6rem;
 }
 
-.phone-map-grid {
+.phone-map {
   position: absolute;
   inset: 0;
-  opacity: 0.25;
-  background-image:
-    linear-gradient(rgba(59, 130, 246, 0.35) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(59, 130, 246, 0.35) 1px, transparent 1px);
-  background-size: 28px 28px;
-  mask-image: linear-gradient(180deg, black 40%, transparent);
+  width: 100%;
+  height: 100%;
+  fill: none;
 }
 
-.phone-route {
-  position: absolute;
-  top: 28%;
-  left: 18%;
-  width: 64%;
-  height: 38%;
-  border: 2px solid rgba(59, 130, 246, 0.7);
-  border-radius: 40% 60% 50% 50% / 30% 40% 60% 70%;
-  border-left: none;
-  border-bottom: none;
-  opacity: 0.8;
+.map-roads-minor path {
+  stroke: rgba(255, 255, 255, 0.09);
+  stroke-width: 5;
 }
 
-.phone-pin {
-  position: absolute;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: var(--color-brand-red);
-  box-shadow: 0 0 12px rgba(232, 38, 45, 0.8);
-  top: 42%;
-  left: 48%;
+.map-roads-major path {
+  stroke: rgba(255, 255, 255, 0.14);
+  stroke-width: 9;
+  stroke-linecap: round;
 }
 
-.phone-pin.cam {
-  background: var(--color-accent-teal);
-  box-shadow: 0 0 12px rgba(45, 212, 191, 0.8);
-  top: 34%;
-  left: 62%;
-  width: 10px;
-  height: 10px;
+.map-route {
+  stroke: var(--color-accent-blue);
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.map-route-glow {
+  stroke: rgba(59, 130, 246, 0.28);
+  stroke-width: 14;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.map-here {
+  fill: var(--color-brand-red);
+  stroke: rgba(255, 255, 255, 0.9);
+  stroke-width: 2;
+}
+
+.map-here-halo {
+  fill: rgba(232, 38, 45, 0.22);
+}
+
+.map-cam {
+  fill: var(--color-accent-teal);
+}
+
+.map-cam-halo {
+  fill: rgba(45, 212, 191, 0.18);
 }
 
 .phone-card {

@@ -99,13 +99,6 @@ input:focus-visible {
   background-size: 180px;
 }
 
-.gradient-text {
-  background: var(--gradient-sea);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
 .wordmark {
   font-family: var(--font-display);
   font-weight: 700;
