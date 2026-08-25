@@ -19,19 +19,27 @@ class DrivesHistoryScreen extends ConsumerStatefulWidget {
 }
 
 class _DrivesHistoryScreenState extends ConsumerState<DrivesHistoryScreen> {
+  bool _exporting = false;
+
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       final authenticated = ref.read(authControllerProvider).isAuthenticated;
-      ref.read(drivesControllerProvider).load(authenticated: authenticated);
+      if (authenticated) {
+        await ref.read(trackingControllerProvider).syncPendingDriveUploads();
+      }
+      if (!mounted) return;
+      await ref.read(drivesControllerProvider).load(authenticated: authenticated);
     });
   }
 
   Future<void> _login() async {
     final ok = await showAuthModal(context);
     if (ok && mounted) {
+      await ref.read(trackingControllerProvider).syncPendingDriveUploads();
+      if (!mounted) return;
       await ref.read(drivesControllerProvider).load(authenticated: true);
     }
   }
@@ -42,12 +50,49 @@ class _DrivesHistoryScreenState extends ConsumerState<DrivesHistoryScreen> {
         ref.watch(authControllerProvider.select((a) => a.isAuthenticated));
     final controller = ref.watch(drivesControllerProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Sürüşlerim'),
+    return PopScope(
+      canPop: !_exporting,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Sürüşlerim'),
+        ),
+        body: SafeArea(child: _body(controller, authenticated)),
       ),
-      body: SafeArea(child: _body(controller, authenticated)),
     );
+  }
+
+  Future<void> _exportDrive(
+    BuildContext originContext,
+    String driveId,
+    DriveVideoIntent intent,
+  ) async {
+    if (_exporting) return;
+    Rect? shareOrigin;
+    if (intent == DriveVideoIntent.share) {
+      final box = originContext.findRenderObject() as RenderBox?;
+      if (box != null && box.hasSize) {
+        shareOrigin = box.localToGlobal(Offset.zero) & box.size;
+      }
+    }
+    setState(() => _exporting = true);
+    try {
+      final detail =
+          await ref.read(drivesControllerProvider).loadDetail(driveId);
+      if (!mounted) return;
+      await exportDriveVideo(
+        context,
+        detail: detail,
+        intent: intent,
+        sharePositionOrigin: shareOrigin,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Video oluşturulamadı.')),
+      );
+    } finally {
+      if (mounted) setState(() => _exporting = false);
+    }
   }
 
   Widget _body(DrivesController controller, bool authenticated) {
@@ -99,20 +144,16 @@ class _DrivesHistoryScreenState extends ConsumerState<DrivesHistoryScreen> {
                           driveId: drive.id,
                           currentName: drive.name,
                         ),
-                onDownload: () async {
-                  try {
-                    final detail = await ref
-                        .read(drivesControllerProvider)
-                        .loadDetail(drive.id);
-                    if (!context.mounted) return;
-                    await downloadDriveVideo(context, detail: detail);
-                  } catch (_) {
-                    if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Video oluşturulamadı.')),
-                    );
-                  }
-                },
+                onDownload: () => _exportDrive(
+                  context,
+                  drive.id,
+                  DriveVideoIntent.saveToGallery,
+                ),
+                onShare: () => _exportDrive(
+                  context,
+                  drive.id,
+                  DriveVideoIntent.share,
+                ),
               );
             },
           ),
@@ -126,12 +167,14 @@ class _DriveCard extends StatelessWidget {
     required this.drive,
     required this.onTap,
     required this.onDownload,
+    required this.onShare,
     this.onRename,
   });
 
   final DriveSummary drive;
   final VoidCallback onTap;
   final VoidCallback onDownload;
+  final VoidCallback onShare;
   final VoidCallback? onRename;
 
   @override
@@ -216,11 +259,16 @@ class _DriveCard extends StatelessWidget {
                 onSelected: (value) {
                   if (value == 'rename') onRename?.call();
                   if (value == 'download') onDownload();
+                  if (value == 'share') onShare();
                 },
                 itemBuilder: (context) => [
                   const PopupMenuItem(
                     value: 'download',
                     child: Text('Videoyu indir'),
+                  ),
+                  const PopupMenuItem(
+                    value: 'share',
+                    child: Text('Paylaş'),
                   ),
                   if (onRename != null)
                     const PopupMenuItem(

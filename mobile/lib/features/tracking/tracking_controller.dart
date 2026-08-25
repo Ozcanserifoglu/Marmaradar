@@ -444,8 +444,23 @@ class TrackingController extends ChangeNotifier {
     await stop();
   }
 
+  Future<void> syncPendingDriveUploads() async {
+    final canUpload = await _api.tokenStore.hasSession;
+    if (!canUpload || _recorder.isRecording) return;
+
+    final uploaded = await _recorder.uploadAllPending();
+    if (uploaded > 0) {
+      _driveUploadStatus = DriveUploadStatus.uploaded;
+      _onDriveUploaded?.call();
+      notifyListeners();
+    }
+  }
+
   Future<void> uploadPendingDrive() async {
-    if (!_recorder.hasPendingUpload) return;
+    if (!_recorder.hasPendingUpload) {
+      await syncPendingDriveUploads();
+      return;
+    }
 
     _driveUploadStatus = DriveUploadStatus.uploading;
     _status = 'Sürüş kaydı gönderiliyor...';

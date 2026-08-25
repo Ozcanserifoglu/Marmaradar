@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.8.0",
+    "date": "2026-08-25",
+    "title": "Sürüş videosunu paylaş ve yerel kayıtları senkronize et",
+    "changes": [
+      "Sürüş detayında ayrı İndir ve Paylaş düğmeleri — paylaşım native Instagram / X / sistem sayfasını açar",
+      "Sürüşlerim üç nokta menüsünden de paylaşılabilir; video galeriye kaydetmeden paylaşılır",
+      "Paylaşılan ve indirilen videolarda Reels/Stories güvenli alanda kırmızı MARMARADAR filigranı",
+      "Sürüş kaydı açılır açılmaz indir ve paylaş görünür (önce kaydırma gerekmez)",
+      "İnternet ve giriş varken yerel sürüş kayıtları otomatik olarak sunucuya yüklenir"
+    ]
+  },
+  {
     "version": "1.7.0",
     "date": "2026-08-25",
     "title": "Açık / koyu görünüm ve daha akıcı sürüş haritası",

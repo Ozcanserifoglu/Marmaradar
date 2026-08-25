@@ -32,10 +32,15 @@ class _MarmaradarAppState extends ConsumerState<MarmaradarApp>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       final auth = ref.read(authControllerProvider);
       if (auth.isBooting) {
-        auth.bootstrap();
+        await auth.bootstrap();
+      }
+      if (auth.isAuthenticated) {
+        unawaited(
+          ref.read(trackingControllerProvider).syncPendingDriveUploads(),
+        );
       }
     });
   }
@@ -49,7 +54,12 @@ class _MarmaradarAppState extends ConsumerState<MarmaradarApp>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      unawaited(ref.read(authControllerProvider).ensureSession());
+      unawaited(() async {
+        await ref.read(authControllerProvider).ensureSession();
+        if (ref.read(authControllerProvider).isAuthenticated) {
+          await ref.read(trackingControllerProvider).syncPendingDriveUploads();
+        }
+      }());
     }
   }
 
@@ -81,6 +91,9 @@ class _MarmaradarAppState extends ConsumerState<MarmaradarApp>
       (previous, next) {
         if (next) {
           ref.read(trackingControllerProvider).prefetchVoiceAlerts();
+          unawaited(
+            ref.read(trackingControllerProvider).syncPendingDriveUploads(),
+          );
         }
       },
     );
@@ -143,6 +156,12 @@ final trackingControllerProvider =
     database: _sharedDb,
     onDriveUploaded: () {
       ref.read(profileControllerProvider).invalidate();
+      unawaited(
+        ref.read(drivesControllerProvider).load(
+              authenticated:
+                  ref.read(authControllerProvider).isAuthenticated,
+            ),
+      );
     },
   );
 });

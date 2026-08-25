@@ -18,6 +18,8 @@ class DriveVideoExporter {
   static const int fps = 30;
   static const double travelSeconds = 8.0;
   static const double tailSeconds = 1.4;
+  static const double brandTopFraction = 0.82;
+  static const double hudBottomY = 106;
 
   static int get _travelFrames => (travelSeconds * fps).round();
   static int get _tailFrames => (tailSeconds * fps).round();
@@ -207,15 +209,7 @@ class DriveVideoExporter {
         maxWidth: s - 48,
       );
     }
-    _drawText(
-      canvas,
-      'Marmaradar',
-      Offset(24, s - 40),
-      fontSize: 18,
-      weight: FontWeight.w700,
-      color: AppColors.red,
-      maxWidth: s - 48,
-    );
+    _drawBrandMark(canvas, s);
 
     final picture = recorder.endRecording();
     final image = await picture.toImage(size, size);
@@ -254,6 +248,68 @@ class DriveVideoExporter {
       ..close();
     canvas.drawPath(arrow, Paint()..color = AppColors.white);
     canvas.restore();
+  }
+
+  static void _drawBrandMark(Canvas canvas, double canvasSize) {
+    const wordmark = 'MARMARADAR';
+    const fontSize = 30.0;
+    const letterSpacing = 2.0;
+    const padH = 14.0;
+    const padV = 8.0;
+    const rightInset = 48.0;
+    final top = canvasSize * brandTopFraction;
+
+    ui.Paragraph paragraph({
+      required Color color,
+      List<ui.Shadow> shadows = const [],
+    }) {
+      final builder = ui.ParagraphBuilder(
+        ui.ParagraphStyle(
+          textAlign: TextAlign.left,
+          fontSize: fontSize,
+          fontWeight: FontWeight.w800,
+          maxLines: 1,
+        ),
+      )
+        ..pushStyle(
+          ui.TextStyle(
+            color: color,
+            letterSpacing: letterSpacing,
+            shadows: shadows,
+          ),
+        )
+        ..addText(wordmark);
+      return builder.build()
+        ..layout(ui.ParagraphConstraints(width: canvasSize));
+    }
+
+    final fill = paragraph(
+      color: AppColors.red.withValues(alpha: 0.92),
+    );
+    final stroke = paragraph(
+      color: AppColors.night,
+      shadows: const [
+        ui.Shadow(color: AppColors.night, blurRadius: 6),
+      ],
+    );
+    final width = fill.maxIntrinsicWidth;
+    final height = fill.height;
+    final left = canvasSize - rightInset - width;
+
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(
+          left - padH,
+          top - padV,
+          width + padH * 2,
+          height + padV * 2,
+        ),
+        const Radius.circular(8),
+      ),
+      Paint()..color = const Color(0x990B0B0D),
+    );
+    canvas.drawParagraph(stroke, Offset(left, top));
+    canvas.drawParagraph(fill, Offset(left, top));
   }
 
   static void _drawText(

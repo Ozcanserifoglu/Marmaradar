@@ -31,6 +31,7 @@ class _DriveDetailScreenState extends ConsumerState<DriveDetailScreen> {
   String? _nameOverride;
   bool _nameOverridden = false;
   bool _exporting = false;
+  final GlobalKey _shareButtonKey = GlobalKey();
 
   String? get _effectiveName =>
       _nameOverridden ? _nameOverride : _detail?.summary.name;
@@ -50,13 +51,22 @@ class _DriveDetailScreenState extends ConsumerState<DriveDetailScreen> {
     }
   }
 
-  Future<void> _downloadVideo(DriveDetail detail) async {
+  Rect? _shareOrigin() {
+    final box = _shareButtonKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize) return null;
+    return box.localToGlobal(Offset.zero) & box.size;
+  }
+
+  Future<void> _exportVideo(DriveDetail detail, DriveVideoIntent intent) async {
     if (_exporting) return;
     setState(() => _exporting = true);
-    await downloadDriveVideo(
+    await exportDriveVideo(
       context,
       detail: detail,
+      intent: intent,
       nameOverride: _effectiveName,
+      sharePositionOrigin:
+          intent == DriveVideoIntent.share ? _shareOrigin() : null,
     );
     if (mounted) setState(() => _exporting = false);
   }
@@ -65,6 +75,9 @@ class _DriveDetailScreenState extends ConsumerState<DriveDetailScreen> {
   void initState() {
     super.initState();
     _future = ref.read(drivesControllerProvider).loadDetail(widget.driveId);
+    _future.then((detail) {
+      if (mounted) setState(() => _detail = detail);
+    }, onError: (_) {});
     MapMarkerIcons.car().then((icon) {
       if (mounted) setState(() => _carIcon = icon);
     });
@@ -112,49 +125,75 @@ class _DriveDetailScreenState extends ConsumerState<DriveDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final detail = _detail;
-    final title = detail == null
-        ? 'Sürüş kaydı'
-        : driveDisplayName(_effectiveName, detail.summary.startedAt);
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
-        actions: [
-          if (detail != null && detail.points.length >= 2)
-            IconButton(
-              tooltip: 'Videoyu indir',
-              icon: const Icon(Icons.download_rounded),
-              onPressed: _exporting ? null : () => _downloadVideo(detail),
-            ),
-          if (detail != null && !detail.summary.isLocal)
-            IconButton(
-              tooltip: 'Yeniden adlandır',
-              icon: const Icon(Icons.edit_rounded),
-              onPressed: _rename,
-            ),
-        ],
-      ),
-      body: FutureBuilder<DriveDetail>(
+    return PopScope(
+      canPop: !_exporting,
+      child: FutureBuilder<DriveDetail>(
         future: _future,
         builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(
-              child: CircularProgressIndicator(color: AppColors.red),
-            );
+          final detail = snapshot.data ?? _detail;
+          if (snapshot.hasData) {
+            _detail = snapshot.data;
           }
-          if (snapshot.hasError || !snapshot.hasData) {
-            return _error(snapshot.error);
-          }
-          final detail = _detail ??= snapshot.data!;
-          if (detail.points.length < 2) {
-            return _tooShort(detail);
-          }
-          final replay = _controllerFor(detail);
-          return _content(detail, replay);
+          final title = detail == null
+              ? 'Sürüş kaydı'
+              : driveDisplayName(_effectiveName, detail.summary.startedAt);
+
+          return Scaffold(
+            appBar: AppBar(
+              title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
+              actions: [
+                if (detail != null && detail.points.length >= 2) ...[
+                  IconButton(
+                    tooltip: 'Videoyu indir',
+                    icon: const Icon(Icons.download_rounded),
+                    onPressed: _exporting
+                        ? null
+                        : () => _exportVideo(
+                              detail,
+                              DriveVideoIntent.saveToGallery,
+                            ),
+                  ),
+                  IconButton(
+                    key: _shareButtonKey,
+                    tooltip: 'Paylaş',
+                    icon: const Icon(Icons.ios_share_rounded),
+                    onPressed: _exporting
+                        ? null
+                        : () => _exportVideo(detail, DriveVideoIntent.share),
+                  ),
+                ],
+                if (detail != null && !detail.summary.isLocal)
+                  IconButton(
+                    tooltip: 'Yeniden adlandır',
+                    icon: const Icon(Icons.edit_rounded),
+                    onPressed: _exporting ? null : _rename,
+                  ),
+              ],
+            ),
+            body: _detailBody(snapshot, detail),
+          );
         },
       ),
     );
+  }
+
+  Widget _detailBody(
+    AsyncSnapshot<DriveDetail> snapshot,
+    DriveDetail? detail,
+  ) {
+    if (snapshot.connectionState != ConnectionState.done) {
+      return const Center(
+        child: CircularProgressIndicator(color: AppColors.red),
+      );
+    }
+    if (snapshot.hasError || detail == null) {
+      return _error(snapshot.error);
+    }
+    if (detail.points.length < 2) {
+      return _tooShort(detail);
+    }
+    final replay = _controllerFor(detail);
+    return _content(detail, replay);
   }
 
   Widget _content(DriveDetail detail, DriveReplayController replay) {

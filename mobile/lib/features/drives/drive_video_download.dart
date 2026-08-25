@@ -7,16 +7,26 @@ import 'package:radar_alert/features/drives/drive_speed_stats.dart';
 import 'package:radar_alert/features/drives/drive_video_exporter.dart';
 import 'package:share_plus/share_plus.dart';
 
-Future<void> downloadDriveVideo(
+enum DriveVideoIntent { saveToGallery, share }
+
+Future<void> exportDriveVideo(
   BuildContext context, {
   required DriveDetail detail,
+  required DriveVideoIntent intent,
   String? nameOverride,
+  Rect? sharePositionOrigin,
 }) async {
   final progress = ValueNotifier<double>(0);
+  final preparingLabel = intent == DriveVideoIntent.share
+      ? 'Paylaşım için video hazırlanıyor...'
+      : 'Video hazırlanıyor...';
   showDialog<void>(
     context: context,
     barrierDismissible: false,
-    builder: (_) => _ExportProgressDialog(progress: progress),
+    builder: (_) => _ExportProgressDialog(
+      progress: progress,
+      label: preparingLabel,
+    ),
   );
 
   String? path;
@@ -59,65 +69,79 @@ Future<void> downloadDriveVideo(
     return;
   }
 
-  try {
-    await Gal.requestAccess();
-    await Gal.putVideo(path);
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Galeriye kaydedildi')),
-      );
-    }
-  } catch (_) {}
-
-  if (!context.mounted) return;
-  try {
-    final box = context.findRenderObject() as RenderBox?;
-    await SharePlus.instance.share(
-      ShareParams(
-        files: [XFile(path)],
-        text: 'Marmaradar sürüş kaydı',
-        sharePositionOrigin:
-            box != null ? box.localToGlobal(Offset.zero) & box.size : null,
-      ),
-    );
-  } catch (_) {}
+  switch (intent) {
+    case DriveVideoIntent.saveToGallery:
+      try {
+        await Gal.requestAccess();
+        await Gal.putVideo(path);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Galeriye kaydedildi')),
+          );
+        }
+      } catch (_) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Galeriye kaydedilemedi.')),
+          );
+        }
+      }
+      return;
+    case DriveVideoIntent.share:
+      try {
+        await SharePlus.instance.share(
+          ShareParams(
+            files: [XFile(path)],
+            text: 'Marmaradar sürüş kaydı',
+            sharePositionOrigin: sharePositionOrigin,
+          ),
+        );
+      } catch (_) {}
+  }
 }
 
 class _ExportProgressDialog extends StatelessWidget {
-  const _ExportProgressDialog({required this.progress});
+  const _ExportProgressDialog({
+    required this.progress,
+    required this.label,
+  });
 
   final ValueNotifier<double> progress;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      backgroundColor: AppColors.surface,
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text(
-            'Video hazırlanıyor...',
-            style: TextStyle(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 20),
-          ValueListenableBuilder<double>(
-            valueListenable: progress,
-            builder: (context, value, _) => Column(
-              children: [
-                LinearProgressIndicator(
-                  value: value == 0 ? null : value,
-                  color: AppColors.red,
-                  backgroundColor: AppColors.outline,
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  '${(value * 100).round()}%',
-                  style: const TextStyle(color: AppColors.whiteMuted),
-                ),
-              ],
+    return PopScope(
+      canPop: false,
+      child: AlertDialog(
+        backgroundColor: AppColors.surface,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.w700),
             ),
-          ),
-        ],
+            const SizedBox(height: 20),
+            ValueListenableBuilder<double>(
+              valueListenable: progress,
+              builder: (context, value, _) => Column(
+                children: [
+                  LinearProgressIndicator(
+                    value: value == 0 ? null : value,
+                    color: AppColors.red,
+                    backgroundColor: AppColors.outline,
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    '${(value * 100).round()}%',
+                    style: const TextStyle(color: AppColors.whiteMuted),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

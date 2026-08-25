@@ -38,6 +38,7 @@ class DriveRecorder {
 
   String? _activeDriveId;
   String? _pendingUploadDriveId;
+  bool _uploadingQueue = false;
   DriverSnapshot? _lastStored;
   int _sequence = 0;
   DriveUploadStatus _uploadStatus = DriveUploadStatus.idle;
@@ -152,6 +153,28 @@ class DriveRecorder {
     }
 
     return _uploadDrive(driveId, endedAt, points);
+  }
+
+  Future<int> uploadAllPending() async {
+    if (_uploadingQueue || _activeDriveId != null) return 0;
+    _uploadingQueue = true;
+    var uploaded = 0;
+    try {
+      final rows = await _db.pendingLocalDrives();
+      for (final row in rows) {
+        _pendingUploadDriveId = row.id;
+        final status = await uploadPending();
+        if (status == DriveUploadStatus.uploaded) {
+          uploaded += 1;
+        }
+        if (status == DriveUploadStatus.needsAuth) {
+          break;
+        }
+      }
+    } finally {
+      _uploadingQueue = false;
+    }
+    return uploaded;
   }
 
   Future<DriveUploadStatus> uploadPending() async {
