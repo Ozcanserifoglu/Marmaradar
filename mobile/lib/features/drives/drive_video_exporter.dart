@@ -19,7 +19,7 @@ class DriveVideoExporter {
   static const double travelSeconds = 8.0;
   static const double tailSeconds = 1.4;
   static const double brandTopFraction = 0.82;
-  static const double hudBottomY = 106;
+  static const double hudBottomY = 140;
 
   static int get _travelFrames => (travelSeconds * fps).round();
   static int get _tailFrames => (tailSeconds * fps).round();
@@ -179,36 +179,7 @@ class DriveVideoExporter {
     );
 
     _drawCar(canvas, headOffset, head.headingDeg);
-
-    _drawText(
-      canvas,
-      title,
-      const Offset(24, 22),
-      fontSize: 30,
-      weight: FontWeight.w800,
-      color: AppColors.white,
-      maxWidth: s - 48,
-    );
-    _drawText(
-      canvas,
-      subtitle,
-      const Offset(24, 62),
-      fontSize: 18,
-      weight: FontWeight.w600,
-      color: AppColors.whiteMuted,
-      maxWidth: s - 48,
-    );
-    if (extraLine != null) {
-      _drawText(
-        canvas,
-        extraLine,
-        const Offset(24, 90),
-        fontSize: 16,
-        weight: FontWeight.w600,
-        color: AppColors.whiteMuted,
-        maxWidth: s - 48,
-      );
-    }
+    _drawHud(canvas, s, title, subtitle, extraLine);
     _drawBrandMark(canvas, s);
 
     final picture = recorder.endRecording();
@@ -248,6 +219,74 @@ class DriveVideoExporter {
       ..close();
     canvas.drawPath(arrow, Paint()..color = AppColors.white);
     canvas.restore();
+  }
+
+  static void _drawHud(
+    Canvas canvas,
+    double canvasSize,
+    String title,
+    String subtitle,
+    String? extraLine,
+  ) {
+    const inset = 16.0;
+    const padH = 18.0;
+    const padV = 14.0;
+    const gap = 6.0;
+    final maxTextWidth = canvasSize - inset * 2 - padH * 2;
+
+    final titleP = _layoutText(
+      title,
+      fontSize: 28,
+      weight: FontWeight.w800,
+      color: AppColors.white,
+      maxWidth: maxTextWidth,
+    );
+    final subtitleP = _layoutText(
+      subtitle,
+      fontSize: 18,
+      weight: FontWeight.w600,
+      color: AppColors.white,
+      maxWidth: maxTextWidth,
+    );
+    final extraP = extraLine == null
+        ? null
+        : _layoutText(
+            extraLine,
+            fontSize: 16,
+            weight: FontWeight.w600,
+            color: const Color(0xFFE8E8EE),
+            maxWidth: maxTextWidth,
+          );
+
+    var textW = math.max(titleP.maxIntrinsicWidth, subtitleP.maxIntrinsicWidth);
+    var textH = titleP.height + gap + subtitleP.height;
+    if (extraP != null) {
+      textW = math.max(textW, extraP.maxIntrinsicWidth);
+      textH += gap + extraP.height;
+    }
+
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(
+          inset,
+          inset,
+          textW + padH * 2,
+          textH + padV * 2,
+        ),
+        const Radius.circular(14),
+      ),
+      Paint()..color = const Color(0xF20B0B0D),
+    );
+
+    var y = inset + padV;
+    final x = inset + padH;
+    canvas.drawParagraph(titleP, Offset(x, y));
+    y += titleP.height + gap;
+    canvas.drawParagraph(subtitleP, Offset(x, y));
+    if (extraP != null) {
+      y += subtitleP.height + gap;
+      canvas.drawParagraph(extraP, Offset(x, y));
+    }
   }
 
   static void _drawBrandMark(Canvas canvas, double canvasSize) {
@@ -312,10 +351,8 @@ class DriveVideoExporter {
     canvas.drawParagraph(fill, Offset(left, top));
   }
 
-  static void _drawText(
-    Canvas canvas,
-    String text,
-    Offset offset, {
+  static ui.Paragraph _layoutText(
+    String text, {
     required double fontSize,
     required FontWeight weight,
     required Color color,
@@ -330,16 +367,9 @@ class DriveVideoExporter {
         ellipsis: '...',
       ),
     )
-      ..pushStyle(ui.TextStyle(
-        color: color,
-        shadows: const [
-          Shadow(color: Colors.black54, blurRadius: 4),
-        ],
-      ))
+      ..pushStyle(ui.TextStyle(color: color))
       ..addText(text);
-    final paragraph = builder.build()
-      ..layout(ui.ParagraphConstraints(width: maxWidth));
-    canvas.drawParagraph(paragraph, offset);
+    return builder.build()..layout(ui.ParagraphConstraints(width: maxWidth));
   }
 }
 

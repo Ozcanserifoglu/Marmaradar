@@ -18,6 +18,7 @@ import 'package:radar_alert/features/alerts/road_eta_models.dart';
 import 'package:radar_alert/features/amenities/amenities_repository.dart';
 import 'package:radar_alert/features/amenities/amenity_models.dart';
 import 'package:radar_alert/features/amenities/amenity_visibility.dart';
+import 'package:radar_alert/features/corridors/corridor_delta.dart';
 import 'package:radar_alert/features/corridors/corridor_tracker.dart';
 import 'package:radar_alert/features/reports/live_report_models.dart';
 import 'package:radar_alert/features/sync/region_sync_service.dart';
@@ -56,11 +57,13 @@ class CorridorStatus {
     required this.corridor,
     required this.avgKmh,
     required this.distanceM,
+    this.paceDelta,
   });
 
   final CachedCorridor corridor;
   final double avgKmh;
   final double distanceM;
+  final CorridorPaceDelta? paceDelta;
 
   double get limitRatio =>
       corridor.maxspeedKmh <= 0 ? 0 : avgKmh / corridor.maxspeedKmh;
@@ -208,12 +211,20 @@ class TrackingController extends ChangeNotifier {
       (c) => c.corridor.id == session.corridorId,
     );
     if (match.isEmpty) return null;
-    final elapsed = DateTime.now().difference(session.enteredAt).inSeconds;
-    final avgKmh = elapsed > 0 ? (session.distanceM / elapsed) * 3.6 : 0.0;
+    final elapsedSec =
+        DateTime.now().difference(session.enteredAt).inMilliseconds / 1000.0;
+    final avgKmh = elapsedSec > 0 ? (session.distanceM / elapsedSec) * 3.6 : 0.0;
     return CorridorStatus(
       corridor: match.first.corridor,
       avgKmh: avgKmh,
       distanceM: session.distanceM,
+      paceDelta: computeCorridorPaceDelta(
+        lengthM: match.first.corridor.lengthM,
+        limitKmh: match.first.corridor.maxspeedKmh,
+        distanceM: session.distanceM,
+        elapsedSec: elapsedSec,
+        speedMps: _lastSnapshot?.speedMps,
+      ),
     );
   }
 

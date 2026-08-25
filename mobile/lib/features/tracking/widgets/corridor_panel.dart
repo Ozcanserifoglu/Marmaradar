@@ -10,9 +10,16 @@ class CorridorPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ratio = status.limitRatio.clamp(0.0, 1.3);
-    final over = status.avgKmh >= status.corridor.maxspeedKmh;
-    final near = !over && ratio >= 0.9;
+    final delta = status.paceDelta;
+    final over = delta?.overLimit ?? status.avgKmh >= status.corridor.maxspeedKmh;
+    final near = delta?.nearLimit ??
+        (!over && ratio >= 0.9);
     final barColor = over
+        ? AppColors.red
+        : near
+            ? AppColors.warning
+            : AppColors.success;
+    final deltaColor = over
         ? AppColors.red
         : near
             ? AppColors.warning
@@ -63,10 +70,35 @@ class CorridorPanel extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
+              if (delta != null) ...[
+                Text(
+                  delta.signedLabel,
+                  style: TextStyle(
+                    fontSize: 36,
+                    fontWeight: FontWeight.w900,
+                    height: 1,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                    color: deltaColor,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 3),
+                  child: Text(
+                    's',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: deltaColor,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 14),
+              ],
               Text(
                 '${status.avgKmh.round()}',
                 style: TextStyle(
-                  fontSize: 32,
+                  fontSize: delta == null ? 32 : 22,
                   fontWeight: FontWeight.w900,
                   height: 1,
                   color: over ? AppColors.red : scheme.onSurface,
@@ -76,18 +108,35 @@ class CorridorPanel extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(bottom: 2),
                 child: Text(
-                  'km/s ortalama',
+                  'km/s ort.',
                   style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
                 ),
               ),
-              const Spacer(),
+            ],
+          ),
+          if (delta != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              over
+                  ? 'Limit temposundan hızlı — yavaşla'
+                  : 'Limit temposuna göre',
+              style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+            ),
+          ],
+          const SizedBox(height: 10),
+          Row(
+            children: [
               Text(
                 '${(status.distanceM / 1000).toStringAsFixed(1)} km gidildi',
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.whiteMuted,
-                ),
+                style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
               ),
+              if (delta != null) ...[
+                const Spacer(),
+                Text(
+                  '${(delta.remainingM / 1000).toStringAsFixed(1)} km kaldı',
+                  style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+                ),
+              ],
             ],
           ),
           const SizedBox(height: 10),
