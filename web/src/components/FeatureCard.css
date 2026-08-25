@@ -1,25 +1,59 @@
 .feature-card {
   position: relative;
-  padding: 1.5rem 1.35rem 1.75rem;
-  background: var(--color-surface);
-  transition: background 0.3s var(--ease);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  padding: 1.75rem;
+  border: 1px solid var(--color-border-glass);
+  border-radius: var(--radius-lg);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.045), transparent 48%),
+    var(--color-surface-glass-strong);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  box-shadow:
+    0 22px 55px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.045);
+  transition:
+    transform 0.3s var(--ease),
+    border-color 0.3s var(--ease),
+    background 0.3s var(--ease);
 }
 
 .feature-card:hover {
-  background: var(--color-surface-high);
+  transform: translateY(-3px);
+  border-color: rgba(232, 38, 45, 0.28);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.065), transparent 48%),
+    var(--color-surface-high);
+}
+
+.feature-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  position: relative;
+  z-index: 2;
+  min-width: 0;
 }
 
 .feature-icon {
   color: var(--color-brand-red);
-  margin-bottom: 1.1rem;
+  margin-bottom: 1.25rem;
+  flex: 0 0 auto;
 }
 
 .feature-card h3 {
   font-family: var(--font-display);
-  font-size: 1rem;
+  font-size: 1.1rem;
   font-weight: 600;
   letter-spacing: -0.01em;
-  margin-bottom: 0.4rem;
+  margin-bottom: 0.5rem;
 }
 
 .feature-card p {
@@ -29,56 +63,152 @@
   max-width: 34ch;
 }
 
-/* Lead cell: same surface treatment as the rest, scaled up by importance. */
-.feature-card-lead {
+.feature-shot {
+  position: relative;
   display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  background:
-    radial-gradient(ellipse 90% 70% at 8% 100%, rgba(232, 38, 45, 0.14), transparent 60%),
-    var(--color-surface);
+  align-items: flex-end;
+  justify-content: center;
+  flex: 0 0 auto;
+  min-width: 0;
+  min-height: 0;
+  width: calc(100% + 3.5rem);
+  height: 260px;
+  max-height: 300px;
+  margin: 0 -1.75rem -1.75rem;
+  overflow: hidden;
 }
 
-.feature-card-lead .feature-icon {
-  margin-bottom: 1.5rem;
-  flex-shrink: 0;
+.feature-shot::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  z-index: 1;
+  height: 24%;
+  pointer-events: none;
+  background: linear-gradient(to bottom, transparent, rgba(8, 8, 13, 0.72));
+}
+
+.feature-shot img {
+  display: block;
+  max-width: 100%;
+  width: auto;
+  height: 100%;
+  max-height: 300px;
+  object-fit: contain;
+  object-position: center bottom;
+}
+
+/* Wide bento cards: copy left, edge-aligned product mockup right. */
+.feature-card-wide {
+  grid-column: span 2;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 340px;
+  padding: 2rem;
+}
+
+.feature-card-wide .feature-copy {
+  flex: 1 1 50%;
+  max-width: 50%;
+}
+
+.feature-card-wide .feature-shot {
+  align-self: stretch;
+  justify-content: flex-end;
+  flex: 1 1 50%;
+  width: auto;
+  height: auto;
+  max-height: 300px;
+  margin: auto -2rem -2rem 0;
+}
+
+.feature-card-wide .feature-shot img {
+  object-position: right bottom;
+}
+
+.feature-card-lead {
+  background:
+    radial-gradient(ellipse 75% 100% at 4% 110%, rgba(232, 38, 45, 0.18), transparent 62%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.055), transparent 48%),
+    var(--color-surface-glass-strong);
 }
 
 .feature-card-lead h3 {
-  font-size: 1.4rem;
+  font-size: 1.45rem;
   letter-spacing: -0.025em;
-  margin-top: auto;
-  margin-bottom: 0.55rem;
 }
 
 .feature-card-lead p {
   font-size: 1rem;
-  max-width: 30ch;
 }
 
-.feature-card-lead:hover {
+/* Short full-width closing strip. */
+.feature-card-full {
+  grid-column: span 3;
+  flex-direction: row;
+  align-items: center;
+  min-height: 0;
+  padding: 1.5rem 2rem;
   background:
-    radial-gradient(ellipse 90% 70% at 8% 100%, rgba(232, 38, 45, 0.18), transparent 60%),
-    var(--color-surface-high);
+    radial-gradient(ellipse 45% 160% at 100% 50%, rgba(232, 38, 45, 0.12), transparent 68%),
+    var(--color-surface-glass-strong);
 }
 
-@media (min-width: 960px) {
-  .feature-card {
-    padding: 1.75rem 1.6rem 2rem;
-  }
+.feature-card-full .feature-copy {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.15rem 1.25rem;
+  width: 100%;
+}
 
-  .feature-card-lead {
-    padding: 2.25rem 2rem;
-    min-height: 19rem;
-  }
+.feature-card-full .feature-icon {
+  grid-row: 1 / span 2;
+  margin: 0;
+}
 
-  .feature-card-wide {
-    display: flex;
+.feature-card-full h3,
+.feature-card-full p {
+  margin: 0;
+  max-width: none;
+}
+
+@media (max-width: 768px) {
+  .feature-card,
+  .feature-card-wide,
+  .feature-card-full {
+    grid-column: span 1;
     flex-direction: column;
-    justify-content: center;
+    align-items: flex-start;
+    min-height: 0;
+    padding: 1.5rem;
   }
 
-  .feature-card-wide .feature-icon {
-    margin-bottom: 0.9rem;
+  .feature-card-wide .feature-copy {
+    flex: 0 0 auto;
+    max-width: 100%;
+  }
+
+  .feature-card .feature-shot,
+  .feature-card-wide .feature-shot {
+    align-self: auto;
+    justify-content: center;
+    width: calc(100% + 3rem);
+    height: 260px;
+    margin: 0 -1.5rem -1.5rem;
+  }
+
+  .feature-card .feature-shot img,
+  .feature-card-wide .feature-shot img {
+    object-position: center bottom;
+  }
+
+  .feature-card-full .feature-copy {
+    display: flex;
+  }
+
+  .feature-card-full .feature-icon {
+    margin-bottom: 1.25rem;
   }
 }

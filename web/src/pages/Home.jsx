@@ -1,5 +1,5 @@
 import { useId, useState } from 'react'
-import { ChevronDown, Download, Map, Camera, Gauge, BellRing } from 'lucide-react'
+import { ChevronDown, Download, Map, Camera, Gauge, Route, BellRing } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import GradientBlobs from '../components/GradientBlobs'
@@ -17,24 +17,45 @@ const FEATURES = [
     icon: Map,
     title: 'Canlı Harita',
     description: 'Konumun, yakındaki kameralar ve koridor hatları haritada net görünür.',
-    className: 'feature-card-lead',
+    className: 'feature-card-wide feature-card-lead',
     lead: true,
+    image: {
+      src: '/screenshots/hero.jpg',
+      alt: 'Canlı harita: konum, yakındaki yerler ve sürüş paneli',
+    },
   },
   {
     icon: Camera,
     title: 'Hız Kamerası Uyarıları',
     description: 'Sabit EDS kameralarına yaklaşırken mesafe ve hız limiti ile uyarılırsın.',
+    className: 'feature-card-square',
   },
   {
     icon: Gauge,
     title: 'Ortalama Hız Koridorları',
     description: 'Koridor içindeyken ortalama hızını limite göre takip et.',
+    className: 'feature-card-square',
+    image: {
+      src: '/screenshots/corridor.jpg',
+      alt: 'Haritada turuncu ortalama hız koridoru',
+    },
+  },
+  {
+    icon: Route,
+    title: 'Sürüş Analizi ve Video Çıktısı',
+    description:
+      'Sürüşlerini kaydet. En düşük, en yüksek ve ortalama hızı gör, rotayı haritada tekrar izle, videoya al.',
+    image: {
+      src: '/screenshots/drive-replay.jpg',
+      alt: 'Sürüş kaydı: hız özeti ve rota yeniden oynatma',
+    },
+    className: 'feature-card-wide',
   },
   {
     icon: BellRing,
     title: 'Arka Plan Uyarıları',
-    description: 'Ekran kapalıyken bile uyarılar çalışmaya devam eder — yola odaklan.',
-    className: 'feature-card-wide',
+    description: 'Ekranı kapatsan da uyarılar çalışır. Sen yola bak.',
+    className: 'feature-card-full',
   },
 ]
 
@@ -102,7 +123,7 @@ export default function Home() {
         <div className="container">
           <div className="section-head section-head-split" ref={featuresHeadRef}>
             <h2>Neden Marmaradar?</h2>
-            <p>Sürüş sırasında ihtiyacın olan uyarılar — gereksiz gürültü yok.</p>
+            <p>Sürüşte işine yarayan uyarılar. Gereksiz gürültü yok.</p>
           </div>
 
           <div className="feature-grid" ref={featureGridRef}>
@@ -114,6 +135,7 @@ export default function Home() {
                 description={feature.description}
                 className={feature.className}
                 lead={feature.lead}
+                image={feature.image}
               />
             ))}
           </div>
