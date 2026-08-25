@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.9.0",
+    "date": "2026-08-25",
+    "title": "Koridorda F1 tarzı tempo farkı ve daha okunaklı paylaşım videosu",
+    "changes": [
+      "Ortalama hız koridorunda limit temposuna göre +/− saniye farkı (yeşil yavaş / güvenli, kırmızı çok hızlı)",
+      "Koridor panelinde gidilen mesafe yanında kalan kilometre",
+      "Paylaşım / indirme videosundaki mesafe ve hız yazıları koyu kutu üzerinde, harita üstünde daha net okunur"
+    ]
+  },
+  {
     "version": "1.8.0",
     "date": "2026-08-25",
     "title": "Sürüş videosunu paylaş ve yerel kayıtları senkronize et",
