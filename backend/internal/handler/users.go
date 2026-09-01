@@ -24,15 +24,24 @@ func NewUsersHandler(users *service.UsersService) *UsersHandler {
 }
 
 // Me godoc
-// @Summary      Get my profile
-// @Description  Returns the authenticated user's profile including vehicle customization.
-// @Tags         Users
+// @Summary      View my account and saved preferences
+// @Description  ## What this does
+// @Description  Returns everything Marmaradar knows about the **currently signed-in user**: email, profile photo URL, and vehicle customization used on the map and in drive videos.
+// @Description
+// @Description  ## When to call
+// @Description  - After login, to hydrate the profile screen.
+// @Description  - On app launch, to sync vehicle icon settings from the server.
+// @Description
+// @Description  ## Response notes
+// @Description  - `profile_picture_url` is a **relative path** on the gateway (e.g. `/v1/uploads/avatars/{user-id}.jpg`). Prepend your gateway base URL to display the image.
+// @Description  - If the user has never uploaded a photo, `profile_picture_url` is `null`.
+// @Tags         Account & Profile
 // @Produce      json
 // @Security     BearerAuth
-// @Success      200  {object}  UserProfileResponse
-// @Failure      401  {object}  ErrorResponse
-// @Failure      404  {object}  ErrorResponse
-// @Failure      500  {object}  ErrorResponse
+// @Success      200  {object}  UserProfileResponse  "Current profile"
+// @Failure      401  {object}  ErrorResponse        "Missing or expired access token"
+// @Failure      404  {object}  ErrorResponse        "User record no longer exists"
+// @Failure      500  {object}  ErrorResponse        "Unexpected server error"
 // @Router       /v1/users/me [get]
 func (h *UsersHandler) Me(w http.ResponseWriter, r *http.Request) {
 	userID, ok := auth.UserIDFromContext(r.Context())
@@ -54,18 +63,34 @@ func (h *UsersHandler) Me(w http.ResponseWriter, r *http.Request) {
 }
 
 // UpdateMe godoc
-// @Summary      Update vehicle preferences
-// @Description  Set vehicle type and color used for map markers and drive exports.
-// @Tags         Users
+// @Summary      Change my vehicle icon on the map
+// @Description  ## What this does
+// @Description  Updates the **vehicle type** and/or **color** shown as your position marker during live tracking and embedded in exported drive videos.
+// @Description
+// @Description  ## Partial updates
+// @Description  Send only the fields you want to change. Omitted keys are left as-is on the server.
+// @Description
+// @Description  ```json
+// @Description  { "vehicle_type": "hatchback", "vehicle_color": "#E8262D" }
+// @Description  ```
+// @Description
+// @Description  ## Allowed values
+// @Description  | Field | Constraints |
+// @Description  |-------|-------------|
+// @Description  | `vehicle_type` | `sedan`, `hatchback`, `station_wagon`, `kamyon`, or `tir` |
+// @Description  | `vehicle_color` | `#` followed by six hex digits, e.g. `#1E88E5` |
+// @Description
+// @Description  Unknown JSON keys are rejected with **400 Bad Request**.
+// @Tags         Vehicle Customization
 // @Accept       json
 // @Produce      json
 // @Security     BearerAuth
-// @Param        body  body      UpdatePreferencesRequest  true  "Vehicle preferences"
-// @Success      200   {object}  UserProfileResponse
-// @Failure      400   {object}  ErrorResponse
-// @Failure      401   {object}  ErrorResponse
-// @Failure      404   {object}  ErrorResponse
-// @Failure      500   {object}  ErrorResponse
+// @Param        body  body      UpdatePreferencesRequest  true  "Fields to update (partial OK)"
+// @Success      200   {object}  UserProfileResponse       "Profile after update"
+// @Failure      400   {object}  ErrorResponse             "Invalid vehicle_type, vehicle_color, or JSON"
+// @Failure      401   {object}  ErrorResponse             "Missing or expired access token"
+// @Failure      404   {object}  ErrorResponse             "User record no longer exists"
+// @Failure      500   {object}  ErrorResponse             "Unexpected server error"
 // @Router       /v1/users/me [patch]
 func (h *UsersHandler) UpdateMe(w http.ResponseWriter, r *http.Request) {
 	userID, ok := auth.UserIDFromContext(r.Context())
@@ -100,17 +125,31 @@ func (h *UsersHandler) UpdateMe(w http.ResponseWriter, r *http.Request) {
 }
 
 // UploadProfilePicture godoc
-// @Summary      Upload profile picture
-// @Description  Upload a JPEG, PNG, or WebP avatar (max 2 MB).
-// @Tags         Users
+// @Summary      Upload or replace my profile photo
+// @Description  ## What this does
+// @Description  Stores a new avatar for the signed-in user. The previous image file is deleted automatically when replaced.
+// @Description
+// @Description  ## How to send
+// @Description  Use `multipart/form-data` with a single field named **`file`** containing the image bytes.
+// @Description
+// @Description  ## File rules
+// @Description  | Rule | Value |
+// @Description  |------|-------|
+// @Description  | Formats | JPEG, PNG, or WebP |
+// @Description  | Max size | 2 MB |
+// @Description  | Field name | `file` (required) |
+// @Description
+// @Description  ## Response
+// @Description  Returns the updated profile. The new `profile_picture_url` points to `GET /v1/uploads/avatars/{user-id}.{ext}` on the gateway — no auth required to view avatars.
+// @Tags         Profile Photo
 // @Accept       multipart/form-data
 // @Produce      json
 // @Security     BearerAuth
-// @Param        file  formData  file  true  "Avatar image"
-// @Success      200   {object}  UserProfileResponse
-// @Failure      400   {object}  ErrorResponse
-// @Failure      401   {object}  ErrorResponse
-// @Failure      500   {object}  ErrorResponse
+// @Param        file  formData  file  true  "Avatar image (JPEG, PNG, or WebP, max 2 MB)"
+// @Success      200   {object}  UserProfileResponse  "Profile with new profile_picture_url"
+// @Failure      400   {object}  ErrorResponse        "Missing file, unsupported type, or file too large"
+// @Failure      401   {object}  ErrorResponse        "Missing or expired access token"
+// @Failure      500   {object}  ErrorResponse        "Unexpected server error"
 // @Router       /v1/users/me/profile-picture [post]
 func (h *UsersHandler) UploadProfilePicture(w http.ResponseWriter, r *http.Request) {
 	userID, ok := auth.UserIDFromContext(r.Context())
@@ -163,6 +202,25 @@ func (h *UsersHandler) UploadProfilePicture(w http.ResponseWriter, r *http.Reque
 	writeJSON(w, http.StatusOK, profile)
 }
 
+// ServeAvatar godoc
+// @Summary      Download a user's avatar image
+// @Description  ## What this does
+// @Description  Serves a publicly cached profile photo previously uploaded via `POST /v1/users/me/profile-picture`.
+// @Description
+// @Description  ## Path format
+// @Description  The `{file}` segment is the stored filename: `{user-uuid}.{jpg|png|webp}` — exactly as returned in `profile_picture_url` after the `/v1/uploads/avatars/` prefix.
+// @Description
+// @Description  **Example:** `GET /v1/uploads/avatars/550e8400-e29b-41d4-a716-446655440000.jpg`
+// @Description
+// @Description  ## Caching
+// @Description  Responses include `Cache-Control: public, max-age=86400` (24 hours). No authentication required.
+// @Tags         Profile Photo
+// @Produce      image/jpeg
+// @Produce      image/png
+// @Param        file  path  string  true  "Avatar filename, e.g. 550e8400-e29b-41d4-a716-446655440000.jpg"
+// @Success      200   "Binary image body"
+// @Failure      404   "Avatar not found"
+// @Router       /v1/uploads/avatars/{file} [get]
 func (h *UsersHandler) ServeUpload(w http.ResponseWriter, r *http.Request) {
 	key := chi.URLParam(r, "*")
 	key = path.Clean("/" + strings.TrimPrefix(key, "/"))

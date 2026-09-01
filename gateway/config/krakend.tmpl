@@ -55,6 +55,19 @@
       ]
     },
     {
+      "endpoint": "/",
+      "method": "GET",
+      "output_encoding": "no-op",
+      "input_headers": ["CF-Connecting-IP"],
+      "backend": [
+        {
+          "url_pattern": "/",
+          "encoding": "no-op",
+          "host": {{ marshal .backend.host }}
+        }
+      ]
+    },
+    {
       "endpoint": "/docs",
       "method": "GET",
       "output_encoding": "no-op",

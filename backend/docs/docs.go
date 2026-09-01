@@ -22,6 +22,36 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/v1/uploads/avatars/{file}": {
+            "get": {
+                "description": "## What this does\nServes a publicly cached profile photo previously uploaded via ` + "`" + `POST /v1/users/me/profile-picture` + "`" + `.\n\n## Path format\nThe ` + "`" + `{file}` + "`" + ` segment is the stored filename: ` + "`" + `{user-uuid}.{jpg|png|webp}` + "`" + ` — exactly as returned in ` + "`" + `profile_picture_url` + "`" + ` after the ` + "`" + `/v1/uploads/avatars/` + "`" + ` prefix.\n\n**Example:** ` + "`" + `GET /v1/uploads/avatars/550e8400-e29b-41d4-a716-446655440000.jpg` + "`" + `\n\n## Caching\nResponses include ` + "`" + `Cache-Control: public, max-age=86400` + "`" + ` (24 hours). No authentication required.",
+                "produces": [
+                    "image/jpeg",
+                    "image/png"
+                ],
+                "tags": [
+                    "Profile Photo"
+                ],
+                "summary": "Download a user's avatar image",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Avatar filename, e.g. 550e8400-e29b-41d4-a716-446655440000.jpg",
+                        "name": "file",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Binary image body"
+                    },
+                    "404": {
+                        "description": "Avatar not found"
+                    }
+                }
+            }
+        },
         "/v1/users/me": {
             "get": {
                 "security": [
@@ -29,35 +59,35 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Returns the authenticated user's profile including vehicle customization.",
+                "description": "## What this does\nReturns everything Marmaradar knows about the **currently signed-in user**: email, profile photo URL, and vehicle customization used on the map and in drive videos.\n\n## When to call\n- After login, to hydrate the profile screen.\n- On app launch, to sync vehicle icon settings from the server.\n\n## Response notes\n- ` + "`" + `profile_picture_url` + "`" + ` is a **relative path** on the gateway (e.g. ` + "`" + `/v1/uploads/avatars/{user-id}.jpg` + "`" + `). Prepend your gateway base URL to display the image.\n- If the user has never uploaded a photo, ` + "`" + `profile_picture_url` + "`" + ` is ` + "`" + `null` + "`" + `.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "Users"
+                    "Account \u0026 Profile"
                 ],
-                "summary": "Get my profile",
+                "summary": "View my account and saved preferences",
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Current profile",
                         "schema": {
                             "$ref": "#/definitions/internal_handler.UserProfileResponse"
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "Missing or expired access token",
                         "schema": {
                             "$ref": "#/definitions/internal_handler.ErrorResponse"
                         }
                     },
                     "404": {
-                        "description": "Not Found",
+                        "description": "User record no longer exists",
                         "schema": {
                             "$ref": "#/definitions/internal_handler.ErrorResponse"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Unexpected server error",
                         "schema": {
                             "$ref": "#/definitions/internal_handler.ErrorResponse"
                         }
@@ -70,7 +100,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Set vehicle type and color used for map markers and drive exports.",
+                "description": "## What this does\nUpdates the **vehicle type** and/or **color** shown as your position marker during live tracking and embedded in exported drive videos.\n\n## Partial updates\nSend only the fields you want to change. Omitted keys are left as-is on the server.\n\n` + "`" + `` + "`" + `` + "`" + `json\n{ \"vehicle_type\": \"hatchback\", \"vehicle_color\": \"#E8262D\" }\n` + "`" + `` + "`" + `` + "`" + `\n\n## Allowed values\n| Field | Constraints |\n|-------|-------------|\n| ` + "`" + `vehicle_type` + "`" + ` | ` + "`" + `sedan` + "`" + `, ` + "`" + `hatchback` + "`" + `, ` + "`" + `station_wagon` + "`" + `, ` + "`" + `kamyon` + "`" + `, or ` + "`" + `tir` + "`" + ` |\n| ` + "`" + `vehicle_color` + "`" + ` | ` + "`" + `#` + "`" + ` followed by six hex digits, e.g. ` + "`" + `#1E88E5` + "`" + ` |\n\nUnknown JSON keys are rejected with **400 Bad Request**.",
                 "consumes": [
                     "application/json"
                 ],
@@ -78,12 +108,12 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Users"
+                    "Vehicle Customization"
                 ],
-                "summary": "Update vehicle preferences",
+                "summary": "Change my vehicle icon on the map",
                 "parameters": [
                     {
-                        "description": "Vehicle preferences",
+                        "description": "Fields to update (partial OK)",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -94,31 +124,31 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Profile after update",
                         "schema": {
                             "$ref": "#/definitions/internal_handler.UserProfileResponse"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Invalid vehicle_type, vehicle_color, or JSON",
                         "schema": {
                             "$ref": "#/definitions/internal_handler.ErrorResponse"
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "Missing or expired access token",
                         "schema": {
                             "$ref": "#/definitions/internal_handler.ErrorResponse"
                         }
                     },
                     "404": {
-                        "description": "Not Found",
+                        "description": "User record no longer exists",
                         "schema": {
                             "$ref": "#/definitions/internal_handler.ErrorResponse"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Unexpected server error",
                         "schema": {
                             "$ref": "#/definitions/internal_handler.ErrorResponse"
                         }
@@ -133,7 +163,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Upload a JPEG, PNG, or WebP avatar (max 2 MB).",
+                "description": "## What this does\nStores a new avatar for the signed-in user. The previous image file is deleted automatically when replaced.\n\n## How to send\nUse ` + "`" + `multipart/form-data` + "`" + ` with a single field named **` + "`" + `file` + "`" + `** containing the image bytes.\n\n## File rules\n| Rule | Value |\n|------|-------|\n| Formats | JPEG, PNG, or WebP |\n| Max size | 2 MB |\n| Field name | ` + "`" + `file` + "`" + ` (required) |\n\n## Response\nReturns the updated profile. The new ` + "`" + `profile_picture_url` + "`" + ` points to ` + "`" + `GET /v1/uploads/avatars/{user-id}.{ext}` + "`" + ` on the gateway — no auth required to view avatars.",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -141,13 +171,13 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Users"
+                    "Profile Photo"
                 ],
-                "summary": "Upload profile picture",
+                "summary": "Upload or replace my profile photo",
                 "parameters": [
                     {
                         "type": "file",
-                        "description": "Avatar image",
+                        "description": "Avatar image (JPEG, PNG, or WebP, max 2 MB)",
                         "name": "file",
                         "in": "formData",
                         "required": true
@@ -155,25 +185,25 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Profile with new profile_picture_url",
                         "schema": {
                             "$ref": "#/definitions/internal_handler.UserProfileResponse"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Missing file, unsupported type, or file too large",
                         "schema": {
                             "$ref": "#/definitions/internal_handler.ErrorResponse"
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "Missing or expired access token",
                         "schema": {
                             "$ref": "#/definitions/internal_handler.ErrorResponse"
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Unexpected server error",
                         "schema": {
                             "$ref": "#/definitions/internal_handler.ErrorResponse"
                         }
@@ -187,6 +217,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "error": {
+                    "description": "Human-readable explanation suitable to show in a client UI.",
                     "type": "string",
                     "example": "invalid JSON body"
                 }
@@ -196,10 +227,12 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "vehicle_color": {
+                    "description": "Six-digit hex color with leading ` + "`" + `#` + "`" + `, e.g. ` + "`" + `#E8262D` + "`" + `.",
                     "type": "string",
                     "example": "#1E88E5"
                 },
                 "vehicle_type": {
+                    "description": "One of: ` + "`" + `sedan` + "`" + `, ` + "`" + `hatchback` + "`" + `, ` + "`" + `station_wagon` + "`" + `, ` + "`" + `kamyon` + "`" + `, ` + "`" + `tir` + "`" + `.",
                     "type": "string",
                     "example": "sedan"
                 }
@@ -209,22 +242,27 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "email": {
+                    "description": "Account email address.",
                     "type": "string",
-                    "example": "user@example.com"
+                    "example": "driver@example.com"
                 },
                 "id": {
+                    "description": "Marmaradar user UUID.",
                     "type": "string",
                     "example": "550e8400-e29b-41d4-a716-446655440000"
                 },
                 "profile_picture_url": {
+                    "description": "Public path to the avatar on the gateway, e.g. ` + "`" + `/v1/uploads/avatars/{id}.jpg` + "`" + `. Null if no photo uploaded.",
                     "type": "string",
-                    "example": "/v1/uploads/avatars/550e8400.jpg"
+                    "example": "/v1/uploads/avatars/550e8400-e29b-41d4-a716-446655440000.jpg"
                 },
                 "vehicle_color": {
+                    "description": "Hex color for the vehicle icon (` + "`" + `#RRGGBB` + "`" + `).",
                     "type": "string",
                     "example": "#1E88E5"
                 },
                 "vehicle_type": {
+                    "description": "Vehicle body style used for the map marker and drive video export.",
                     "type": "string",
                     "enum": [
                         "sedan",
@@ -240,7 +278,7 @@ const docTemplate = `{
     },
     "securityDefinitions": {
         "BearerAuth": {
-            "description": "JWT access token. Format: ` + "`" + `Bearer {token}` + "`" + `",
+            "description": "Short-lived JWT from login/register/oauth. Example: ` + "`" + `Bearer eyJhbGciOiJIUzI1NiIs...` + "`" + `",
             "type": "apiKey",
             "name": "Authorization",
             "in": "header"
@@ -251,11 +289,11 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "api.marmaradar.com",
+	Host:             "35.239.129.237:8081",
 	BasePath:         "/",
-	Schemes:          []string{"https", "http"},
+	Schemes:          []string{"http"},
 	Title:            "Marmaradar API",
-	Description:      "Speed camera alerts, drive tracking, and user profile API.",
+	Description:      "## Welcome\nMarmaradar helps drivers in Turkey stay aware of speed cameras, average-speed corridors, and community road reports. This reference documents the REST API used by the mobile app and future integrations.\n\n## Base URL\n**This site (`api.marmaradar.com`) hosts documentation only.** To call the API, send requests to the Marmaradar **gateway**:\n\n| Environment | Base URL |\n|-------------|----------|\n| Production gateway | `http://35.239.129.237:8081` |\n| Local development | `http://127.0.0.1:8081` |\n\nAll paths below are relative to that gateway base (e.g. `GET /v1/users/me` → `http://35.239.129.237:8081/v1/users/me`).\n\n## Authentication\nMost endpoints require a JWT **access token** obtained via `/v1/auth/login`, `/v1/auth/register`, or `/v1/auth/oauth`. Pass it on every protected request:\n\n```\nAuthorization: Bearer <access_token>\n```\n\nWhen the access token expires, refresh it with `POST /v1/auth/refresh` and the `refresh_token` from the login response.\n\n## Conventions\n- Request and response bodies are JSON unless noted (e.g. profile photo upload uses `multipart/form-data`).\n- Errors return `{\"error\": \"<human-readable message>\"}` with an appropriate HTTP status code.\n- UUIDs are lowercase strings (e.g. `550e8400-e29b-41d4-a716-446655440000`).",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

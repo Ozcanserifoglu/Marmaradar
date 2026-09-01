@@ -1,21 +1,21 @@
 # Docs-only subdomain — does NOT expose /v1/*
 api.marmaradar.com {
-	# Scalar UI at root
-	handle / {
-		rewrite * /docs
-		reverse_proxy localhost:8081
-	}
-
-	handle /docs* {
-		reverse_proxy localhost:8081
-	}
-
+	# OpenAPI spec (Scalar loads this)
 	handle /openapi.json {
 		reverse_proxy localhost:8081
 	}
 
-	# Block everything else (belt-and-suspenders; KrakenD won't route /v1 anyway
-	# unless explicitly listed, but this prevents accidental future exposure)
+	# Docs UI at /docs and legacy paths
+	handle /docs* {
+		reverse_proxy localhost:8081
+	}
+
+	# Root serves the same Scalar UI (no rewrite — backend handles GET /)
+	handle / {
+		reverse_proxy localhost:8081
+	}
+
+	# Block everything else (KrakenD also whitelists paths only)
 	handle {
 		respond "Not Found" 404
 	}

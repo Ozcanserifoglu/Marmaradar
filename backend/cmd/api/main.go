@@ -1,6 +1,31 @@
 // @title           Marmaradar API
 // @version         1.0
-// @description     Speed camera alerts, drive tracking, and user profile API.
+// @description     ## Welcome
+// @description     Marmaradar helps drivers in Turkey stay aware of speed cameras, average-speed corridors, and community road reports. This reference documents the REST API used by the mobile app and future integrations.
+// @description
+// @description     ## Base URL
+// @description     **This site (`api.marmaradar.com`) hosts documentation only.** To call the API, send requests to the Marmaradar **gateway**:
+// @description
+// @description     | Environment | Base URL |
+// @description     |-------------|----------|
+// @description     | Production gateway | `http://35.239.129.237:8081` |
+// @description     | Local development | `http://127.0.0.1:8081` |
+// @description
+// @description     All paths below are relative to that gateway base (e.g. `GET /v1/users/me` → `http://35.239.129.237:8081/v1/users/me`).
+// @description
+// @description     ## Authentication
+// @description     Most endpoints require a JWT **access token** obtained via `/v1/auth/login`, `/v1/auth/register`, or `/v1/auth/oauth`. Pass it on every protected request:
+// @description
+// @description     ```
+// @description     Authorization: Bearer <access_token>
+// @description     ```
+// @description
+// @description     When the access token expires, refresh it with `POST /v1/auth/refresh` and the `refresh_token` from the login response.
+// @description
+// @description     ## Conventions
+// @description     - Request and response bodies are JSON unless noted (e.g. profile photo upload uses `multipart/form-data`).
+// @description     - Errors return `{"error": "<human-readable message>"}` with an appropriate HTTP status code.
+// @description     - UUIDs are lowercase strings (e.g. `550e8400-e29b-41d4-a716-446655440000`).
 // @termsOfService  https://www.marmaradar.com/terms
 //
 // @contact.name   Marmaradar Support
@@ -8,20 +33,23 @@
 //
 // @license.name   Proprietary
 //
-// @host      api.marmaradar.com
+// @host      35.239.129.237:8081
 // @BasePath  /
-// @schemes   https http
+// @schemes   http
 //
 // @securityDefinitions.apikey BearerAuth
 // @in                         header
 // @name                       Authorization
-// @description                JWT access token. Format: `Bearer {token}`
+// @description                Short-lived JWT from login/register/oauth. Example: `Bearer eyJhbGciOiJIUzI1NiIs...`
 //
-// @tag.name        Users
-// @tag.description Profile, vehicle customization, and avatar uploads
+// @tag.name        Account & Profile
+// @tag.description Read the signed-in user's account details and saved preferences.
 //
-// @tag.name        Auth
-// @tag.description Registration, login, and token refresh
+// @tag.name        Vehicle Customization
+// @tag.description Choose the vehicle icon shown on the live map and in exported drive videos.
+//
+// @tag.name        Profile Photo
+// @tag.description Upload and retrieve the user's avatar image.
 package main
 
 import (
@@ -208,6 +236,7 @@ func main() {
 	})
 
 	docsHandler := apidocs.NewHandler()
+	r.Get("/", docsHandler.ServeUI)
 	r.Get("/docs", docsHandler.ServeUI)
 	r.Get("/docs/", docsHandler.ServeUI)
 	r.Get("/openapi.json", docsHandler.ServeSpec)
