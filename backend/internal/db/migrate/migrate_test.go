@@ -34,18 +34,18 @@ func TestEmbeddedMigrationsPresent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(names) < 13 {
-		t.Fatalf("embedded %d sql files, want at least 13", len(names))
+	if len(names) < 14 {
+		t.Fatalf("embedded %d sql files, want at least 14", len(names))
 	}
 	found := false
 	for _, n := range names {
-		if n == "013_drive_speed_stats.sql" {
+		if n == "014_user_customization.sql" {
 			found = true
 			break
 		}
 	}
 	if !found {
-		t.Fatal("013_drive_speed_stats.sql is not embedded")
+		t.Fatal("014_user_customization.sql is not embedded")
 	}
 }
 

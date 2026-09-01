@@ -53,7 +53,7 @@ class AuthController extends ChangeNotifier {
   RadarApiClient get api => _api;
   TokenStore get tokenStore => _tokens;
 
-  bool get canUseGoogleSignIn => OAuthConfig.hasGoogleServerClientId;
+  bool get canUseGoogleSignIn => OAuthConfig.canUseGoogleSignIn;
   bool get showAppleSignIn => !kIsWeb && Platform.isIOS;
 
   Future<void> bootstrap() async {
@@ -116,8 +116,9 @@ class AuthController extends ChangeNotifier {
 
   Future<bool> loginWithGoogle() async {
     if (!canUseGoogleSignIn) {
-      _error =
-          'Google Sign-In yapılandırılmamış (GOOGLE_SERVER_CLIENT_ID eksik).';
+      _error = !OAuthConfig.hasGoogleServerClientId
+          ? 'Google Sign-In yapılandırılmamış (GOOGLE_SERVER_CLIENT_ID eksik).'
+          : 'Google Sign-In iOS için yapılandırılmamış (GOOGLE_IOS_CLIENT_ID ve GoogleSignInSecrets.xcconfig gerekli).';
       notifyListeners();
       return false;
     }

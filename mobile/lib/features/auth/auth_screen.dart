@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:radar_alert/app.dart';
 import 'package:radar_alert/core/theme/app_theme.dart';
+import 'package:radar_alert/data/auth/oauth_config.dart';
 import 'package:radar_alert/features/auth/forgot_password_dialog.dart';
 import 'package:radar_alert/features/auth/reset_password_screen.dart';
 
@@ -156,6 +157,19 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
                   ),
+                  if (!auth.canUseGoogleSignIn &&
+                      OAuthConfig.hasGoogleServerClientId &&
+                      !OAuthConfig.hasGoogleIosClientId) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      'iOS Google girişi için GOOGLE_IOS_CLIENT_ID yapılandırması gerekli.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
                   if (auth.showAppleSignIn) ...[
                     const SizedBox(height: 12),
                     OutlinedButton.icon(

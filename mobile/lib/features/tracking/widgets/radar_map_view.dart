@@ -7,6 +7,7 @@ import 'package:radar_alert/data/local/app_database.dart';
 import 'package:radar_alert/features/amenities/amenity_models.dart';
 import 'package:radar_alert/features/corridors/corridor_tracker.dart';
 import 'package:radar_alert/features/reports/live_report_models.dart';
+import 'package:radar_alert/features/profile/vehicle_models.dart';
 import 'package:radar_alert/features/tracking/tracking_controller.dart';
 import 'package:radar_alert/features/tracking/widgets/amenity_detail_sheet.dart';
 import 'package:radar_alert/features/tracking/widgets/camera_detail_sheet.dart';
@@ -44,6 +45,8 @@ class RadarMapView extends StatefulWidget {
     this.routePoints,
     this.destination,
     this.destinationTitle,
+    this.vehicleType = VehicleType.sedan,
+    this.vehicleColor = kDefaultVehicleColor,
   });
 
   final MapStyle style;
@@ -64,6 +67,8 @@ class RadarMapView extends StatefulWidget {
   final List<LatLng>? routePoints;
   final LatLng? destination;
   final String? destinationTitle;
+  final VehicleType vehicleType;
+  final Color vehicleColor;
 
   @override
   State<RadarMapView> createState() => _RadarMapViewState();
@@ -93,7 +98,9 @@ class _RadarMapViewState extends State<RadarMapView> {
         oldWidget.liveReports != widget.liveReports ||
         oldWidget.routePoints != widget.routePoints ||
         oldWidget.destination != widget.destination ||
-        oldWidget.destinationTitle != widget.destinationTitle) {
+        oldWidget.destinationTitle != widget.destinationTitle ||
+        oldWidget.vehicleType != widget.vehicleType ||
+        oldWidget.vehicleColor != widget.vehicleColor) {
       _rebuildOverlays();
       return;
     }
@@ -122,7 +129,10 @@ class _RadarMapViewState extends State<RadarMapView> {
   }
 
   Future<Marker> _userMarker(DriverSnapshot snapshot) async {
-    final userIcon = await MapMarkerIcons.user();
+    final userIcon = await MapMarkerIcons.vehicle(
+      type: widget.vehicleType,
+      color: widget.vehicleColor,
+    );
     return Marker(
       markerId: const MarkerId('user'),
       position: LatLng(snapshot.lat, snapshot.lon),

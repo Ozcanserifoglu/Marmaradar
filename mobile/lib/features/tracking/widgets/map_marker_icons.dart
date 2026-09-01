@@ -3,84 +3,40 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:radar_alert/core/theme/app_theme.dart';
+import 'package:radar_alert/features/profile/vehicle_models.dart';
+import 'package:radar_alert/features/tracking/widgets/vehicle_icon_painter.dart';
 
 class MapMarkerIcons {
   MapMarkerIcons._();
 
   static final Map<String, BitmapDescriptor> _cache = {};
 
-  static Future<BitmapDescriptor> user() => _cached('user', () {
-        return _paint(52, (canvas, size) {
-          final center = Offset(size / 2, size / 2);
-          final radius = size / 2 - 4;
-          canvas.drawCircle(
-            center,
-            radius + 2,
-            Paint()
-              ..color = AppColors.red.withValues(alpha: 0.45)
-              ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
-          );
-          canvas.drawCircle(center, radius, Paint()..color = AppColors.red);
-          canvas.drawCircle(
-            center,
-            radius,
-            Paint()
-              ..color = AppColors.white
-              ..style = PaintingStyle.stroke
-              ..strokeWidth = 3,
-          );
-          final path = Path()
-            ..moveTo(center.dx, center.dy - 11)
-            ..lineTo(center.dx + 8, center.dy + 8)
-            ..lineTo(center.dx, center.dy + 3)
-            ..lineTo(center.dx - 8, center.dy + 8)
-            ..close();
-          canvas.drawPath(path, Paint()..color = AppColors.white);
-        });
+  static Future<BitmapDescriptor> user() => vehicle(
+        type: VehicleType.sedan,
+        color: kDefaultVehicleColor,
+      );
+
+  static Future<BitmapDescriptor> car() => vehicle(
+        type: VehicleType.sedan,
+        color: kDefaultVehicleColor,
+      );
+
+  static Future<BitmapDescriptor> vehicle({
+    required VehicleType type,
+    required Color color,
+  }) {
+    final key = 'vehicle_${type.apiValue}_${vehicleColorToHex(color)}';
+    return _cached(key, () {
+      return _paint(52, (canvas, size) {
+        paintVehicle(
+          canvas,
+          Size(size, size),
+          type: type,
+          color: color,
+        );
       });
-
-  static Future<BitmapDescriptor> car() => _cached('car', () {
-        return _paint(46, (canvas, size) {
-          final center = Offset(size / 2, size / 2);
-          canvas.drawCircle(
-            center,
-            size / 2 - 2,
-            Paint()
-              ..color = AppColors.red.withValues(alpha: 0.35)
-              ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
-          );
-
-          final body = RRect.fromRectAndRadius(
-            Rect.fromCenter(
-              center: center,
-              width: size * 0.42,
-              height: size * 0.7,
-            ),
-            Radius.circular(size * 0.14),
-          );
-          canvas.drawRRect(body, Paint()..color = AppColors.red);
-          canvas.drawRRect(
-            body,
-            Paint()
-              ..color = AppColors.white
-              ..style = PaintingStyle.stroke
-              ..strokeWidth = 2.5,
-          );
-
-          final windshield = RRect.fromRectAndRadius(
-            Rect.fromCenter(
-              center: center.translate(0, -size * 0.16),
-              width: size * 0.3,
-              height: size * 0.16,
-            ),
-            Radius.circular(size * 0.05),
-          );
-          canvas.drawRRect(
-            windshield,
-            Paint()..color = AppColors.white.withValues(alpha: 0.9),
-          );
-        });
-      });
+    });
+  }
 
   static Future<BitmapDescriptor> cameraDot() => _cached('dot', () {
         return _paint(16, (canvas, size) {

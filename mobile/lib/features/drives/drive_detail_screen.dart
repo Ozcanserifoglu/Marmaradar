@@ -60,11 +60,14 @@ class _DriveDetailScreenState extends ConsumerState<DriveDetailScreen> {
   Future<void> _exportVideo(DriveDetail detail, DriveVideoIntent intent) async {
     if (_exporting) return;
     setState(() => _exporting = true);
+    final vehicle = ref.read(vehicleCustomizationControllerProvider);
     await exportDriveVideo(
       context,
       detail: detail,
       intent: intent,
       nameOverride: _effectiveName,
+      vehicleType: vehicle.vehicleType,
+      vehicleColor: vehicle.vehicleColor,
       sharePositionOrigin:
           intent == DriveVideoIntent.share ? _shareOrigin() : null,
     );
@@ -78,7 +81,15 @@ class _DriveDetailScreenState extends ConsumerState<DriveDetailScreen> {
     _future.then((detail) {
       if (mounted) setState(() => _detail = detail);
     }, onError: (_) {});
-    MapMarkerIcons.car().then((icon) {
+    _loadCarIcon();
+  }
+
+  void _loadCarIcon() {
+    final vehicle = ref.read(vehicleCustomizationControllerProvider);
+    MapMarkerIcons.vehicle(
+      type: vehicle.vehicleType,
+      color: vehicle.vehicleColor,
+    ).then((icon) {
       if (mounted) setState(() => _carIcon = icon);
     });
   }
@@ -125,6 +136,12 @@ class _DriveDetailScreenState extends ConsumerState<DriveDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(vehicleCustomizationControllerProvider, (prev, next) {
+      if (prev?.vehicleType != next.vehicleType ||
+          prev?.vehicleColor != next.vehicleColor) {
+        _loadCarIcon();
+      }
+    });
     return PopScope(
       canPop: !_exporting,
       child: FutureBuilder<DriveDetail>(

@@ -12,6 +12,7 @@ import 'package:radar_alert/features/auth/auth_controller.dart';
 import 'package:radar_alert/features/directions/directions_controller.dart';
 import 'package:radar_alert/features/drives/drives_controller.dart';
 import 'package:radar_alert/features/profile/profile_controller.dart';
+import 'package:radar_alert/features/profile/vehicle_customization_controller.dart';
 import 'package:radar_alert/features/tracking/tracking_controller.dart';
 import 'package:radar_alert/features/tracking/tracking_screen.dart';
 
@@ -40,6 +41,9 @@ class _MarmaradarAppState extends ConsumerState<MarmaradarApp>
       if (auth.isAuthenticated) {
         unawaited(
           ref.read(trackingControllerProvider).syncPendingDriveUploads(),
+        );
+        unawaited(
+          ref.read(vehicleCustomizationControllerProvider).syncFromServer(),
         );
       }
     });
@@ -94,6 +98,11 @@ class _MarmaradarAppState extends ConsumerState<MarmaradarApp>
           unawaited(
             ref.read(trackingControllerProvider).syncPendingDriveUploads(),
           );
+          unawaited(
+            ref.read(vehicleCustomizationControllerProvider).syncFromServer(),
+          );
+        } else {
+          ref.read(vehicleCustomizationControllerProvider).clear();
         }
       },
     );
@@ -128,6 +137,14 @@ final appearanceControllerProvider =
     ChangeNotifierProvider<AppearanceController>((ref) {
   final controller = AppearanceController();
   controller.load();
+  return controller;
+});
+
+final vehicleCustomizationControllerProvider =
+    ChangeNotifierProvider<VehicleCustomizationController>((ref) {
+  final controller =
+      VehicleCustomizationController(apiClient: _sharedApiClient);
+  controller.loadLocal();
   return controller;
 });
 

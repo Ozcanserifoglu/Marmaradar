@@ -1,3 +1,7 @@
+import 'dart:io' show Platform;
+
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 /// OAuth client configuration via `--dart-define` / `--dart-define-from-file`.
 ///
 /// Prefer the repo scripts (`run-local-mobile.sh`, `build-release-mobile.sh`), which
@@ -14,4 +18,13 @@ class OAuthConfig {
   );
 
   static bool get hasGoogleServerClientId => googleServerClientId.isNotEmpty;
+
+  static bool get hasGoogleIosClientId => googleIosClientId.isNotEmpty;
+
+  /// Native Google Sign-In on iOS aborts if GIDClientID / clientId is empty.
+  static bool get canUseGoogleSignIn {
+    if (!hasGoogleServerClientId) return false;
+    if (!kIsWeb && Platform.isIOS && !hasGoogleIosClientId) return false;
+    return true;
+  }
 }

@@ -13,6 +13,7 @@ dependencies:
   flutter_riverpod: ^2.6.1
   geolocator: ^13.0.2
   permission_handler: ^11.3.1
+  image_picker: ^1.1.2
   drift: ^2.34.0
   sqlite3_flutter_libs: ^0.5.28
   path_provider: ^2.1.5

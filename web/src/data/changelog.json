@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.10.0",
+    "date": "2026-09-01",
+    "title": "Araç özelleştirme, profil fotoğrafı ve API dokümantasyonu",
+    "changes": [
+      "Profilde araç tipi (sedan, hatchback, station wagon, kamyon, tır) ve renk seçimi — haritada ve sürüş videolarında senin aracın görünür",
+      "Profil fotoğrafı galeriden yüklenebilir; tercihler hesaba kaydedilir ve giriş yaptığında cihazlar arasında senkronize olur",
+      "Sürüş videosu dışa aktarımında ve paylaşımında özelleştirilmiş araç ikonu kullanılır",
+      "iOS'ta Google ile giriş için gerekli yapılandırma ve izinler eklendi",
+      "Geliştiriciler için api.marmaradar.com adresinde otomatik güncellenen API dokümantasyonu yayınlandı"
+    ]
+  },
+  {
     "version": "1.9.0",
     "date": "2026-08-25",
     "title": "Koridorda F1 tarzı tempo farkı ve daha okunaklı paylaşım videosu",

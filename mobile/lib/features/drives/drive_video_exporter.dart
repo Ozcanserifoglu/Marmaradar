@@ -10,6 +10,8 @@ import 'package:radar_alert/core/theme/app_theme.dart';
 import 'package:radar_alert/data/api/auth_models.dart';
 import 'package:radar_alert/features/drives/drive_format.dart';
 import 'package:radar_alert/features/drives/static_map_backdrop.dart';
+import 'package:radar_alert/features/profile/vehicle_models.dart';
+import 'package:radar_alert/features/tracking/widgets/vehicle_icon_painter.dart';
 
 class DriveVideoExporter {
   DriveVideoExporter._();
@@ -34,6 +36,8 @@ class DriveVideoExporter {
     double? avgSpeedKmh,
     double? minSpeedKmh,
     double? maxSpeedKmh,
+    VehicleType vehicleType = VehicleType.sedan,
+    Color vehicleColor = kDefaultVehicleColor,
     void Function(double progress)? onProgress,
   }) async {
     final route = displayPoints.length >= 2
@@ -91,6 +95,8 @@ class DriveVideoExporter {
           title: title,
           subtitle: statsLine,
           extraLine: minMaxLine,
+          vehicleType: vehicleType,
+          vehicleColor: vehicleColor,
         );
         await FlutterQuickVideoEncoder.appendVideoFrame(rgba);
         onProgress?.call((frame + 1) / _totalFrames);
@@ -114,6 +120,8 @@ class DriveVideoExporter {
     required String title,
     required String subtitle,
     String? extraLine,
+    required VehicleType vehicleType,
+    required Color vehicleColor,
   }) async {
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
@@ -178,7 +186,13 @@ class DriveVideoExporter {
         ..strokeWidth = 3,
     );
 
-    _drawCar(canvas, headOffset, head.headingDeg);
+    _drawCar(
+      canvas,
+      headOffset,
+      head.headingDeg,
+      type: vehicleType,
+      color: vehicleColor,
+    );
     _drawHud(canvas, s, title, subtitle, extraLine);
     _drawBrandMark(canvas, s);
 
@@ -190,34 +204,24 @@ class DriveVideoExporter {
     return byteData!.buffer.asUint8List();
   }
 
-  static void _drawCar(Canvas canvas, Offset center, double headingDeg) {
+  static void _drawCar(
+    Canvas canvas,
+    Offset center,
+    double headingDeg, {
+    required VehicleType type,
+    required Color color,
+  }) {
+    const glyphSize = 44.0;
     canvas.save();
     canvas.translate(center.dx, center.dy);
     canvas.rotate(headingDeg * math.pi / 180);
-
-    canvas.drawCircle(
-      Offset.zero,
-      16,
-      Paint()
-        ..color = AppColors.red.withValues(alpha: 0.35)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
+    canvas.translate(-glyphSize / 2, -glyphSize / 2);
+    paintVehicle(
+      canvas,
+      const Size(glyphSize, glyphSize),
+      type: type,
+      color: color,
     );
-    canvas.drawCircle(Offset.zero, 12, Paint()..color = AppColors.red);
-    canvas.drawCircle(
-      Offset.zero,
-      12,
-      Paint()
-        ..color = AppColors.white
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 3,
-    );
-    final arrow = Path()
-      ..moveTo(0, -7)
-      ..lineTo(5, 5)
-      ..lineTo(0, 2)
-      ..lineTo(-5, 5)
-      ..close();
-    canvas.drawPath(arrow, Paint()..color = AppColors.white);
     canvas.restore();
   }
 

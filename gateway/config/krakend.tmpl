@@ -14,7 +14,8 @@
         "http://localhost:5173",
         "http://127.0.0.1:5173",
         "https://marmaradar.com",
-        "https://www.marmaradar.com"
+        "https://www.marmaradar.com",
+        "https://api.marmaradar.com"
       ],
       "allow_methods": [
         "GET",
@@ -48,6 +49,51 @@
       "backend": [
         {
           "url_pattern": "/health",
+          "encoding": "no-op",
+          "host": {{ marshal .backend.host }}
+        }
+      ]
+    },
+    {
+      "endpoint": "/docs",
+      "method": "GET",
+      "output_encoding": "no-op",
+      "input_headers": ["CF-Connecting-IP"],
+      "backend": [
+        {
+          "url_pattern": "/docs",
+          "encoding": "no-op",
+          "host": {{ marshal .backend.host }}
+        }
+      ]
+    },
+    {
+      "endpoint": "/docs/",
+      "method": "GET",
+      "output_encoding": "no-op",
+      "backend": [
+        {
+          "url_pattern": "/docs/",
+          "encoding": "no-op",
+          "host": {{ marshal .backend.host }}
+        }
+      ]
+    },
+    {
+      "endpoint": "/openapi.json",
+      "method": "GET",
+      "output_encoding": "no-op",
+      "input_headers": ["CF-Connecting-IP"],
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "max_rate": 100,
+          "client_max_rate": 20,
+          "strategy": "ip"
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/openapi.json",
           "encoding": "no-op",
           "host": {{ marshal .backend.host }}
         }
@@ -348,6 +394,66 @@
       ]
     },
     {
+      "endpoint": "/v1/users/me",
+      "method": "GET",
+      "output_encoding": "no-op",
+      "input_headers": ["Authorization", "CF-Connecting-IP"],
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "max_rate": 100,
+          "client_max_rate": 10,
+          "strategy": "ip"
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/v1/users/me",
+          "encoding": "no-op",
+          "host": {{ marshal .backend.host }}
+        }
+      ]
+    },
+    {
+      "endpoint": "/v1/users/me",
+      "method": "PATCH",
+      "output_encoding": "no-op",
+      "input_headers": ["Authorization", "Content-Type", "CF-Connecting-IP"],
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "max_rate": 50,
+          "client_max_rate": 5,
+          "strategy": "ip"
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/v1/users/me",
+          "encoding": "no-op",
+          "host": {{ marshal .backend.host }}
+        }
+      ]
+    },
+    {
+      "endpoint": "/v1/users/me/profile-picture",
+      "method": "POST",
+      "output_encoding": "no-op",
+      "input_headers": ["Authorization", "Content-Type", "CF-Connecting-IP"],
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "max_rate": 20,
+          "client_max_rate": 3,
+          "strategy": "ip"
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/v1/users/me/profile-picture",
+          "encoding": "no-op",
+          "host": {{ marshal .backend.host }}
+        }
+      ]
+    },
+    {
       "endpoint": "/v1/users/me/stats",
       "method": "GET",
       "output_encoding": "no-op",
@@ -362,6 +468,26 @@
       "backend": [
         {
           "url_pattern": "/v1/users/me/stats",
+          "encoding": "no-op",
+          "host": {{ marshal .backend.host }}
+        }
+      ]
+    },
+    {
+      "endpoint": "/v1/uploads/avatars/{file}",
+      "method": "GET",
+      "output_encoding": "no-op",
+      "input_headers": ["CF-Connecting-IP"],
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "max_rate": 200,
+          "client_max_rate": 30,
+          "strategy": "ip"
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/v1/uploads/avatars/{file}",
           "encoding": "no-op",
           "host": {{ marshal .backend.host }}
         }

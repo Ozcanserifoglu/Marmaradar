@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:radar_alert/app.dart';
 import 'package:radar_alert/core/theme/app_theme.dart';
 import 'package:radar_alert/features/auth/auth_screen.dart';
@@ -8,6 +9,7 @@ import 'package:radar_alert/features/drives/drives_history_screen.dart';
 import 'package:radar_alert/features/profile/appearance_section.dart';
 import 'package:radar_alert/features/profile/profile_controller.dart';
 import 'package:radar_alert/features/profile/profile_models.dart';
+import 'package:radar_alert/features/profile/vehicle_customization_section.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -25,6 +27,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       final authenticated = ref.read(authControllerProvider).isAuthenticated;
       if (authenticated) {
         ref.read(profileControllerProvider).load();
+        ref.read(vehicleCustomizationControllerProvider).syncFromServer();
       }
     });
   }
@@ -33,13 +36,40 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final ok = await showAuthModal(context);
     if (ok && mounted) {
       await ref.read(profileControllerProvider).load(forceSpinner: true);
+      await ref.read(vehicleCustomizationControllerProvider).syncFromServer();
     }
   }
 
   Future<void> _logout() async {
     await ref.read(authControllerProvider).logout();
     ref.read(profileControllerProvider).clear();
+    ref.read(vehicleCustomizationControllerProvider).clear();
     if (mounted) Navigator.of(context).pop();
+  }
+
+  Future<void> _pickAvatar() async {
+    final picker = ImagePicker();
+    final file = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1024,
+      maxHeight: 1024,
+      imageQuality: 85,
+    );
+    if (file == null || !mounted) return;
+    final ok = await ref
+        .read(vehicleCustomizationControllerProvider)
+        .uploadProfilePicture(file.path);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          ok
+              ? 'Profil fotoğrafı güncellendi.'
+              : (ref.read(vehicleCustomizationControllerProvider).error ??
+                  'Yükleme başarısız.'),
+        ),
+      ),
+    );
   }
 
   @override
@@ -78,13 +108,20 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     return RefreshIndicator(
       color: AppColors.red,
-      onRefresh: () => ref.read(profileControllerProvider).refresh(),
+      onRefresh: () async {
+        await Future.wait([
+          ref.read(profileControllerProvider).refresh(),
+          ref.read(vehicleCustomizationControllerProvider).syncFromServer(),
+        ]);
+      },
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [
           const AppearanceSection(),
           const SizedBox(height: 28),
-          _Header(email: email ?? '', stats: stats),
+          const VehicleCustomizationSection(),
+          const SizedBox(height: 28),
+          _Header(email: email ?? '', stats: stats, onAvatarTap: _pickAvatar),
           const SizedBox(height: 20),
           if (showSkeleton)
             const _MetricsSkeleton()
@@ -136,27 +173,84 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 }
 
-class _Header extends StatelessWidget {
-  const _Header({required this.email, required this.stats});
+class _Header extends ConsumerWidget {
+  const _Header({
+    required this.email,
+    required this.stats,
+    required this.onAvatarTap,
+  });
 
   final String email;
   final UserStats? stats;
+  final VoidCallback onAvatarTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
+    final vehicle = ref.watch(vehicleCustomizationControllerProvider);
+    final pictureUrl = vehicle.absolutePictureUrl;
     return Row(
       children: [
-        Container(
-          width: 56,
-          height: 56,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: scheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: scheme.outline),
+        GestureDetector(
+          onTap: vehicle.uploadingPicture ? null : onAvatarTap,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: scheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: scheme.outline),
+                  image: pictureUrl == null
+                      ? null
+                      : DecorationImage(
+                          image: NetworkImage(pictureUrl),
+                          fit: BoxFit.cover,
+                        ),
+                ),
+                child: pictureUrl == null
+                    ? Icon(Icons.person, color: scheme.onSurface, size: 28)
+                    : null,
+              ),
+              if (vehicle.uploadingPicture)
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: Colors.black45,
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: const Center(
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+                ),
+              Positioned(
+                right: -2,
+                bottom: -2,
+                child: Container(
+                  width: 22,
+                  height: 22,
+                  decoration: BoxDecoration(
+                    color: AppColors.red,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: scheme.surface, width: 2),
+                  ),
+                  child: const Icon(
+                    Icons.camera_alt,
+                    size: 12,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
           ),
-          child: Icon(Icons.person, color: scheme.onSurface, size: 28),
         ),
         const SizedBox(width: 14),
         Expanded(

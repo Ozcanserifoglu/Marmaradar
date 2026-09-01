@@ -30,6 +30,7 @@ services:
       TTS_CACHE_DIR: /var/cache/tts
       TTS_VOICE: ${TTS_VOICE:-tr-TR-Standard-A}
       TTS_WARM_ON_START: ${TTS_WARM_ON_START:-true}
+      UPLOAD_DIR: /var/cache/uploads
       GEO_RESTRICT_COUNTRIES: ${GEO_RESTRICT_COUNTRIES:-TR}
       JWT_SECRET: ${JWT_SECRET:-}
       GOOGLE_OAUTH_CLIENT_IDS: ${GOOGLE_OAUTH_CLIENT_IDS:-}
@@ -40,6 +41,7 @@ services:
       EMAIL_APP_BASE_URL: ${EMAIL_APP_BASE_URL:-https://marmaradar.com}
     volumes:
       - tts_cache:/var/cache/tts
+      - uploads_cache:/var/cache/uploads
     expose:
       - "8080"
     depends_on:
@@ -63,3 +65,4 @@ services:
 volumes:
   pgdata:
   tts_cache:
+  uploads_cache:

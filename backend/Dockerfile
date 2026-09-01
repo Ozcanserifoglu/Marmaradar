@@ -7,6 +7,8 @@ RUN go mod download
 
 COPY . ./
 
+RUN go install github.com/swaggo/swag/cmd/swag@v1.16.4
+RUN swag init -g cmd/api/main.go -o docs --parseDependency --parseInternal --outputTypes json,go
 RUN CGO_ENABLED=0 go build -o /api ./cmd/api
 
 FROM alpine:3.20

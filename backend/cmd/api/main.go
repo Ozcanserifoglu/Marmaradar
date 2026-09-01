@@ -1,3 +1,27 @@
+// @title           Marmaradar API
+// @version         1.0
+// @description     Speed camera alerts, drive tracking, and user profile API.
+// @termsOfService  https://www.marmaradar.com/terms
+//
+// @contact.name   Marmaradar Support
+// @contact.url    https://www.marmaradar.com
+//
+// @license.name   Proprietary
+//
+// @host      api.marmaradar.com
+// @BasePath  /
+// @schemes   https http
+//
+// @securityDefinitions.apikey BearerAuth
+// @in                         header
+// @name                       Authorization
+// @description                JWT access token. Format: `Bearer {token}`
+//
+// @tag.name        Users
+// @tag.description Profile, vehicle customization, and avatar uploads
+//
+// @tag.name        Auth
+// @tag.description Registration, login, and token refresh
 package main
 
 import (
@@ -9,6 +33,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/radar-alert/backend/internal/apidocs"
 	"github.com/radar-alert/backend/internal/auth"
 	"github.com/radar-alert/backend/internal/client/distancematrix"
 	"github.com/radar-alert/backend/internal/client/places"
@@ -22,6 +47,9 @@ import (
 	"github.com/radar-alert/backend/internal/georestrict"
 	"github.com/radar-alert/backend/internal/handler"
 	"github.com/radar-alert/backend/internal/service"
+	"github.com/radar-alert/backend/internal/storage"
+
+	_ "github.com/radar-alert/backend/docs"
 )
 
 func main() {
@@ -103,10 +131,18 @@ func main() {
 	liveReportSvc := service.NewLiveReportService(pool)
 	etaSvc := service.NewEtaService(pool, matrixClient)
 	amenitiesSvc := service.NewAmenitiesService(placesClient)
+	uploadStore, err := storage.NewLocalObjectStorage(cfg.UploadDir)
+	if err != nil {
+		slog.Error("upload storage init failed", "error", err, "upload_dir", cfg.UploadDir)
+		os.Exit(1)
+	}
+	usersSvc := service.NewUsersService(pool, uploadStore)
+	slog.Info("profile uploads enabled", "upload_dir", cfg.UploadDir)
 
 	authHandler := handler.NewAuthHandler(authSvc)
 	driveHandler := handler.NewDriveHandler(driveSvc)
 	statsHandler := handler.NewStatsHandler(statsSvc)
+	usersHandler := handler.NewUsersHandler(usersSvc)
 	reportHandler := handler.NewReportHandler(reportSvc)
 	liveReportHandler := handler.NewLiveReportHandler(liveReportSvc)
 	etaHandler := handler.NewEtaHandler(etaSvc)
@@ -170,6 +206,12 @@ func main() {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{"status":"ok"}`))
 	})
+
+	docsHandler := apidocs.NewHandler()
+	r.Get("/docs", docsHandler.ServeUI)
+	r.Get("/docs/", docsHandler.ServeUI)
+	r.Get("/openapi.json", docsHandler.ServeSpec)
+
 	r.Get("/reset-password", authHandler.ResetPasswordPage)
 
 	r.Route("/v1", func(r chi.Router) {
@@ -177,6 +219,7 @@ func main() {
 		r.Get("/corridors/nearby", handler.NewCorridorHandler(geo).Nearby)
 		r.Get("/sync", handler.NewSyncHandler(geo).Delta)
 		r.Get("/live-reports/active", liveReportHandler.Active)
+		r.Get("/uploads/*", usersHandler.ServeUpload)
 
 		r.Post("/auth/register", authHandler.Register)
 		r.Post("/auth/login", authHandler.Login)
@@ -191,6 +234,9 @@ func main() {
 			r.Get("/drives", driveHandler.List)
 			r.Get("/drives/{id}", driveHandler.Detail)
 			r.Patch("/drives/{id}", driveHandler.Rename)
+			r.Get("/users/me", usersHandler.Me)
+			r.Patch("/users/me", usersHandler.UpdateMe)
+			r.Post("/users/me/profile-picture", usersHandler.UploadProfilePicture)
 			r.Get("/users/me/stats", statsHandler.Me)
 			r.Post("/reports", reportHandler.Create)
 			r.Post("/reports/{id}/votes", reportHandler.Vote)

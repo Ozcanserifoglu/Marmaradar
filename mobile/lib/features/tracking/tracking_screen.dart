@@ -690,6 +690,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
     final mapStyle = appearance.resolvedMapStyle;
     final controller = ref.watch(trackingControllerProvider);
     final directions = ref.watch(directionsControllerProvider);
+    final vehicle = ref.watch(vehicleCustomizationControllerProvider);
     final approaching = controller.approaching;
     final corridorStatus = controller.corridorStatus;
     final padding = MediaQuery.paddingOf(context);
@@ -713,6 +714,8 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
               routePoints: directions.hasRoute ? directions.routePoints : null,
               destination: directions.destinationLatLng,
               destinationTitle: directions.destinationName,
+              vehicleType: vehicle.vehicleType,
+              vehicleColor: vehicle.vehicleColor,
               isProgrammaticMove: () => _programmaticMove,
               onMapCreated: (mapController) {
                 _mapController = mapController;

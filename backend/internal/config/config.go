@@ -26,6 +26,7 @@ type Config struct {
 	TTSCacheDir          string `envconfig:"TTS_CACHE_DIR" default:"/var/cache/tts"`
 	TTSVoice             string `envconfig:"TTS_VOICE" default:"tr-TR-Standard-A"`
 	TTSWarmOnStart       bool   `envconfig:"TTS_WARM_ON_START" default:"true"`
+	UploadDir            string `envconfig:"UPLOAD_DIR" default:"/var/cache/uploads"`
 	GeoRestrictCountries string `envconfig:"GEO_RESTRICT_COUNTRIES"`
 	ResendAPIKey         string `envconfig:"RESEND_API_KEY"`
 	ResendFrom           string `envconfig:"RESEND_FROM" default:"Marmaradar <noreply@marmaradar.com>"`

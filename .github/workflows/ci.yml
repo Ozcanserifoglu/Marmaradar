@@ -17,6 +17,12 @@ jobs:
         working-directory: backend
       - run: go test ./...
         working-directory: backend
+      - name: Verify OpenAPI spec is current
+        working-directory: backend
+        run: |
+          go install github.com/swaggo/swag/cmd/swag@v1.16.4
+          swag init -g cmd/api/main.go -o docs --parseDependency --parseInternal --outputTypes json,go
+          git diff --exit-code docs/
       - run: go build ./...
         working-directory: data-pipeline
 

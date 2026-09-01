@@ -3,12 +3,14 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart' show Color;
 import 'package:http/http.dart' as http;
 import 'package:radar_alert/data/api/auth_models.dart';
 import 'package:radar_alert/data/auth/token_store.dart';
 import 'package:radar_alert/features/alerts/road_eta_models.dart';
 import 'package:radar_alert/features/amenities/amenity_models.dart';
 import 'package:radar_alert/features/profile/profile_models.dart';
+import 'package:radar_alert/features/profile/vehicle_models.dart';
 import 'package:radar_alert/features/reports/live_report_models.dart';
 
 class ApiException implements Exception {
@@ -434,6 +436,67 @@ class RadarApiClient {
       throw ApiException('users/me/stats', resp.statusCode, null, resp.body);
     }
     return UserStats.fromJson(jsonDecode(resp.body) as Map<String, dynamic>);
+  }
+
+  Future<UserProfile> fetchMyProfile() async {
+    final uri = Uri.parse('$baseUrl/v1/users/me');
+    final resp = await _getAuthed(uri);
+    if (resp.statusCode != 200) {
+      throw ApiException('users/me', resp.statusCode, null, resp.body);
+    }
+    return UserProfile.fromJson(jsonDecode(resp.body) as Map<String, dynamic>);
+  }
+
+  Future<UserProfile> updateMyPreferences({
+    VehicleType? vehicleType,
+    Color? vehicleColor,
+  }) async {
+    final body = <String, dynamic>{};
+    if (vehicleType != null) {
+      body['vehicle_type'] = vehicleType.apiValue;
+    }
+    if (vehicleColor != null) {
+      body['vehicle_color'] = vehicleColorToHex(vehicleColor);
+    }
+    final uri = Uri.parse('$baseUrl/v1/users/me');
+    final resp = await _patchJson(uri, body);
+    if (resp.statusCode != 200) {
+      throw ApiException('users/me', resp.statusCode, null, resp.body);
+    }
+    return UserProfile.fromJson(jsonDecode(resp.body) as Map<String, dynamic>);
+  }
+
+  Future<UserProfile> uploadProfilePicture(String filePath) async {
+    final uri = Uri.parse('$baseUrl/v1/users/me/profile-picture');
+    Future<http.Response> send() async {
+      final request = http.MultipartRequest('POST', uri);
+      final access = await _tokens.accessToken;
+      if (access != null && access.isNotEmpty) {
+        request.headers['Authorization'] = 'Bearer $access';
+      }
+      request.headers['Accept'] = 'application/json';
+      request.files.add(await http.MultipartFile.fromPath('file', filePath));
+      final streamed =
+          await request.send().timeout(const Duration(seconds: 60));
+      return http.Response.fromStream(streamed);
+    }
+
+    var resp = await send();
+    if (resp.statusCode == 401) {
+      final refreshed = await _tryRefresh();
+      if (refreshed) {
+        resp = await send();
+      }
+    }
+    if (resp.statusCode != 200) {
+      throw ApiException(
+        'users/me/profile-picture',
+        resp.statusCode,
+        null,
+        resp.body,
+      );
+    }
+    return UserProfile.fromJson(jsonDecode(resp.body) as Map<String, dynamic>);
   }
 
   Future<ReportResult> createReport({

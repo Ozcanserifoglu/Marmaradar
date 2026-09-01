@@ -5,6 +5,7 @@ import 'package:radar_alert/data/api/auth_models.dart';
 import 'package:radar_alert/features/drives/drive_format.dart';
 import 'package:radar_alert/features/drives/drive_speed_stats.dart';
 import 'package:radar_alert/features/drives/drive_video_exporter.dart';
+import 'package:radar_alert/features/profile/vehicle_models.dart';
 import 'package:share_plus/share_plus.dart';
 
 enum DriveVideoIntent { saveToGallery, share }
@@ -15,6 +16,8 @@ Future<void> exportDriveVideo(
   required DriveVideoIntent intent,
   String? nameOverride,
   Rect? sharePositionOrigin,
+  VehicleType vehicleType = VehicleType.sedan,
+  Color vehicleColor = kDefaultVehicleColor,
 }) async {
   final progress = ValueNotifier<double>(0);
   final preparingLabel = intent == DriveVideoIntent.share
@@ -49,6 +52,8 @@ Future<void> exportDriveVideo(
       avgSpeedKmh: detail.summary.avgSpeedKmh ?? stats.avgKmh,
       minSpeedKmh: detail.summary.minSpeedKmh ?? stats.minKmh,
       maxSpeedKmh: detail.summary.maxSpeedKmh ?? stats.maxKmh,
+      vehicleType: vehicleType,
+      vehicleColor: vehicleColor,
       onProgress: (p) => progress.value = p,
     );
   } catch (e) {
