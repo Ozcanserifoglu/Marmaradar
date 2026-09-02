@@ -416,6 +416,11 @@ func (s *LiveReportService) settleLiveReportTx(
 	}
 
 	reporterWon := newState == "confirmed"
+	if reporterWon {
+		if err := bumpStat(ctx, tx, reporterID, "valid_contributions", 1); err != nil {
+			return false, err
+		}
+	}
 	reporterRep, err := ensureUserReputation(ctx, tx, reporterID)
 	if err != nil {
 		return false, err

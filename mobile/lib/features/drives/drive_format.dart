@@ -39,6 +39,23 @@ String formatDistance(double meters) {
   return '${(meters / 1000).toStringAsFixed(1)} km';
 }
 
+/// Leaderboard distance: whole kilometers with thousands separator (e.g. `1,245 km`).
+String formatLeaderboardKm(double meters) {
+  final km = (meters / 1000).round();
+  return '${formatThousands(km)} km';
+}
+
+String formatThousands(int value) {
+  final s = value.abs().toString();
+  final buf = StringBuffer();
+  if (value < 0) buf.write('-');
+  for (var i = 0; i < s.length; i++) {
+    if (i > 0 && (s.length - i) % 3 == 0) buf.write(',');
+    buf.write(s[i]);
+  }
+  return buf.toString();
+}
+
 String formatSpeedKmh(double? kmh) {
   if (kmh == null) return '—';
   return '${kmh.round()} km/s';

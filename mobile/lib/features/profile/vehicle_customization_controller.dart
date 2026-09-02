@@ -10,13 +10,16 @@ class VehicleCustomizationController extends ChangeNotifier {
   static const _typeKey = 'vehicle_type';
   static const _colorKey = 'vehicle_color';
   static const _pictureKey = 'profile_picture_url';
+  static const _usernameKey = 'username';
 
   final RadarApiClient _api;
 
   VehicleType vehicleType = VehicleType.sedan;
   Color vehicleColor = kDefaultVehicleColor;
   String? profilePictureUrl;
+  String? username;
   bool saving = false;
+  bool savingUsername = false;
   bool uploadingPicture = false;
   String? error;
 
@@ -25,6 +28,7 @@ class VehicleCustomizationController extends ChangeNotifier {
     vehicleType = VehicleType.fromApi(prefs.getString(_typeKey));
     vehicleColor = parseVehicleColor(prefs.getString(_colorKey));
     profilePictureUrl = prefs.getString(_pictureKey);
+    username = prefs.getString(_usernameKey);
     notifyListeners();
   }
 
@@ -34,6 +38,7 @@ class VehicleCustomizationController extends ChangeNotifier {
       vehicleType = profile.vehicleType;
       vehicleColor = profile.vehicleColor;
       profilePictureUrl = profile.profilePictureUrl;
+      username = profile.username;
       error = null;
       await _persistLocal();
       notifyListeners();
@@ -71,6 +76,7 @@ class VehicleCustomizationController extends ChangeNotifier {
       vehicleType = profile.vehicleType;
       vehicleColor = profile.vehicleColor;
       profilePictureUrl = profile.profilePictureUrl ?? profilePictureUrl;
+      username = profile.username ?? username;
       await _persistLocal();
       saving = false;
       notifyListeners();
@@ -88,6 +94,46 @@ class VehicleCustomizationController extends ChangeNotifier {
     }
   }
 
+  /// Saves [nextUsername] after local regex validation. Returns null on success,
+  /// or a Turkish error message on failure (including 409 taken).
+  Future<String?> saveUsername(String nextUsername) async {
+    final normalized = nextUsername.trim().toLowerCase();
+    if (!isValidUsername(normalized)) {
+      return 'Kullanıcı adı 3–20 karakter olmalı (a-z, 0-9, _).';
+    }
+    if (username == normalized) {
+      return null;
+    }
+
+    savingUsername = true;
+    error = null;
+    notifyListeners();
+    try {
+      final profile = await _api.updateMyPreferences(username: normalized);
+      username = profile.username;
+      vehicleType = profile.vehicleType;
+      vehicleColor = profile.vehicleColor;
+      profilePictureUrl = profile.profilePictureUrl ?? profilePictureUrl;
+      await _persistLocal();
+      savingUsername = false;
+      notifyListeners();
+      return null;
+    } on ApiException catch (e) {
+      final msg = e.statusCode == 409
+          ? 'Bu kullanıcı adı zaten alınmış.'
+          : e.message;
+      error = msg;
+      savingUsername = false;
+      notifyListeners();
+      return msg;
+    } catch (_) {
+      error = 'Kullanıcı adı kaydedilemedi.';
+      savingUsername = false;
+      notifyListeners();
+      return error;
+    }
+  }
+
   Future<bool> uploadProfilePicture(String filePath) async {
     uploadingPicture = true;
     error = null;
@@ -97,6 +143,7 @@ class VehicleCustomizationController extends ChangeNotifier {
       profilePictureUrl = profile.profilePictureUrl;
       vehicleType = profile.vehicleType;
       vehicleColor = profile.vehicleColor;
+      username = profile.username ?? username;
       await _persistLocal();
       uploadingPicture = false;
       notifyListeners();
@@ -118,6 +165,7 @@ class VehicleCustomizationController extends ChangeNotifier {
     vehicleType = VehicleType.sedan;
     vehicleColor = kDefaultVehicleColor;
     profilePictureUrl = null;
+    username = null;
     error = null;
     notifyListeners();
   }
@@ -130,6 +178,11 @@ class VehicleCustomizationController extends ChangeNotifier {
       await prefs.remove(_pictureKey);
     } else {
       await prefs.setString(_pictureKey, profilePictureUrl!);
+    }
+    if (username == null || username!.isEmpty) {
+      await prefs.remove(_usernameKey);
+    } else {
+      await prefs.setString(_usernameKey, username!);
     }
   }
 

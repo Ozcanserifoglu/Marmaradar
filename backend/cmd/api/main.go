@@ -155,6 +155,7 @@ func main() {
 	}
 	driveSvc := service.NewDriveService(pool, roadsClient)
 	statsSvc := service.NewStatsService(pool)
+	leaderboardSvc := service.NewLeaderboardService(pool)
 	reportSvc := service.NewReportService(pool)
 	liveReportSvc := service.NewLiveReportService(pool)
 	etaSvc := service.NewEtaService(pool, matrixClient)
@@ -170,6 +171,7 @@ func main() {
 	authHandler := handler.NewAuthHandler(authSvc)
 	driveHandler := handler.NewDriveHandler(driveSvc)
 	statsHandler := handler.NewStatsHandler(statsSvc)
+	leaderboardHandler := handler.NewLeaderboardHandler(leaderboardSvc)
 	usersHandler := handler.NewUsersHandler(usersSvc)
 	reportHandler := handler.NewReportHandler(reportSvc)
 	liveReportHandler := handler.NewLiveReportHandler(liveReportSvc)
@@ -196,6 +198,21 @@ func main() {
 		for {
 			if _, err := liveReportSvc.SettleExpired(context.Background()); err != nil {
 				slog.Warn("settle live reports failed", "error", err)
+			}
+			<-ticker.C
+		}
+	}()
+
+	// Reconcile verified contribution counters against source tables.
+	go func() {
+		ticker := time.NewTicker(5 * time.Minute)
+		defer ticker.Stop()
+		for {
+			n, err := statsSvc.ReconcileValidContributions(context.Background())
+			if err != nil {
+				slog.Warn("reconcile valid_contributions failed", "error", err)
+			} else if n > 0 {
+				slog.Info("reconciled valid_contributions", "rows", n)
 			}
 			<-ticker.C
 		}
@@ -267,6 +284,7 @@ func main() {
 			r.Patch("/users/me", usersHandler.UpdateMe)
 			r.Post("/users/me/profile-picture", usersHandler.UploadProfilePicture)
 			r.Get("/users/me/stats", statsHandler.Me)
+			r.Get("/leaderboard", leaderboardHandler.Get)
 			r.Post("/reports", reportHandler.Create)
 			r.Post("/reports/{id}/votes", reportHandler.Vote)
 			r.Post("/live-reports", liveReportHandler.Create)

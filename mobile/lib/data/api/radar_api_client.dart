@@ -9,6 +9,7 @@ import 'package:radar_alert/data/api/auth_models.dart';
 import 'package:radar_alert/data/auth/token_store.dart';
 import 'package:radar_alert/features/alerts/road_eta_models.dart';
 import 'package:radar_alert/features/amenities/amenity_models.dart';
+import 'package:radar_alert/features/leaderboard/leaderboard_models.dart';
 import 'package:radar_alert/features/profile/profile_models.dart';
 import 'package:radar_alert/features/profile/vehicle_models.dart';
 import 'package:radar_alert/features/reports/live_report_models.dart';
@@ -35,6 +36,12 @@ class ApiException implements Exception {
     if (statusCode == 429) {
       return 'Çok fazla deneme. Lütfen bir dakika bekleyip tekrar deneyin.';
     }
+    if (statusCode == 409) {
+      return 'Bu kullanıcı adı zaten alınmış.';
+    }
+    if (statusCode == 404) {
+      return 'İstenen API uç noktası bulunamadı. Yerel sunucuyu yeniden başlatmayı deneyin.';
+    }
     if (body != null && body!.isNotEmpty) {
       try {
         final map = jsonDecode(body!) as Map<String, dynamic>;
@@ -42,6 +49,9 @@ class ApiException implements Exception {
         if (err is String && err.isNotEmpty) {
           if (err.contains('oauth provider is not configured')) {
             return 'Google/Apple girişi sunucuda yapılandırılmamış.';
+          }
+          if (err == 'invalid JSON body') {
+            return 'Sunucu bu isteği kabul etmedi. API sürümünü güncelleyin veya tekrar deneyin.';
           }
           return err;
         }
@@ -448,10 +458,14 @@ class RadarApiClient {
   }
 
   Future<UserProfile> updateMyPreferences({
+    String? username,
     VehicleType? vehicleType,
     Color? vehicleColor,
   }) async {
     final body = <String, dynamic>{};
+    if (username != null) {
+      body['username'] = username;
+    }
     if (vehicleType != null) {
       body['vehicle_type'] = vehicleType.apiValue;
     }
@@ -464,6 +478,19 @@ class RadarApiClient {
       throw ApiException('users/me', resp.statusCode, null, resp.body);
     }
     return UserProfile.fromJson(jsonDecode(resp.body) as Map<String, dynamic>);
+  }
+
+  Future<LeaderboardResponse> fetchLeaderboard(LeaderboardCategory category) async {
+    final uri = Uri.parse('$baseUrl/v1/leaderboard').replace(
+      queryParameters: {'category': category.apiValue},
+    );
+    final resp = await _getAuthed(uri);
+    if (resp.statusCode != 200) {
+      throw ApiException('leaderboard', resp.statusCode, null, resp.body);
+    }
+    return LeaderboardResponse.fromJson(
+      jsonDecode(resp.body) as Map<String, dynamic>,
+    );
   }
 
   Future<UserProfile> uploadProfilePicture(String filePath) async {

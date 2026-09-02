@@ -18,6 +18,8 @@ import (
 var (
 	ErrInvalidVehicleType  = errors.New("invalid vehicle_type")
 	ErrInvalidVehicleColor = errors.New("invalid vehicle_color")
+	ErrInvalidUsername     = errors.New("invalid username")
+	ErrUsernameTaken       = errors.New("username already taken")
 	ErrInvalidImageType    = errors.New("unsupported image type")
 	ErrImageTooLarge       = errors.New("image too large")
 	ErrUserNotFound        = errors.New("user not found")
@@ -32,18 +34,21 @@ var allowedVehicleTypes = map[string]struct{}{
 }
 
 var hexColorRe = regexp.MustCompile(`(?i)^#[0-9A-F]{6}$`)
+var usernameRe = regexp.MustCompile(`^[a-z0-9_]{3,20}$`)
 
 const MaxProfilePictureBytes = 2 << 20 // 2 MiB
 
 type UserProfile struct {
 	ID                string  `json:"id"`
 	Email             string  `json:"email"`
+	Username          *string `json:"username"`
 	ProfilePictureURL *string `json:"profile_picture_url"`
 	VehicleType       string  `json:"vehicle_type"`
 	VehicleColor      string  `json:"vehicle_color"`
 }
 
 type UpdatePreferencesInput struct {
+	Username     *string `json:"username"`
 	VehicleType  *string `json:"vehicle_type"`
 	VehicleColor *string `json:"vehicle_color"`
 }
@@ -60,10 +65,10 @@ func NewUsersService(pool *pgxpool.Pool, store storage.ObjectStorage) *UsersServ
 func (s *UsersService) GetProfile(ctx context.Context, userID uuid.UUID) (*UserProfile, error) {
 	var p UserProfile
 	err := s.pool.QueryRow(ctx, `
-		SELECT id::text, email, profile_picture_url, vehicle_type, vehicle_color
+		SELECT id::text, email, username, profile_picture_url, vehicle_type, vehicle_color
 		FROM users
 		WHERE id = $1
-	`, userID).Scan(&p.ID, &p.Email, &p.ProfilePictureURL, &p.VehicleType, &p.VehicleColor)
+	`, userID).Scan(&p.ID, &p.Email, &p.Username, &p.ProfilePictureURL, &p.VehicleType, &p.VehicleColor)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrUserNotFound
 	}
@@ -74,12 +79,19 @@ func (s *UsersService) GetProfile(ctx context.Context, userID uuid.UUID) (*UserP
 }
 
 func (s *UsersService) UpdatePreferences(ctx context.Context, userID uuid.UUID, in UpdatePreferencesInput) (*UserProfile, error) {
-	if in.VehicleType == nil && in.VehicleColor == nil {
+	if in.Username == nil && in.VehicleType == nil && in.VehicleColor == nil {
 		return s.GetProfile(ctx, userID)
 	}
 
+	username := ""
 	vehicleType := ""
 	vehicleColor := ""
+	if in.Username != nil {
+		username = strings.ToLower(strings.TrimSpace(*in.Username))
+		if !usernameRe.MatchString(username) {
+			return nil, ErrInvalidUsername
+		}
+	}
 	if in.VehicleType != nil {
 		vehicleType = strings.TrimSpace(*in.VehicleType)
 		if _, ok := allowedVehicleTypes[vehicleType]; !ok {
@@ -95,14 +107,42 @@ func (s *UsersService) UpdatePreferences(ctx context.Context, userID uuid.UUID, 
 
 	_, err := s.pool.Exec(ctx, `
 		UPDATE users SET
-			vehicle_type = COALESCE(NULLIF($2, ''), vehicle_type),
-			vehicle_color = COALESCE(NULLIF($3, ''), vehicle_color)
+			username = COALESCE(NULLIF($2, ''), username),
+			vehicle_type = COALESCE(NULLIF($3, ''), vehicle_type),
+			vehicle_color = COALESCE(NULLIF($4, ''), vehicle_color)
 		WHERE id = $1
-	`, userID, vehicleType, vehicleColor)
+	`, userID, username, vehicleType, vehicleColor)
 	if err != nil {
+		if isUniqueViolation(err) {
+			return nil, ErrUsernameTaken
+		}
 		return nil, err
 	}
 	return s.GetProfile(ctx, userID)
+}
+
+// DisplayUsername returns the public leaderboard label: custom username if set,
+// otherwise a privacy-masked email local-part (e.g. ozc***).
+func DisplayUsername(username *string, email string) string {
+	if username != nil {
+		u := strings.TrimSpace(*username)
+		if u != "" {
+			return u
+		}
+	}
+	local := email
+	if i := strings.Index(email, "@"); i >= 0 {
+		local = email[:i]
+	}
+	local = strings.TrimSpace(local)
+	if local == "" {
+		return "***"
+	}
+	n := 3
+	if len(local) < n {
+		n = len(local)
+	}
+	return local[:n] + "***"
 }
 
 func (s *UsersService) SaveProfilePicture(

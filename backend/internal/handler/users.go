@@ -35,6 +35,7 @@ func NewUsersHandler(users *service.UsersService) *UsersHandler {
 // @Description  ## Response notes
 // @Description  - `profile_picture_url` is a **relative path** on the gateway (e.g. `/v1/uploads/avatars/{user-id}.jpg`). Prepend your gateway base URL to display the image.
 // @Description  - If the user has never uploaded a photo, `profile_picture_url` is `null`.
+// @Description  - `username` is `null` until set via `PATCH /v1/users/me`. On public leaderboards, unset usernames are shown as a masked email local-part.
 // @Tags         Account & Profile
 // @Produce      json
 // @Security     BearerAuth
@@ -63,20 +64,21 @@ func (h *UsersHandler) Me(w http.ResponseWriter, r *http.Request) {
 }
 
 // UpdateMe godoc
-// @Summary      Change my vehicle icon on the map
+// @Summary      Change my username or vehicle icon on the map
 // @Description  ## What this does
-// @Description  Updates the **vehicle type** and/or **color** shown as your position marker during live tracking and embedded in exported drive videos.
+// @Description  Updates the **username**, **vehicle type**, and/or **color**. Vehicle settings are used as your position marker during live tracking and in exported drive videos. Username appears on public leaderboards.
 // @Description
 // @Description  ## Partial updates
 // @Description  Send only the fields you want to change. Omitted keys are left as-is on the server.
 // @Description
 // @Description  ```json
-// @Description  { "vehicle_type": "hatchback", "vehicle_color": "#E8262D" }
+// @Description  { "username": "ozcan_driver", "vehicle_type": "hatchback", "vehicle_color": "#E8262D" }
 // @Description  ```
 // @Description
 // @Description  ## Allowed values
 // @Description  | Field | Constraints |
 // @Description  |-------|-------------|
+// @Description  | `username` | lowercase `a-z`, `0-9`, `_`; length 3–20; unique |
 // @Description  | `vehicle_type` | `sedan`, `hatchback`, `station_wagon`, `kamyon`, or `tir` |
 // @Description  | `vehicle_color` | `#` followed by six hex digits, e.g. `#1E88E5` |
 // @Description
@@ -87,9 +89,10 @@ func (h *UsersHandler) Me(w http.ResponseWriter, r *http.Request) {
 // @Security     BearerAuth
 // @Param        body  body      UpdatePreferencesRequest  true  "Fields to update (partial OK)"
 // @Success      200   {object}  UserProfileResponse       "Profile after update"
-// @Failure      400   {object}  ErrorResponse             "Invalid vehicle_type, vehicle_color, or JSON"
+// @Failure      400   {object}  ErrorResponse             "Invalid username, vehicle_type, vehicle_color, or JSON"
 // @Failure      401   {object}  ErrorResponse             "Missing or expired access token"
 // @Failure      404   {object}  ErrorResponse             "User record no longer exists"
+// @Failure      409   {object}  ErrorResponse             "Username already taken"
 // @Failure      500   {object}  ErrorResponse             "Unexpected server error"
 // @Router       /v1/users/me [patch]
 func (h *UsersHandler) UpdateMe(w http.ResponseWriter, r *http.Request) {
@@ -110,6 +113,10 @@ func (h *UsersHandler) UpdateMe(w http.ResponseWriter, r *http.Request) {
 	profile, err := h.users.UpdatePreferences(r.Context(), userID, body)
 	if err != nil {
 		switch {
+		case errors.Is(err, service.ErrInvalidUsername):
+			writeBadRequest(w, "username must be 3–20 chars: lowercase letters, digits, underscore")
+		case errors.Is(err, service.ErrUsernameTaken):
+			writeJSON(w, http.StatusConflict, map[string]string{"error": "username already taken"})
 		case errors.Is(err, service.ErrInvalidVehicleType):
 			writeBadRequest(w, "vehicle_type must be one of: sedan, hatchback, station_wagon, kamyon, tir")
 		case errors.Is(err, service.ErrInvalidVehicleColor):

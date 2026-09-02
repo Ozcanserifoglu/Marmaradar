@@ -20,6 +20,21 @@ final _turkeyBounds = LatLngBounds(
   northeast: const LatLng(42.9, 45.5),
 );
 
+/// Simulator / foreign GPS often starts outside Turkey. Centering the camera
+/// there while [cameraTargetBounds] is Turkey-only yields a blank Google Map
+/// on iOS.
+bool isInTurkeyMapBounds(LatLng point) {
+  return point.latitude >= _turkeyBounds.southwest.latitude &&
+      point.latitude <= _turkeyBounds.northeast.latitude &&
+      point.longitude >= _turkeyBounds.southwest.longitude &&
+      point.longitude <= _turkeyBounds.northeast.longitude;
+}
+
+LatLng turkeySafeCameraTarget(LatLng? candidate) {
+  if (candidate != null && isInTurkeyMapBounds(candidate)) return candidate;
+  return _fallbackCenter;
+}
+
 const _markerMinZoom = 10.0;
 
 const _amenityMinZoom = AmenityConstants.minZoom;
@@ -364,9 +379,11 @@ class _RadarMapViewState extends State<RadarMapView> {
 
   @override
   Widget build(BuildContext context) {
-    final initial = widget.snapshot != null
-        ? LatLng(widget.snapshot!.lat, widget.snapshot!.lon)
-        : _fallbackCenter;
+    final initial = turkeySafeCameraTarget(
+      widget.snapshot != null
+          ? LatLng(widget.snapshot!.lat, widget.snapshot!.lon)
+          : null,
+    );
 
     return GoogleMap(
       initialCameraPosition: CameraPosition(target: initial, zoom: 15),

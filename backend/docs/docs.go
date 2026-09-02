@@ -22,6 +22,68 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/v1/leaderboard": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "## What this does\nReturns the **top 100** users for a lifetime category, plus the **caller's own rank** even when they are outside the top 100.\n\n## Categories\n| ` + "`" + `category` + "`" + ` | Metric (` + "`" + `value` + "`" + `) |\n|------------|------------------|\n| ` + "`" + `distance` + "`" + ` | Total distance driven in **meters** (` + "`" + `user_stats.total_distance_m` + "`" + `) |\n| ` + "`" + `reports` + "`" + `  | Verified contributions: non-removed mobile radar reports + confirmed live reports |\n\n## Enrichment\nEach entry includes ` + "`" + `username` + "`" + ` (custom name, or a masked email local-part like ` + "`" + `ozc***` + "`" + `), ` + "`" + `profile_picture_url` + "`" + `, ` + "`" + `vehicle_type` + "`" + `, and ` + "`" + `vehicle_color` + "`" + ` for rich mobile UI.\n\n## Ranking\nOrdered by metric descending, then ` + "`" + `user_id` + "`" + ` ascending for stable ties. ` + "`" + `me.in_top` + "`" + ` is true when the caller appears in ` + "`" + `entries` + "`" + `.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Leaderboard"
+                ],
+                "summary": "Get distance or community-contribution leaderboard",
+                "parameters": [
+                    {
+                        "enum": [
+                            "distance",
+                            "reports"
+                        ],
+                        "type": "string",
+                        "description": "Leaderboard category",
+                        "name": "category",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Top 100 plus caller rank",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.LeaderboardResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Missing or invalid category",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Missing or expired access token",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "User record no longer exists",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Unexpected server error",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/uploads/avatars/{file}": {
             "get": {
                 "description": "## What this does\nServes a publicly cached profile photo previously uploaded via ` + "`" + `POST /v1/users/me/profile-picture` + "`" + `.\n\n## Path format\nThe ` + "`" + `{file}` + "`" + ` segment is the stored filename: ` + "`" + `{user-uuid}.{jpg|png|webp}` + "`" + ` — exactly as returned in ` + "`" + `profile_picture_url` + "`" + ` after the ` + "`" + `/v1/uploads/avatars/` + "`" + ` prefix.\n\n**Example:** ` + "`" + `GET /v1/uploads/avatars/550e8400-e29b-41d4-a716-446655440000.jpg` + "`" + `\n\n## Caching\nResponses include ` + "`" + `Cache-Control: public, max-age=86400` + "`" + ` (24 hours). No authentication required.",
@@ -59,7 +121,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "## What this does\nReturns everything Marmaradar knows about the **currently signed-in user**: email, profile photo URL, and vehicle customization used on the map and in drive videos.\n\n## When to call\n- After login, to hydrate the profile screen.\n- On app launch, to sync vehicle icon settings from the server.\n\n## Response notes\n- ` + "`" + `profile_picture_url` + "`" + ` is a **relative path** on the gateway (e.g. ` + "`" + `/v1/uploads/avatars/{user-id}.jpg` + "`" + `). Prepend your gateway base URL to display the image.\n- If the user has never uploaded a photo, ` + "`" + `profile_picture_url` + "`" + ` is ` + "`" + `null` + "`" + `.",
+                "description": "## What this does\nReturns everything Marmaradar knows about the **currently signed-in user**: email, profile photo URL, and vehicle customization used on the map and in drive videos.\n\n## When to call\n- After login, to hydrate the profile screen.\n- On app launch, to sync vehicle icon settings from the server.\n\n## Response notes\n- ` + "`" + `profile_picture_url` + "`" + ` is a **relative path** on the gateway (e.g. ` + "`" + `/v1/uploads/avatars/{user-id}.jpg` + "`" + `). Prepend your gateway base URL to display the image.\n- If the user has never uploaded a photo, ` + "`" + `profile_picture_url` + "`" + ` is ` + "`" + `null` + "`" + `.\n- ` + "`" + `username` + "`" + ` is ` + "`" + `null` + "`" + ` until set via ` + "`" + `PATCH /v1/users/me` + "`" + `. On public leaderboards, unset usernames are shown as a masked email local-part.",
                 "produces": [
                     "application/json"
                 ],
@@ -100,7 +162,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "## What this does\nUpdates the **vehicle type** and/or **color** shown as your position marker during live tracking and embedded in exported drive videos.\n\n## Partial updates\nSend only the fields you want to change. Omitted keys are left as-is on the server.\n\n` + "`" + `` + "`" + `` + "`" + `json\n{ \"vehicle_type\": \"hatchback\", \"vehicle_color\": \"#E8262D\" }\n` + "`" + `` + "`" + `` + "`" + `\n\n## Allowed values\n| Field | Constraints |\n|-------|-------------|\n| ` + "`" + `vehicle_type` + "`" + ` | ` + "`" + `sedan` + "`" + `, ` + "`" + `hatchback` + "`" + `, ` + "`" + `station_wagon` + "`" + `, ` + "`" + `kamyon` + "`" + `, or ` + "`" + `tir` + "`" + ` |\n| ` + "`" + `vehicle_color` + "`" + ` | ` + "`" + `#` + "`" + ` followed by six hex digits, e.g. ` + "`" + `#1E88E5` + "`" + ` |\n\nUnknown JSON keys are rejected with **400 Bad Request**.",
+                "description": "## What this does\nUpdates the **username**, **vehicle type**, and/or **color**. Vehicle settings are used as your position marker during live tracking and in exported drive videos. Username appears on public leaderboards.\n\n## Partial updates\nSend only the fields you want to change. Omitted keys are left as-is on the server.\n\n` + "`" + `` + "`" + `` + "`" + `json\n{ \"username\": \"ozcan_driver\", \"vehicle_type\": \"hatchback\", \"vehicle_color\": \"#E8262D\" }\n` + "`" + `` + "`" + `` + "`" + `\n\n## Allowed values\n| Field | Constraints |\n|-------|-------------|\n| ` + "`" + `username` + "`" + ` | lowercase ` + "`" + `a-z` + "`" + `, ` + "`" + `0-9` + "`" + `, ` + "`" + `_` + "`" + `; length 3–20; unique |\n| ` + "`" + `vehicle_type` + "`" + ` | ` + "`" + `sedan` + "`" + `, ` + "`" + `hatchback` + "`" + `, ` + "`" + `station_wagon` + "`" + `, ` + "`" + `kamyon` + "`" + `, or ` + "`" + `tir` + "`" + ` |\n| ` + "`" + `vehicle_color` + "`" + ` | ` + "`" + `#` + "`" + ` followed by six hex digits, e.g. ` + "`" + `#1E88E5` + "`" + ` |\n\nUnknown JSON keys are rejected with **400 Bad Request**.",
                 "consumes": [
                     "application/json"
                 ],
@@ -110,7 +172,7 @@ const docTemplate = `{
                 "tags": [
                     "Vehicle Customization"
                 ],
-                "summary": "Change my vehicle icon on the map",
+                "summary": "Change my username or vehicle icon on the map",
                 "parameters": [
                     {
                         "description": "Fields to update (partial OK)",
@@ -130,7 +192,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Invalid vehicle_type, vehicle_color, or JSON",
+                        "description": "Invalid username, vehicle_type, vehicle_color, or JSON",
                         "schema": {
                             "$ref": "#/definitions/internal_handler.ErrorResponse"
                         }
@@ -143,6 +205,12 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "User record no longer exists",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Username already taken",
                         "schema": {
                             "$ref": "#/definitions/internal_handler.ErrorResponse"
                         }
@@ -223,9 +291,114 @@ const docTemplate = `{
                 }
             }
         },
+        "internal_handler.LeaderboardEntry": {
+            "type": "object",
+            "properties": {
+                "profile_picture_url": {
+                    "type": "string",
+                    "example": "/v1/uploads/avatars/550e8400-e29b-41d4-a716-446655440000.jpg"
+                },
+                "rank": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "user_id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "username": {
+                    "type": "string",
+                    "example": "ozc***"
+                },
+                "value": {
+                    "description": "Meters for category=distance; contribution count for category=reports.",
+                    "type": "number",
+                    "example": 152340.5
+                },
+                "vehicle_color": {
+                    "type": "string",
+                    "example": "#E8262D"
+                },
+                "vehicle_type": {
+                    "type": "string",
+                    "enum": [
+                        "sedan",
+                        "hatchback",
+                        "station_wagon",
+                        "kamyon",
+                        "tir"
+                    ],
+                    "example": "sedan"
+                }
+            }
+        },
+        "internal_handler.LeaderboardMeEntry": {
+            "type": "object",
+            "properties": {
+                "in_top": {
+                    "description": "True when the caller appears in entries.",
+                    "type": "boolean",
+                    "example": false
+                },
+                "profile_picture_url": {
+                    "type": "string"
+                },
+                "rank": {
+                    "type": "integer",
+                    "example": 142
+                },
+                "user_id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "username": {
+                    "type": "string",
+                    "example": "driver_one"
+                },
+                "value": {
+                    "type": "number",
+                    "example": 8200
+                },
+                "vehicle_color": {
+                    "type": "string",
+                    "example": "#1E88E5"
+                },
+                "vehicle_type": {
+                    "type": "string",
+                    "example": "hatchback"
+                }
+            }
+        },
+        "internal_handler.LeaderboardResponse": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "type": "string",
+                    "enum": [
+                        "distance",
+                        "reports"
+                    ],
+                    "example": "distance"
+                },
+                "entries": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_handler.LeaderboardEntry"
+                    }
+                },
+                "me": {
+                    "$ref": "#/definitions/internal_handler.LeaderboardMeEntry"
+                }
+            }
+        },
         "internal_handler.UpdatePreferencesRequest": {
             "type": "object",
             "properties": {
+                "username": {
+                    "description": "Unique public username: lowercase letters, digits, underscore; 3–20 chars.",
+                    "type": "string",
+                    "example": "ozcan_driver"
+                },
                 "vehicle_color": {
                     "description": "Six-digit hex color with leading ` + "`" + `#` + "`" + `, e.g. ` + "`" + `#E8262D` + "`" + `.",
                     "type": "string",
@@ -255,6 +428,11 @@ const docTemplate = `{
                     "description": "Public path to the avatar on the gateway, e.g. ` + "`" + `/v1/uploads/avatars/{id}.jpg` + "`" + `. Null if no photo uploaded.",
                     "type": "string",
                     "example": "/v1/uploads/avatars/550e8400-e29b-41d4-a716-446655440000.jpg"
+                },
+                "username": {
+                    "description": "Public display name for leaderboards. Null until the user sets one.",
+                    "type": "string",
+                    "example": "ozcan_driver"
                 },
                 "vehicle_color": {
                     "description": "Hex color for the vehicle icon (` + "`" + `#RRGGBB` + "`" + `).",

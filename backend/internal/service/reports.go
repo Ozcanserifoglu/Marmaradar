@@ -204,6 +204,9 @@ func (s *ReportService) Create(ctx context.Context, userID uuid.UUID, in CreateR
 	if err := bumpStat(ctx, tx, userID, "reports_submitted", 1); err != nil {
 		return nil, err
 	}
+	if err := bumpStat(ctx, tx, userID, "valid_contributions", 1); err != nil {
+		return nil, err
+	}
 	if isNightDrive(time.Now().UTC()) {
 		if err := bumpStat(ctx, tx, userID, "night_reports_submitted", 1); err != nil {
 			return nil, err
@@ -470,6 +473,9 @@ func applyVoteTx(
 		if err := bumpStat(ctx, tx, reporterID, "fake_reports", 1); err != nil {
 			return nil, err
 		}
+		if err := bumpStat(ctx, tx, reporterID, "valid_contributions", -1); err != nil {
+			return nil, err
+		}
 	}
 
 	voterStats, err := ensureUserStats(ctx, tx, userID)
@@ -516,6 +522,7 @@ func bumpStat(ctx context.Context, tx pgx.Tx, userID uuid.UUID, column string, d
 		"live_confirmations_given": true,
 		"live_drivers_saved":       true,
 		"night_reports_submitted":  true,
+		"valid_contributions":      true,
 	}
 	if !allowed[column] {
 		return fmt.Errorf("invalid stats column %s", column)

@@ -1,5 +1,18 @@
 [
   {
+    "version": "1.11.0",
+    "date": "2026-09-02",
+    "title": "Çift sıralama tablosu ve kullanıcı adı",
+    "changes": [
+      "Sıralama ekranı: Mesafe (toplam km) ve Katkılar (doğrulanmış radar / canlı raporlar) olmak üzere iki ayrı liderlik tablosu",
+      "İlk 3 için podyum görünümü, 4–100 arası liste ve altta sabitlediğin kendi sıran — üst 100 dışında olsan da görünür",
+      "Profilde benzersiz kullanıcı adı seçebilirsin; sıralamada bu ad (veya ayarlanmamışsa maskelenmiş e-posta) gösterilir",
+      "Liste satırlarında avatar, araç tipi ve renk ikonu; ana panelden kupa ile veya profilden Sıralama’ya ulaşılır",
+      "Haritada Türkiye dışı simülatör GPS’i boş harita oluşturmasın diye kamera Türkiye sınırında tutulur",
+      "Açık temada profil kartları ve araç önizlemeleri daha okunaklı; açık renkli araçlarda ikon detayları koyu çizilir"
+    ]
+  },
+  {
     "version": "1.10.0",
     "date": "2026-09-01",
     "title": "Araç özelleştirme, profil fotoğrafı ve API dokümantasyonu",

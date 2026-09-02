@@ -4,6 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:radar_alert/core/theme/app_theme.dart';
 import 'package:radar_alert/features/profile/vehicle_models.dart';
 
+/// Outline / glass details that stay readable on light or dark body colors.
+Color vehicleAccentOn(Color body) {
+  return body.computeLuminance() > 0.55 ? AppColors.ink : AppColors.white;
+}
+
 /// Shared top-down vehicle glyph used by map markers and video export.
 void paintVehicle(
   Canvas canvas,
@@ -13,6 +18,7 @@ void paintVehicle(
 }) {
   final center = Offset(size.width / 2, size.height / 2);
   final minSide = math.min(size.width, size.height);
+  final accent = vehicleAccentOn(color);
 
   canvas.drawCircle(
     center,
@@ -24,15 +30,39 @@ void paintVehicle(
 
   switch (type) {
     case VehicleType.sedan:
-      _paintSedanLike(canvas, center, minSide, color, bodyH: 0.70, bodyW: 0.42);
+      _paintSedanLike(
+        canvas,
+        center,
+        minSide,
+        color,
+        accent,
+        bodyH: 0.70,
+        bodyW: 0.42,
+      );
     case VehicleType.hatchback:
-      _paintSedanLike(canvas, center, minSide, color, bodyH: 0.62, bodyW: 0.44);
+      _paintSedanLike(
+        canvas,
+        center,
+        minSide,
+        color,
+        accent,
+        bodyH: 0.62,
+        bodyW: 0.44,
+      );
     case VehicleType.stationWagon:
-      _paintSedanLike(canvas, center, minSide, color, bodyH: 0.78, bodyW: 0.42);
+      _paintSedanLike(
+        canvas,
+        center,
+        minSide,
+        color,
+        accent,
+        bodyH: 0.78,
+        bodyW: 0.42,
+      );
     case VehicleType.kamyon:
-      _paintTruck(canvas, center, minSide, color, trailerH: 0.42);
+      _paintTruck(canvas, center, minSide, color, accent, trailerH: 0.42);
     case VehicleType.tir:
-      _paintTruck(canvas, center, minSide, color, trailerH: 0.55);
+      _paintTruck(canvas, center, minSide, color, accent, trailerH: 0.55);
   }
 }
 
@@ -40,7 +70,8 @@ void _paintSedanLike(
   Canvas canvas,
   Offset center,
   double minSide,
-  Color color, {
+  Color color,
+  Color accent, {
   required double bodyH,
   required double bodyW,
 }) {
@@ -56,7 +87,7 @@ void _paintSedanLike(
   canvas.drawRRect(
     body,
     Paint()
-      ..color = AppColors.white
+      ..color = accent
       ..style = PaintingStyle.stroke
       ..strokeWidth = math.max(2.0, minSide * 0.05),
   );
@@ -71,7 +102,7 @@ void _paintSedanLike(
   );
   canvas.drawRRect(
     windshield,
-    Paint()..color = AppColors.white.withValues(alpha: 0.9),
+    Paint()..color = accent.withValues(alpha: 0.9),
   );
 
   final rear = RRect.fromRectAndRadius(
@@ -84,7 +115,7 @@ void _paintSedanLike(
   );
   canvas.drawRRect(
     rear,
-    Paint()..color = AppColors.white.withValues(alpha: 0.45),
+    Paint()..color = accent.withValues(alpha: 0.45),
   );
 }
 
@@ -92,7 +123,8 @@ void _paintTruck(
   Canvas canvas,
   Offset center,
   double minSide,
-  Color color, {
+  Color color,
+  Color accent, {
   required double trailerH,
 }) {
   final cab = RRect.fromRectAndRadius(
@@ -116,7 +148,7 @@ void _paintTruck(
   canvas.drawRRect(
     trailer,
     Paint()
-      ..color = AppColors.white
+      ..color = accent
       ..style = PaintingStyle.stroke
       ..strokeWidth = math.max(2.0, minSide * 0.045),
   );
@@ -124,7 +156,7 @@ void _paintTruck(
   canvas.drawRRect(
     cab,
     Paint()
-      ..color = AppColors.white
+      ..color = accent
       ..style = PaintingStyle.stroke
       ..strokeWidth = math.max(2.0, minSide * 0.045),
   );
@@ -139,7 +171,7 @@ void _paintTruck(
   );
   canvas.drawRRect(
     windshield,
-    Paint()..color = AppColors.white.withValues(alpha: 0.9),
+    Paint()..color = accent.withValues(alpha: 0.9),
   );
 }
 

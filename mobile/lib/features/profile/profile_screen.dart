@@ -6,9 +6,11 @@ import 'package:radar_alert/core/theme/app_theme.dart';
 import 'package:radar_alert/features/auth/auth_screen.dart';
 import 'package:radar_alert/features/drives/drive_format.dart';
 import 'package:radar_alert/features/drives/drives_history_screen.dart';
+import 'package:radar_alert/features/leaderboard/leaderboard_screen.dart';
 import 'package:radar_alert/features/profile/appearance_section.dart';
 import 'package:radar_alert/features/profile/profile_controller.dart';
 import 'package:radar_alert/features/profile/profile_models.dart';
+import 'package:radar_alert/features/profile/username_section.dart';
 import 'package:radar_alert/features/profile/vehicle_customization_section.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -119,6 +121,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         children: [
           const AppearanceSection(),
           const SizedBox(height: 28),
+          const UsernameSection(),
+          const SizedBox(height: 28),
           const VehicleCustomizationSection(),
           const SizedBox(height: 28),
           _Header(email: email ?? '', stats: stats, onAvatarTap: _pickAvatar),
@@ -137,10 +141,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ],
           if (profile.isRefreshing) ...[
             const SizedBox(height: 8),
-            const LinearProgressIndicator(
+            LinearProgressIndicator(
               minHeight: 2,
               color: AppColors.red,
-              backgroundColor: AppColors.outline,
+              backgroundColor: Theme.of(context).colorScheme.outline,
             ),
           ],
           const SizedBox(height: 28),
@@ -158,14 +162,36 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           else
             _AchievementsSection(unlocked: stats?.unlockedCodes ?? const {}),
           const SizedBox(height: 28),
-          FilledButton.icon(
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const DrivesHistoryScreen()),
-              );
-            },
-            icon: const Icon(Icons.history),
-            label: const Text('Sürüşlerim'),
+          Row(
+            children: [
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const LeaderboardScreen(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.emoji_events_outlined),
+                  label: const Text('Sıralama'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const DrivesHistoryScreen(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.history),
+                  label: const Text('Sürüşlerim'),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -456,18 +482,19 @@ class _AchievementTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fg = unlocked ? AppColors.white : AppColors.whiteMuted;
+    final scheme = Theme.of(context).colorScheme;
+    final fg = unlocked ? scheme.onSurface : scheme.onSurfaceVariant;
     return Opacity(
       opacity: unlocked ? 1 : 0.45,
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: scheme.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: unlocked
                 ? AppColors.success.withValues(alpha: 0.45)
-                : AppColors.outline,
+                : scheme.outline,
           ),
         ),
         child: Row(
@@ -479,12 +506,12 @@ class _AchievementTile extends StatelessWidget {
               decoration: BoxDecoration(
                 color: unlocked
                     ? AppColors.success.withValues(alpha: 0.15)
-                    : AppColors.surfaceHigh,
+                    : scheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
                 _icon,
-                color: unlocked ? AppColors.success : AppColors.whiteMuted,
+                color: unlocked ? AppColors.success : scheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(width: 12),
@@ -503,9 +530,9 @@ class _AchievementTile extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     definition.description,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: AppColors.whiteMuted,
+                      color: scheme.onSurfaceVariant,
                     ),
                   ),
                 ],
@@ -529,6 +556,7 @@ class _MetricsSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return GridView.count(
       crossAxisCount: 2,
       shrinkWrap: true,
@@ -540,9 +568,9 @@ class _MetricsSkeleton extends StatelessWidget {
         7,
         (_) => Container(
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: scheme.surface,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: AppColors.outline),
+            border: Border.all(color: scheme.outline),
           ),
         ),
       ),
@@ -606,10 +634,10 @@ class _ReputationSection extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             '${stats.xp} XP',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.w900,
-              color: AppColors.white,
+              color: scheme.onSurface,
             ),
           ),
           const SizedBox(height: 8),
@@ -619,7 +647,7 @@ class _ReputationSection extends StatelessWidget {
               minHeight: 8,
               value: progressBase.toDouble().clamp(0, 1),
               color: AppColors.red,
-              backgroundColor: AppColors.surfaceHigh,
+              backgroundColor: scheme.surfaceContainerHighest,
             ),
           ),
           const SizedBox(height: 8),
@@ -629,9 +657,9 @@ class _ReputationSection extends StatelessWidget {
                 : stats.xpToNextRank > 0
                 ? 'Sonraki seviyeye ${stats.xpToNextRank} XP kaldı'
                 : 'En yüksek rütbedesiniz',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
-              color: AppColors.whiteMuted,
+              color: scheme.onSurfaceVariant,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -683,33 +711,34 @@ class _CompactMetricTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: scheme.surface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.outline),
+        border: Border.all(color: scheme.outline),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 18, color: AppColors.whiteMuted),
+          Icon(icon, size: 18, color: scheme.onSurfaceVariant),
           const SizedBox(height: 10),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w900,
-              color: AppColors.white,
+              color: scheme.onSurface,
             ),
           ),
           const SizedBox(height: 2),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
-              color: AppColors.whiteMuted,
+              color: scheme.onSurfaceVariant,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -724,6 +753,7 @@ class _BadgesSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Column(
       children: List.generate(
         3,
@@ -732,9 +762,9 @@ class _BadgesSkeleton extends StatelessWidget {
           child: Container(
             height: 72,
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: scheme.surface,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.outline),
+              border: Border.all(color: scheme.outline),
             ),
           ),
         ),
@@ -778,6 +808,7 @@ class _ErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -787,7 +818,7 @@ class _ErrorState extends StatelessWidget {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.whiteMuted),
+              style: TextStyle(color: scheme.onSurfaceVariant),
             ),
             const SizedBox(height: 16),
             FilledButton(onPressed: onRetry, child: const Text('Tekrar Dene')),

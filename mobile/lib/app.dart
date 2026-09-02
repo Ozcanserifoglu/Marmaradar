@@ -11,6 +11,7 @@ import 'package:radar_alert/data/local/app_database.dart';
 import 'package:radar_alert/features/auth/auth_controller.dart';
 import 'package:radar_alert/features/directions/directions_controller.dart';
 import 'package:radar_alert/features/drives/drives_controller.dart';
+import 'package:radar_alert/features/leaderboard/leaderboard_controller.dart';
 import 'package:radar_alert/features/profile/profile_controller.dart';
 import 'package:radar_alert/features/profile/vehicle_customization_controller.dart';
 import 'package:radar_alert/features/tracking/tracking_controller.dart';
@@ -103,6 +104,7 @@ class _MarmaradarAppState extends ConsumerState<MarmaradarApp>
           );
         } else {
           ref.read(vehicleCustomizationControllerProvider).clear();
+          ref.read(leaderboardControllerProvider).clear();
         }
       },
     );
@@ -164,6 +166,11 @@ final drivesControllerProvider =
 final profileControllerProvider =
     ChangeNotifierProvider<ProfileController>((ref) {
   return ProfileController(apiClient: _sharedApiClient);
+});
+
+final leaderboardControllerProvider =
+    ChangeNotifierProvider<LeaderboardController>((ref) {
+  return LeaderboardController(apiClient: _sharedApiClient);
 });
 
 final trackingControllerProvider =

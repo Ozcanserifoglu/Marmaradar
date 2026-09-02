@@ -299,3 +299,37 @@ func camerasNearDrive(ctx context.Context, tx pgx.Tx, driveID uuid.UUID) ([]int6
 	}
 	return ids, nil
 }
+
+// ReconcileValidContributions recomputes valid_contributions from source tables
+// for any user_stats row that has drifted. Used by the background ticker.
+func (s *StatsService) ReconcileValidContributions(ctx context.Context) (int64, error) {
+	tag, err := s.pool.Exec(ctx, `
+		WITH expected AS (
+			SELECT us.user_id,
+			       COALESCE(mc.cnt, 0) + COALESCE(ur.cnt, 0) AS expected_count
+			FROM user_stats us
+			LEFT JOIN (
+				SELECT reporter_id AS user_id, COUNT(*)::INT AS cnt
+				FROM mobile_cameras
+				WHERE status <> 'removed'
+				GROUP BY reporter_id
+			) mc ON mc.user_id = us.user_id
+			LEFT JOIN (
+				SELECT user_id, COUNT(*)::INT AS cnt
+				FROM user_reports
+				WHERE verification_state = 'confirmed'
+				GROUP BY user_id
+			) ur ON ur.user_id = us.user_id
+		)
+		UPDATE user_stats us
+		SET valid_contributions = e.expected_count,
+		    updated_at = now()
+		FROM expected e
+		WHERE us.user_id = e.user_id
+		  AND us.valid_contributions IS DISTINCT FROM e.expected_count
+	`)
+	if err != nil {
+		return 0, fmt.Errorf("reconcile valid_contributions: %w", err)
+	}
+	return tag.RowsAffected(), nil
+}

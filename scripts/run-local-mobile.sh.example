@@ -107,13 +107,83 @@ for arg in "${FLUTTER_ARGS[@]-}"; do
   esac
 done
 
+# Pick local API URL from the Flutter device target:
+# iOS Simulator/device → host loopback; Android emulator → 10.0.2.2.
+pick_local_radar_api_url() {
+  local device_arg=""
+  local saw_device_flag=false
+  local arg
+  for arg in "${FLUTTER_ARGS[@]-}"; do
+    if [[ "$saw_device_flag" == "true" ]]; then
+      device_arg="$arg"
+      break
+    fi
+    case "$arg" in
+      -d|--device-id)
+        saw_device_flag=true
+        ;;
+      -d=*|--device-id=*)
+        device_arg="${arg#*=}"
+        break
+        ;;
+    esac
+  done
+
+  local devices_json
+  devices_json="$(cd "$MOBILE_DIR" && flutter devices --machine 2>/dev/null || echo '[]')"
+
+  local platform=""
+  if command -v python3 >/dev/null 2>&1; then
+    platform="$(
+      DEVICE_JSON="$devices_json" DEVICE_WANT="$device_arg" python3 - <<'PY'
+import json, os, re
+raw = os.environ.get("DEVICE_JSON") or "[]"
+want = (os.environ.get("DEVICE_WANT") or "").strip()
+# flutter devices --machine may print warnings before the JSON array.
+match = re.search(r"\[.*\]", raw, re.S)
+devices = []
+if match:
+    try:
+        devices = json.loads(match.group(0))
+    except json.JSONDecodeError:
+        devices = []
+platform = ""
+if want:
+    for d in devices:
+        did = str(d.get("id") or "")
+        name = str(d.get("name") or "")
+        if did == want or want in name or want in did:
+            platform = str(d.get("targetPlatform") or "")
+            break
+if not platform:
+    for d in devices:
+        p = str(d.get("targetPlatform") or "")
+        if p.startswith("ios") or p.startswith("android"):
+            platform = p
+            break
+print(platform)
+PY
+    )"
+  fi
+
+  # Heuristic when flutter devices is unavailable: -d names like "iPhone".
+  if [[ -z "$platform" && "$device_arg" =~ [Ii][Pp]hone|[Ii][Pp]ad|ios|simulator ]]; then
+    platform="ios"
+  fi
+
+  if [[ "$platform" == ios* ]]; then
+    echo "$LOCAL_GATEWAY_URL"
+  else
+    echo "$EMULATOR_LOCAL_GATEWAY_URL"
+  fi
+}
+
 if [[ "$RUN_MODE" == "live" && "$NEEDS_RADAR_DART_DEFINE" == "true" ]]; then
-  # Explicitly call production gateway.
   FLUTTER_ARGS+=(--dart-define=RADAR_API_URL="$PROD_GATEWAY_URL")
 elif [[ "$RUN_MODE" != "live" && "$NEEDS_RADAR_DART_DEFINE" == "true" ]]; then
-  # Use local gateway for emulator/device defaults.
-  # Emulator can reach host via 10.0.2.2; desktop/simulator can override manually.
-  FLUTTER_ARGS+=(--dart-define=RADAR_API_URL="$EMULATOR_LOCAL_GATEWAY_URL")
+  LOCAL_RADAR_API_URL="$(pick_local_radar_api_url)"
+  echo "Using local RADAR_API_URL=$LOCAL_RADAR_API_URL"
+  FLUTTER_ARGS+=(--dart-define=RADAR_API_URL="$LOCAL_RADAR_API_URL")
 fi
 
 # Bake Google Sign-In Web client ID (serverClientId) for ID token audience.

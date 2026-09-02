@@ -44,6 +44,7 @@ class UserProfile {
   const UserProfile({
     required this.id,
     required this.email,
+    this.username,
     this.profilePictureUrl,
     required this.vehicleType,
     required this.vehicleColor,
@@ -51,6 +52,7 @@ class UserProfile {
 
   final String id;
   final String email;
+  final String? username;
   final String? profilePictureUrl;
   final VehicleType vehicleType;
   final Color vehicleColor;
@@ -59,6 +61,7 @@ class UserProfile {
     return UserProfile(
       id: json['id'] as String,
       email: json['email'] as String,
+      username: json['username'] as String?,
       profilePictureUrl: json['profile_picture_url'] as String?,
       vehicleType: VehicleType.fromApi(json['vehicle_type'] as String?),
       vehicleColor: parseVehicleColor(json['vehicle_color'] as String?),
@@ -87,6 +90,10 @@ String vehicleColorToHex(Color color) {
 }
 
 const kDefaultVehicleColor = Color(0xFFE8262D);
+
+final usernamePattern = RegExp(r'^[a-z0-9_]{3,20}$');
+
+bool isValidUsername(String value) => usernamePattern.hasMatch(value);
 
 const kVehicleColorSwatches = <Color>[
   Color(0xFFE8262D),

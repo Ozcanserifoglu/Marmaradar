@@ -100,6 +100,10 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
     final snap = controller.lastSnapshot;
     if (snap == null || !_mapReady || _mapController == null) return;
 
+    // Keep the camera inside Turkey (matches map cameraTargetBounds). Simulator
+    // default GPS (e.g. Cupertino) otherwise blanks the Google Map on iOS.
+    final target = turkeySafeCameraTarget(LatLng(snap.lat, snap.lon));
+
     final driving = controller.isRunning;
     if (driving != _wasDriving) {
       _wasDriving = driving;
@@ -107,7 +111,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
         await _moveCamera(
           CameraUpdate.newCameraPosition(
             CameraPosition(
-              target: LatLng(snap.lat, snap.lon),
+              target: target,
               zoom: _currentZoom,
               bearing: 0,
             ),
@@ -122,7 +126,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
       await _moveCamera(
         CameraUpdate.newCameraPosition(
           CameraPosition(
-            target: LatLng(snap.lat, snap.lon),
+            target: target,
             zoom: 15.5,
             bearing: 0,
           ),
@@ -131,6 +135,9 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
       return;
     }
     if (!_follow) return;
+
+    // Don't chase a foreign GPS fix while follow is on.
+    if (!isInTurkeyMapBounds(LatLng(snap.lat, snap.lon))) return;
 
     if (driving && snap.speedMps >= _headingMinSpeedMps) {
       final now = DateTime.now();
@@ -149,7 +156,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
     await _moveCamera(
       CameraUpdate.newCameraPosition(
         CameraPosition(
-          target: LatLng(snap.lat, snap.lon),
+          target: target,
           zoom: zoom,
           bearing: 0,
         ),

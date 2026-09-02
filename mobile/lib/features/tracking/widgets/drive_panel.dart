@@ -6,6 +6,7 @@ import 'package:radar_alert/core/theme/app_theme.dart';
 import 'package:radar_alert/features/auth/auth_screen.dart';
 import 'package:radar_alert/features/drives/drive_format.dart';
 import 'package:radar_alert/features/drives/drives_history_screen.dart';
+import 'package:radar_alert/features/leaderboard/leaderboard_screen.dart';
 import 'package:radar_alert/features/profile/profile_screen.dart';
 import 'package:radar_alert/features/tracking/tracking_controller.dart';
 
@@ -128,43 +129,48 @@ class DrivePanel extends ConsumerWidget {
             ),
           Row(
             children: [
-              _SyncButton(controller: controller),
-              const SizedBox(width: 12),
-              const _HistoryButton(),
-              const SizedBox(width: 12),
-              _AccountButton(
-                authenticated: authenticated,
-                onPressed: () async {
-                  if (!authenticated) {
-                    final ok = await showAuthModal(context);
-                    if (ok && context.mounted) {
-                      await ref
-                          .read(trackingControllerProvider)
-                          .uploadPendingDrive();
-                    }
-                    return;
-                  }
-                  if (!context.mounted) return;
-                  await Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const ProfileScreen()),
-                  );
-                },
-              ),
-              const SizedBox(width: 12),
+              Expanded(child: _SyncButton(controller: controller)),
+              const SizedBox(width: 10),
+              const Expanded(child: _LeaderboardButton()),
+              const SizedBox(width: 10),
+              const Expanded(child: _HistoryButton()),
+              const SizedBox(width: 10),
               Expanded(
-                child: FilledButton.icon(
-                  onPressed: running ? controller.stop : controller.start,
-                  style: FilledButton.styleFrom(
-                    backgroundColor:
-                        running ? AppColors.surfaceHigh : AppColors.red,
-                    foregroundColor: scheme.onSurface,
-                    minimumSize: const Size.fromHeight(56),
-                  ),
-                  icon: Icon(running ? Icons.stop_rounded : Icons.radar),
-                  label: Text(running ? 'Sürüşü Bitir' : 'Sürüşe Başla'),
+                child: _AccountButton(
+                  authenticated: authenticated,
+                  onPressed: () async {
+                    if (!authenticated) {
+                      final ok = await showAuthModal(context);
+                      if (ok && context.mounted) {
+                        await ref
+                            .read(trackingControllerProvider)
+                            .uploadPendingDrive();
+                      }
+                      return;
+                    }
+                    if (!context.mounted) return;
+                    await Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                    );
+                  },
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: running ? controller.stop : controller.start,
+              style: FilledButton.styleFrom(
+                backgroundColor:
+                    running ? AppColors.surfaceHigh : AppColors.red,
+                foregroundColor: scheme.onSurface,
+                minimumSize: const Size.fromHeight(56),
+              ),
+              icon: Icon(running ? Icons.stop_rounded : Icons.radar),
+              label: Text(running ? 'Sürüşü Bitir' : 'Sürüşe Başla'),
+            ),
           ),
         ],
       ),
@@ -185,8 +191,8 @@ class _HistoryButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return SizedBox(
-      width: 56,
       height: 56,
+      width: double.infinity,
       child: OutlinedButton(
         onPressed: () => _open(context, ref),
         style: OutlinedButton.styleFrom(
@@ -196,6 +202,40 @@ class _HistoryButton extends ConsumerWidget {
           ),
         ),
         child: const Icon(Icons.history, size: 24),
+      ),
+    );
+  }
+}
+
+class _LeaderboardButton extends ConsumerWidget {
+  const _LeaderboardButton();
+
+  Future<void> _open(BuildContext context, WidgetRef ref) async {
+    final authenticated = ref.read(authControllerProvider).isAuthenticated;
+    if (!authenticated) {
+      final ok = await showAuthModal(context);
+      if (!ok || !context.mounted) return;
+    }
+    if (!context.mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const LeaderboardScreen()),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return SizedBox(
+      height: 56,
+      width: double.infinity,
+      child: OutlinedButton(
+        onPressed: () => _open(context, ref),
+        style: OutlinedButton.styleFrom(
+          padding: EdgeInsets.zero,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+        child: const Icon(Icons.emoji_events_outlined, size: 24),
       ),
     );
   }
@@ -384,8 +424,8 @@ class _SyncButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 56,
       height: 56,
+      width: double.infinity,
       child: GestureDetector(
         onLongPress: kDebugMode && !controller.isSyncing
             ? () => controller.simulateShortDrive()
@@ -426,8 +466,8 @@ class _AccountButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 56,
       height: 56,
+      width: double.infinity,
       child: OutlinedButton(
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(

@@ -487,6 +487,27 @@
       ]
     },
     {
+      "endpoint": "/v1/leaderboard",
+      "method": "GET",
+      "output_encoding": "no-op",
+      "input_headers": ["Authorization", "CF-Connecting-IP"],
+      "input_query_strings": ["category"],
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "max_rate": 100,
+          "client_max_rate": 10,
+          "strategy": "ip"
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/v1/leaderboard",
+          "encoding": "no-op",
+          "host": {{ marshal .backend.host }}
+        }
+      ]
+    },
+    {
       "endpoint": "/v1/uploads/avatars/{file}",
       "method": "GET",
       "output_encoding": "no-op",

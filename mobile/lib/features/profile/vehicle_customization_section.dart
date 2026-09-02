@@ -43,22 +43,37 @@ class VehicleCustomizationSection extends ConsumerWidget {
                   width: 96,
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: scheme.surfaceContainerHighest,
+                    color: scheme.surface,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
                       color: selected ? AppColors.red : scheme.outline,
                       width: selected ? 2 : 1,
                     ),
+                    boxShadow: scheme.brightness == Brightness.light
+                        ? [
+                            BoxShadow(
+                              color: scheme.outline.withValues(alpha: 0.45),
+                              blurRadius: 4,
+                              offset: const Offset(0, 1),
+                            ),
+                          ]
+                        : null,
                   ),
                   child: Column(
                     children: [
                       Expanded(
-                        child: CustomPaint(
-                          painter: VehicleIconPainter(
-                            type: type,
-                            color: vehicle.vehicleColor,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: scheme.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const SizedBox.expand(),
+                          child: CustomPaint(
+                            painter: VehicleIconPainter(
+                              type: type,
+                              color: vehicle.vehicleColor,
+                            ),
+                            child: const SizedBox.expand(),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 6),
