@@ -15,7 +15,7 @@ export default function Hero() {
           </div>
 
           <h1 className="reveal-hero d2">
-            Marmara&apos;nın <span className="headline-mark">Nabzı</span> Artık Cebinde
+            Her Yolda <span className="headline-mark">Yanında</span>
           </h1>
 
           <p className="hero-lead reveal-hero d3">
