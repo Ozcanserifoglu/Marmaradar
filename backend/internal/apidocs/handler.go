@@ -8,8 +8,8 @@ import (
 	"github.com/swaggo/swag"
 )
 
-//go:embed scalar.html
-var scalarHTML embed.FS
+//go:embed apiusage.html scalar.html
+var docsFS embed.FS
 
 type Handler struct{}
 
@@ -18,7 +18,15 @@ func NewHandler() *Handler {
 }
 
 func (h *Handler) ServeUI(w http.ResponseWriter, r *http.Request) {
-	b, err := scalarHTML.ReadFile("scalar.html")
+	h.serveFile(w, "apiusage.html")
+}
+
+func (h *Handler) ServeScalar(w http.ResponseWriter, r *http.Request) {
+	h.serveFile(w, "scalar.html")
+}
+
+func (h *Handler) serveFile(w http.ResponseWriter, name string) {
+	b, err := docsFS.ReadFile(name)
 	if err != nil {
 		http.Error(w, "docs unavailable", http.StatusInternalServerError)
 		return

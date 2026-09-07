@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Marmaradar API – Usage via Gateway</title>
+  <style>
+    :root { --bg: #0f1419; --card: #1a2332; --text: #e6edf3; --muted: #8b949e; --accent: #58a6ff; --border: #30363d; }
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; margin: 0; padding: 2rem max(1rem, 5vw); }
+    h1 { font-size: 1.75rem; margin-top: 0; }
+    h2 { font-size: 1.25rem; margin-top: 2rem; color: var(--accent); border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+    h3 { font-size: 1rem; margin-top: 1.5rem; }
+    a { color: var(--accent); }
+    code, .path { font-family: ui-monospace, monospace; background: var(--card); padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.9em; }
+    .path { display: inline-block; margin: 0.25em 0; }
+    pre { background: var(--card); padding: 1rem; border-radius: 8px; overflow-x: auto; border: 1px solid var(--border); }
+    pre code { background: none; padding: 0; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+    th, td { text-align: left; padding: 0.5rem 0.75rem; border: 1px solid var(--border); }
+    th { background: var(--card); color: var(--muted); font-weight: 600; }
+    .auth-req { color: #f85149; }
+    .auth-none { color: #3fb950; }
+    .note { background: var(--card); border-left: 4px solid var(--accent); padding: 0.75rem 1rem; margin: 1rem 0; }
+    ul { padding-left: 1.25rem; }
+    .dto-block { margin: 1rem 0; }
+    .dto-block h4 { font-size: 0.95rem; margin: 1rem 0 0.5rem; color: var(--muted); }
+    .small { font-size: 0.85rem; color: var(--muted); }
+    caption { text-align: left; font-weight: 600; padding: 0.5rem 0; color: var(--accent); }
+  </style>
+</head>
+<body>
+  <h1>Marmaradar API – Usage via Gateway</h1>
+  <p>All APIs are consumed through the Marmaradar gateway. This site (<strong>api.marmaradar.com</strong>) hosts documentation only — send API requests to the gateway base URL below.</p>
+
+  <div class="note">
+    <strong>Base URL (production):</strong> <code>http://35.239.129.237:8081</code><br />
+    <strong>Base URL (local):</strong> <code>http://127.0.0.1:8081</code><br />
+    <strong>Documentation URL:</strong> <code>https://api.marmaradar.com/docs/apiusage.html</code><br />
+    <strong>OpenAPI spec:</strong> <a href="/openapi.json"><code>/openapi.json</code></a> — machine-readable subset; this page is the full usage guide.
+  </div>
+
+  <h2>1. Authentication</h2>
+  <p>Most endpoints require a JWT. Send it in the header:</p>
+  <pre><code>Authorization: Bearer &lt;your_access_token&gt;</code></pre>
+  <p>Obtain a token via the Auth API (no token required). When the access token expires, call <code>POST /v1/auth/refresh</code> with the <code>refresh_token</code>.</p>
+  <table>
+    <thead>
+      <tr><th>Method</th><th>Path</th><th>Auth</th><th>Description</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>POST</td>
+        <td><code>/v1/auth/register</code></td>
+        <td class="auth-none">None</td>
+        <td>Register with <code>email</code> and <code>password</code> (min. 8 characters). Returns access + refresh tokens and user info.</td>
+      </tr>
+      <tr>
+        <td>POST</td>
+        <td><code>/v1/auth/login</code></td>
+        <td class="auth-none">None</td>
+        <td>Email/password login; returns access + refresh tokens and user info.</td>
+      </tr>
+      <tr>
+        <td>POST</td>
+        <td><code>/v1/auth/refresh</code></td>
+        <td class="auth-none">None</td>
+        <td>Rotate tokens. Body: <code>refresh_token</code>.</td>
+      </tr>
+      <tr>
+        <td>POST</td>
+        <td><code>/v1/auth/oauth</code></td>
+        <td class="auth-none">None</td>
+        <td>Google/Apple sign-in. Body: <code>provider</code> (<code>google</code> | <code>apple</code>), <code>id_token</code>, optional <code>nonce</code> (Apple).</td>
+      </tr>
+      <tr>
+        <td>POST</td>
+        <td><code>/v1/auth/forgot-password</code></td>
+        <td class="auth-none">None</td>
+        <td>Request password reset email. Body: <code>email</code>. Response: <code>{"ok": true}</code>.</td>
+      </tr>
+      <tr>
+        <td>POST</td>
+        <td><code>/v1/auth/reset-password</code></td>
+        <td class="auth-none">None</td>
+        <td>Complete reset with <code>token</code> (from email) and <code>password</code> (min. 8). Response: <code>{"ok": true}</code>.</td>
+      </tr>
+      <tr>
+        <td>GET</td>
+        <td><code>/reset-password</code></td>
+        <td class="auth-none">None</td>
+        <td>HTML reset form (query: <code>token</code>). Not a JSON API.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>2. API Areas (via Gateway)</h2>
+  <p>All paths below are relative to the gateway base URL. Protected routes expect <code>Authorization: Bearer &lt;access_token&gt;</code>.</p>
+  <p><strong>Route prefixes:</strong></p>
+  <ul>
+    <li><code>/v1/auth/*</code> · <code>/v1/users/*</code> · <code>/v1/drives/*</code> · <code>/v1/leaderboard</code></li>
+    <li><code>/v1/cameras/*</code> · <code>/v1/corridors/*</code> · <code>/v1/sync</code> · <code>/v1/uploads/*</code></li>
+    <li><code>/v1/reports/*</code> · <code>/v1/live-reports/*</code> · <code>/v1/eta/*</code> · <code>/v1/amenities/*</code> · <code>/v1/tts/*</code></li>
+  </ul>
+
+  <h3>2.1 Auth</h3>
+  <p><span class="path">/v1/auth/*</span> — Register, login, refresh, OAuth, forgot/reset password (see table above). No Bearer token required.</p>
+
+  <h3>2.2 Geo data (cameras, corridors, sync)</h3>
+  <p><span class="path">/v1/cameras/*</span> · <span class="path">/v1/corridors/*</span> · <span class="path">/v1/sync</span> — Public map data. No auth.</p>
+  <ul>
+    <li>GET <code>/v1/cameras/nearby</code> — Nearby speed cameras. Query: <code>lat</code>, <code>lon</code> (required), <code>radius_m</code> (default 1000, max 5000), <code>region</code> (default <code>bursa</code>)</li>
+    <li>GET <code>/v1/corridors/nearby</code> — Nearby average-speed corridors. Query: <code>lat</code>, <code>lon</code>, <code>region</code></li>
+    <li>GET <code>/v1/sync</code> — Delta sync for a bbox. Query: <code>bbox</code> (<code>west,south,east,north</code>, required), <code>region</code>, optional <code>since</code> (RFC3339)</li>
+    <li>GET <code>/v1/uploads/avatars/{file}</code> — Public avatar image. No auth. Cached 24h.</li>
+  </ul>
+
+  <h3>2.3 Users, stats &amp; leaderboard</h3>
+  <p><span class="path">/v1/users/*</span> · <span class="path">/v1/leaderboard</span> — Require <strong>Bearer token</strong>.</p>
+  <ul>
+    <li>GET <code>/v1/users/me</code> — Current profile (<code>id</code>, <code>email</code>, <code>username</code>, <code>profile_picture_url</code>, <code>vehicle_type</code>, <code>vehicle_color</code>)</li>
+    <li>PATCH <code>/v1/users/me</code> — Partial update: <code>username</code>, <code>vehicle_type</code>, <code>vehicle_color</code> (see §3.2)</li>
+    <li>POST <code>/v1/users/me/profile-picture</code> — Upload avatar (<code>multipart/form-data</code>, field <code>file</code>; JPEG/PNG/WebP, max 2 MB)</li>
+    <li>GET <code>/v1/users/me/stats</code> — Lifetime stats, rank/XP, streak, achievements</li>
+    <li>GET <code>/v1/leaderboard</code> — Top 100 + caller rank. Query: <code>category</code> = <code>distance</code> | <code>reports</code> (required)</li>
+  </ul>
+
+  <h3>2.4 Drives</h3>
+  <p><span class="path">/v1/drives/*</span> — Recorded trips. Requires <strong>Bearer token</strong>.</p>
+  <ul>
+    <li>POST <code>/v1/drives</code> — Upload a drive (points + optional name). Returns <code>id</code>, <code>length_m</code>, <code>point_count</code></li>
+    <li>GET <code>/v1/drives</code> — List my drives (summaries)</li>
+    <li>GET <code>/v1/drives/{id}</code> — Drive detail with points / snapped path</li>
+    <li>PATCH <code>/v1/drives/{id}</code> — Rename. Body: <code>{ "name": "..." }</code>. Returns 204</li>
+  </ul>
+
+  <h3>2.5 Reports (crowd / mobile radar)</h3>
+  <p><span class="path">/v1/reports/*</span> — Requires <strong>Bearer token</strong>.</p>
+  <ul>
+    <li>POST <code>/v1/reports</code> — Create or merge a mobile radar report. Body: <code>lat</code>, <code>lon</code>, optional <code>heading_deg</code>, <code>region</code></li>
+    <li>POST <code>/v1/reports/{id}/votes</code> — Vote. Body: <code>value</code> (<code>1</code> / <code>-1</code>), <code>lat</code>, <code>lon</code> (voter position)</li>
+  </ul>
+
+  <h3>2.6 Live reports</h3>
+  <p><span class="path">/v1/live-reports/*</span> — Short-lived hazards (police / accident).</p>
+  <ul>
+    <li>GET <code>/v1/live-reports/active</code> — Active reports (pending + confirmed). <span class="auth-none">No auth</span></li>
+    <li>POST <code>/v1/live-reports</code> — Create. Body: <code>lat</code>, <code>lng</code>, <code>report_type</code> (<code>police</code> | <code>accident</code>). <span class="auth-req">Bearer</span></li>
+    <li>POST <code>/v1/live-reports/{id}/vote</code> — Vote. Body: <code>is_upvote</code> (bool). <span class="auth-req">Bearer</span></li>
+  </ul>
+
+  <h3>2.7 ETA, amenities &amp; TTS</h3>
+  <p>All require <strong>Bearer token</strong>.</p>
+  <ul>
+    <li>POST <code>/v1/eta/cameras</code> — Driving ETA to nearby cameras (max 3 destinations). Body: <code>origin</code>, <code>destinations[]</code></li>
+    <li>POST <code>/v1/amenities/cells</code> — Gas/rest stops by grid cells (max 3). Body: <code>cells[]</code>, optional <code>types</code></li>
+    <li>POST <code>/v1/tts/speak</code> — Synthesize Turkish alert audio (<code>audio/mpeg</code>). Body: <code>phrase_key</code>, <code>params</code></li>
+    <li>GET <code>/v1/tts/catalog</code> — Catalog of cacheable TTS phrase variants</li>
+  </ul>
+
+  <h2>3. Request &amp; response DTOs (reference)</h2>
+  <p>JSON uses <strong>snake_case</strong> property names. Date/time values are ISO 8601 (RFC3339). Errors return <code>{"error": "human-readable message"}</code> with an appropriate HTTP status.</p>
+
+  <h3>3.1 Auth</h3>
+  <div class="dto-block">
+    <h4>Request bodies</h4>
+    <table>
+      <thead>
+        <tr><th>Endpoint</th><th>Properties (JSON)</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>POST /v1/auth/register</td><td><code>email</code>, <code>password</code> (min. 8)</td></tr>
+        <tr><td>POST /v1/auth/login</td><td><code>email</code>, <code>password</code></td></tr>
+        <tr><td>POST /v1/auth/refresh</td><td><code>refresh_token</code></td></tr>
+        <tr><td>POST /v1/auth/oauth</td><td><code>provider</code>, <code>id_token</code>, <code>nonce</code> (optional, Apple)</td></tr>
+        <tr><td>POST /v1/auth/forgot-password</td><td><code>email</code></td></tr>
+        <tr><td>POST /v1/auth/reset-password</td><td><code>token</code>, <code>password</code> (min. 8)</td></tr>
+      </tbody>
+    </table>
+    <h4><code>AuthResult</code> (register / login / refresh / oauth)</h4>
+    <pre><code>{
+  "access_token": "string (JWT)",
+  "refresh_token": "string",
+  "expires_in": 900,
+  "user": { "id": "uuid", "email": "string" }
+}</code></pre>
+  </div>
+
+  <h3>3.2 Users &amp; preferences</h3>
+  <p><strong><code>UserProfileResponse</code></strong> — <code>GET/PATCH /v1/users/me</code>, profile-picture upload:</p>
+  <pre><code>{
+  "id": "uuid",
+  "email": "string",
+  "username": "string | null",
+  "profile_picture_url": "/v1/uploads/avatars/{id}.jpg | null",
+  "vehicle_type": "sedan | hatchback | station_wagon | kamyon | tir",
+  "vehicle_color": "#RRGGBB"
+}</code></pre>
+  <p><strong><code>UpdatePreferencesRequest</code></strong> — <code>PATCH /v1/users/me</code> (partial; omit unchanged fields):</p>
+  <pre><code>{
+  "username": "string (optional; a-z0-9_; 3–20; unique)",
+  "vehicle_type": "sedan | hatchback | station_wagon | kamyon | tir",
+  "vehicle_color": "#RRGGBB"
+}</code></pre>
+  <p class="small"><code>profile_picture_url</code> is a relative path on the gateway. Display as <code>http://35.239.129.237:8081</code> + path. Avatars need no Bearer token.</p>
+
+  <h3>3.3 Leaderboard</h3>
+  <p><code>GET /v1/leaderboard?category=distance|reports</code> returns:</p>
+  <pre><code>{
+  "category": "distance",
+  "entries": [
+    {
+      "rank": 1,
+      "user_id": "uuid",
+      "username": "string",
+      "profile_picture_url": "string | null",
+      "vehicle_type": "sedan",
+      "vehicle_color": "#E8262D",
+      "value": 152340.5
+    }
+  ],
+  "me": { "rank": 142, "user_id": "uuid", "username": "string", "...": "...", "in_top": false }
+}</code></pre>
+  <p class="small"><code>value</code> is meters for <code>distance</code>, contribution count for <code>reports</code>. Top 100 plus always the caller’s <code>me</code> row.</p>
+
+  <h3>3.4 Drives</h3>
+  <p><strong>Create</strong> — <code>POST /v1/drives</code>:</p>
+  <pre><code>{
+  "started_at": "2026-01-01T12:00:00Z",
+  "ended_at": "2026-01-01T12:30:00Z",
+  "name": "string | null",
+  "points": [
+    { "lat": 0, "lon": 0, "speed_mps": 0, "recorded_at": "2026-01-01T12:00:00Z" }
+  ]
+}</code></pre>
+  <p>List/detail include summary fields (<code>length_m</code>, <code>point_count</code>, speed stats). Detail also returns <code>points[]</code> and optional <code>snapped_points[]</code>.</p>
+
+  <h3>3.5 Reports &amp; live reports</h3>
+  <p><strong>Create report</strong> — <code>POST /v1/reports</code>: <code>lat</code>, <code>lon</code>, optional <code>heading_deg</code>, <code>region</code>. Response includes <code>id</code>, <code>status</code>, votes, <code>expires_at</code>, <code>merged</code>.</p>
+  <p><strong>Vote</strong> — <code>POST /v1/reports/{id}/votes</code>: <code>value</code> (<code>1</code>|<code>-1</code>), <code>lat</code>, <code>lon</code>.</p>
+  <p><strong>Live report</strong> — <code>POST /v1/live-reports</code>: <code>lat</code>, <code>lng</code>, <code>report_type</code> (<code>police</code>|<code>accident</code>). Active list returns <code>id</code>, <code>lat</code>, <code>lng</code>, <code>report_type</code>, <code>verification_state</code>, <code>weighted_score</code>, timestamps.</p>
+
+  <h3>3.6 ETA, amenities &amp; TTS</h3>
+  <p><strong>ETA</strong> — <code>POST /v1/eta/cameras</code>:</p>
+  <pre><code>{
+  "origin": { "lat": 0, "lon": 0 },
+  "destinations": [{ "camera_id": "string", "lat": 0, "lon": 0 }]
+}</code></pre>
+  <p>Response: <code>[{ "camera_id", "distance_m", "duration_sec", "status" }]</code>. Max 3 destinations. <code>503</code> if Matrix API unavailable.</p>
+  <p><strong>Amenities</strong> — <code>POST /v1/amenities/cells</code>: <code>cells[]</code> with <code>lat_index</code>/<code>lon_index</code>; optional <code>types</code> (<code>gas_station</code>, <code>rest_stop</code>). Max 3 cells.</p>
+  <p><strong>TTS speak</strong> — <code>phrase_key</code> examples: <code>camera.fixed</code>, <code>camera.mobile</code>, <code>report.police</code>, <code>corridor.warn</code>, <code>corridor.over</code>. Distance phrases need <code>params.distance_m</code>. Response body is raw <code>audio/mpeg</code>.</p>
+
+  <h3>3.7 Errors</h3>
+  <p>Validation or business errors typically return <code>400</code> with <code>{"error": "string"}</code>. Unauthorized: <code>401</code>. Forbidden: <code>403</code>. Not found: <code>404</code>. Conflict (e.g. username taken, invalid vote): <code>409</code>. Rate limited: <code>429</code>.</p>
+
+  <h2>4. CORS</h2>
+  <p>Allowed origins include <code>https://marmaradar.com</code>, <code>https://www.marmaradar.com</code>, <code>https://api.marmaradar.com</code>, and localhost (e.g. <code>http://localhost:5173</code>). For other origins, coordinate with the API owner.</p>
+
+  <h2>5. Health</h2>
+  <p><code>GET {gateway}/health</code> — Returns <code>200</code> with <code>{"status":"ok"}</code> if the API is up. No authentication required.</p>
+
+  <h2>6. Checklist for integrating</h2>
+  <ul>
+    <li>Use the <strong>gateway</strong> base URL (<code>http://35.239.129.237:8081</code> in production) for all API calls — not this docs host alone for data requests.</li>
+    <li>Obtain a JWT via <code>POST /v1/auth/login</code>, <code>POST /v1/auth/register</code>, or <code>POST /v1/auth/oauth</code>.</li>
+    <li>Refresh with <code>POST /v1/auth/refresh</code> when the access token expires.</li>
+    <li>Send <code>Authorization: Bearer &lt;token&gt;</code> on every protected request.</li>
+    <li>Send <code>Content-Type: application/json</code> for JSON bodies (except profile photo upload).</li>
+    <li>Handle <code>401</code> (re-authenticate) and <code>403</code>/<code>409</code>/<code>429</code> appropriately.</li>
+    <li>For avatars, use gateway base + relative <code>profile_picture_url</code> in <code>&lt;img src&gt;</code> (no Bearer on image requests).</li>
+  </ul>
+
+  <p style="margin-top: 2rem; color: var(--muted); font-size: 0.9rem;">Last updated: 2026-09 — switched docs UI to gateway usage guide (Motoiki-style). When new APIs or DTOs change, update this page and regenerate OpenAPI via <code>backend/scripts/generate-openapi.sh</code> for annotated endpoints.</p>
+</body>
+</html>

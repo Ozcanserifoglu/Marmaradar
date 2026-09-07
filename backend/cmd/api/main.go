@@ -256,6 +256,8 @@ func main() {
 	r.Get("/", docsHandler.ServeUI)
 	r.Get("/docs", docsHandler.ServeUI)
 	r.Get("/docs/", docsHandler.ServeUI)
+	r.Get("/docs/apiusage.html", docsHandler.ServeUI)
+	r.Get("/docs/scalar", docsHandler.ServeScalar)
 	r.Get("/openapi.json", docsHandler.ServeSpec)
 
 	r.Get("/reset-password", authHandler.ResetPasswordPage)
