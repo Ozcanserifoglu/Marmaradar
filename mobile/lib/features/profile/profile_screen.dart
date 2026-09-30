@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:radar_alert/app.dart';
+import 'package:radar_alert/core/legal/osm_attribution.dart';
 import 'package:radar_alert/core/theme/app_theme.dart';
 import 'package:radar_alert/features/auth/auth_screen.dart';
 import 'package:radar_alert/features/drives/drive_format.dart';
@@ -193,6 +194,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ),
             ],
           ),
+          const SizedBox(height: 32),
+          const LegalCreditsSection(),
         ],
       ),
     );
@@ -795,6 +798,8 @@ class _GuestState extends StatelessWidget {
         ),
         const SizedBox(height: 20),
         FilledButton(onPressed: onLogin, child: const Text('Giriş Yap')),
+        const SizedBox(height: 48),
+        const LegalCreditsSection(),
       ],
     );
   }

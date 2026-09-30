@@ -30,6 +30,38 @@ export default function TermsOfUse() {
       </section>
 
       <section>
+        <h2>Harita ve OpenStreetMap verisi</h2>
+        <p>
+          Uygulamadaki arka plan haritası Google Haritalar üzerinden sunulur. EDS / hız kamerası
+          ve ortalama hız koridoru noktalarının önemli bir kısmı{' '}
+          <a
+            href="https://www.openstreetmap.org/copyright"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            OpenStreetMap
+          </a>{' '}
+          katkıcılarının verilerinden türetilmiştir. Bu veriler{' '}
+          <a
+            href="https://opendatacommons.org/licenses/odbl/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Open Database License (ODbL)
+          </a>{' '}
+          altındadır. OpenStreetMap telif ve lisans bilgileri:{' '}
+          <a
+            href="https://www.openstreetmap.org/copyright"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            openstreetmap.org/copyright
+          </a>
+          .
+        </p>
+      </section>
+
+      <section>
         <h2>Beta yazılım</h2>
         <p>
           Uygulama beta aşamasındadır. Hatalar, kesintiler, veri kaybı ve geriye dönük uyumsuz

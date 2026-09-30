@@ -66,6 +66,38 @@ export default function Privacy() {
       </section>
 
       <section>
+        <h2>OpenStreetMap veri kaynağı</h2>
+        <p>
+          Haritada gösterilen EDS / kamera ve koridor verilerinin bir kısmı{' '}
+          <a
+            href="https://www.openstreetmap.org/copyright"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            OpenStreetMap
+          </a>{' '}
+          açık veri tabanından (Geofabrik / Overpass üzerinden) alınır. OpenStreetMap verisi{' '}
+          <a
+            href="https://opendatacommons.org/licenses/odbl/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Open Database License (ODbL)
+          </a>{' '}
+          ile lisanslanır. Bu bir kişisel veri paylaşımı değil; harita özellik verisi
+          atıfıdır. Ayrıntılar:{' '}
+          <a
+            href="https://www.openstreetmap.org/copyright"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            openstreetmap.org/copyright
+          </a>
+          .
+        </p>
+      </section>
+
+      <section>
         <h2>Saklama ve silme</h2>
         <p>
           Veriler hizmeti sağlamak için gerekli olduğu sürece saklanır. Hesap ve sürüş verilerinin

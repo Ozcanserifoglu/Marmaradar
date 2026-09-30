@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:radar_alert/app.dart';
 import 'package:radar_alert/core/geo/geo_offset.dart';
+import 'package:radar_alert/core/legal/osm_attribution.dart';
 import 'package:radar_alert/core/location/background_location_service.dart';
 import 'package:radar_alert/core/theme/app_theme.dart';
 import 'package:radar_alert/features/auth/auth_screen.dart';
@@ -850,6 +851,13 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                 ),
               ],
             ),
+          ),
+
+          // OSM ODbL attribution (camera/corridor data). Links to copyright page.
+          Positioned(
+            left: 12,
+            bottom: _panelHeight + 10,
+            child: const OsmMapAttribution(),
           ),
         ],
       ),

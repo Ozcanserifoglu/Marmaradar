@@ -54,6 +54,22 @@
   color: var(--color-text-secondary);
 }
 
+.footer-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.footer-osm a {
+  color: var(--color-text-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.footer-osm a:hover {
+  color: var(--color-brand-red);
+}
+
 @media (min-width: 640px) {
   .footer-bottom {
     flex-direction: row;

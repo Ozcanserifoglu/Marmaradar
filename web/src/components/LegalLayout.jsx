@@ -12,7 +12,7 @@ export default function LegalLayout({ title, children }) {
         <article className="container legal-container">
           <header className="legal-head">
             <h1>{title}</h1>
-            <p className="legal-updated">Son güncelleme: 24 Ağustos 2026</p>
+            <p className="legal-updated">Son güncelleme: 30 Eylül 2026</p>
           </header>
           <div className="legal-prose">{children}</div>
         </article>

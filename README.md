@@ -47,6 +47,10 @@ Public pages (Turkish):
 - [Gizlilik / KVKK](https://www.marmaradar.com/gizlilik)
 - [Kullanım Şartları](https://www.marmaradar.com/kullanim-sartlari)
 
+### OpenStreetMap
+
+Camera and corridor features are partly derived from [OpenStreetMap](https://www.openstreetmap.org/copyright) data, © OpenStreetMap contributors, licensed under the [Open Database License (ODbL)](https://opendatacommons.org/licenses/odbl/). The app basemap is Google Maps; OSM attribution applies to the radar/corridor dataset. See [OSM copyright](https://www.openstreetmap.org/copyright) and the [OSMF attribution guidelines](https://wiki.osmfoundation.org/wiki/Licence/Attribution_Guidelines).
+
 Contact: [marmaradar@gmail.com](mailto:marmaradar@gmail.com)
 
 ## Feedback

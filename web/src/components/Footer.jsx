@@ -20,7 +20,20 @@ export default function Footer() {
         </div>
 
         <div className="footer-bottom">
-          <p>© 2026 Marmaradar. Tüm hakları saklıdır.</p>
+          <div className="footer-copy">
+            <p>© 2026 Marmaradar. Tüm hakları saklıdır.</p>
+            <p className="footer-osm">
+              Kamera verisi ©{' '}
+              <a
+                href="https://www.openstreetmap.org/copyright"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                OpenStreetMap
+              </a>{' '}
+              katkıcıları (ODbL)
+            </p>
+          </div>
           <div className="footer-legal">
             <Link to="/gizlilik">Gizlilik</Link>
             <Link to="/kullanim-sartlari">Kullanım Şartları</Link>
