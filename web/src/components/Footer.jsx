@@ -37,6 +37,7 @@ export default function Footer() {
           <div className="footer-legal">
             <Link to="/gizlilik">Gizlilik</Link>
             <Link to="/kullanim-sartlari">Kullanım Şartları</Link>
+            <Link to="/hesap-sil">Hesabı Sil</Link>
           </div>
         </div>
       </div>

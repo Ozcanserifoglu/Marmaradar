@@ -50,6 +50,74 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     if (mounted) Navigator.of(context).pop();
   }
 
+  Future<void> _deleteAccount() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Hesabı sil'),
+        content: const Text(
+          'Hesabın ve ilişkili tüm verilerin (sürüşler, istatistikler, '
+          'bildirimler) kalıcı olarak silinecek. Bu işlem geri alınamaz.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Vazgeç'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.red),
+            child: const Text('Sil'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    final doubleConfirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Emin misin?'),
+        content: const Text(
+          'Hesabını silmek istediğini onayla. Bu işlem geri alınamaz.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Vazgeç'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Hesabımı sil'),
+          ),
+        ],
+      ),
+    );
+    if (doubleConfirmed != true || !mounted) return;
+
+    final auth = ref.read(authControllerProvider);
+    final ok = await auth.deleteAccount();
+    if (!mounted) return;
+    if (ok) {
+      ref.read(profileControllerProvider).clear();
+      ref.read(vehicleCustomizationControllerProvider).clear();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Hesabın silindi.')),
+      );
+      Navigator.of(context).pop();
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(auth.error ?? 'Hesap silinemedi. Lütfen tekrar dene.'),
+      ),
+    );
+  }
+
   Future<void> _pickAvatar() async {
     final picker = ImagePicker();
     final file = await picker.pickImage(
@@ -193,6 +261,27 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 32),
+          OutlinedButton.icon(
+            onPressed: ref.watch(authControllerProvider).isBusy
+                ? null
+                : _deleteAccount,
+            icon: const Icon(Icons.delete_forever_outlined),
+            label: const Text('Hesabı sil'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.red,
+              side: const BorderSide(color: AppColors.red),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Hesabını ve sunucudaki verilerini kalıcı olarak siler.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 12,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 32),
           const LegalCreditsSection(),

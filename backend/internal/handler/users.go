@@ -131,6 +131,41 @@ func (h *UsersHandler) UpdateMe(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, profile)
 }
 
+// DeleteMe godoc
+// @Summary      Permanently delete my account
+// @Description  ## What this does
+// @Description  Deletes the **currently signed-in user** and all associated personal data
+// @Description  (profile, sessions, drives, reports, stats, OAuth identities, avatar file).
+// @Description  This cannot be undone.
+// @Description
+// @Description  ## When to call
+// @Description  After an explicit confirmation step in the app or website.
+// @Tags         Account & Profile
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200  {object}  map[string]bool  "Account deleted (`ok`: true)"
+// @Failure      401  {object}  ErrorResponse    "Missing or expired access token"
+// @Failure      404  {object}  ErrorResponse    "User record no longer exists"
+// @Failure      500  {object}  ErrorResponse    "Unexpected server error"
+// @Router       /v1/users/me [delete]
+func (h *UsersHandler) DeleteMe(w http.ResponseWriter, r *http.Request) {
+	userID, ok := auth.UserIDFromContext(r.Context())
+	if !ok {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return
+	}
+
+	if err := h.users.DeleteAccount(r.Context(), userID); err != nil {
+		if errors.Is(err, service.ErrUserNotFound) {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "user not found"})
+			return
+		}
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
+}
+
 // UploadProfilePicture godoc
 // @Summary      Upload or replace my profile photo
 // @Description  ## What this does

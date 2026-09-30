@@ -78,6 +78,36 @@ func (s *UsersService) GetProfile(ctx context.Context, userID uuid.UUID) (*UserP
 	return &p, nil
 }
 
+// DeleteAccount permanently removes the user and cascaded related rows
+// (sessions, drives, reports, stats, OAuth identities, etc.).
+func (s *UsersService) DeleteAccount(ctx context.Context, userID uuid.UUID) error {
+	var pictureURL *string
+	err := s.pool.QueryRow(ctx, `
+		SELECT profile_picture_url FROM users WHERE id = $1
+	`, userID).Scan(&pictureURL)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ErrUserNotFound
+	}
+	if err != nil {
+		return fmt.Errorf("lookup user for delete: %w", err)
+	}
+
+	tag, err := s.pool.Exec(ctx, `DELETE FROM users WHERE id = $1`, userID)
+	if err != nil {
+		return fmt.Errorf("delete user: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrUserNotFound
+	}
+
+	if pictureURL != nil {
+		if key := keyFromPublicURL(*pictureURL); key != "" {
+			_ = s.storage.Delete(ctx, key)
+		}
+	}
+	return nil
+}
+
 func (s *UsersService) UpdatePreferences(ctx context.Context, userID uuid.UUID, in UpdatePreferencesInput) (*UserProfile, error) {
 	if in.Username == nil && in.VehicleType == nil && in.VehicleColor == nil {
 		return s.GetProfile(ctx, userID)

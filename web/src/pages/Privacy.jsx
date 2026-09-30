@@ -100,9 +100,12 @@ export default function Privacy() {
       <section>
         <h2>Saklama ve silme</h2>
         <p>
-          Veriler hizmeti sağlamak için gerekli olduğu sürece saklanır. Hesap ve sürüş verilerinin
-          silinmesini e-posta ile talep edebilirsin; uygulamada henüz otomatik hesap silme yoktur.
-          Talepler makul sürede işlenir.
+          Veriler hizmeti sağlamak için gerekli olduğu sürece saklanır. Hesabını ve ilişkili
+          verilerini uygulamada Profil → Hesabı sil ile veya web üzerinden{' '}
+          <Link to="/hesap-sil">hesap silme sayfasından</Link> kalıcı olarak silebilirsin. Google
+          veya Apple ile giriş yaptıysan silme işlemini uygulamadan yapman gerekir. Ayrıca{' '}
+          <a href="mailto:marmaradar@gmail.com">marmaradar@gmail.com</a> adresine yazarak da talep
+          edebilirsin; talepler makul sürede işlenir.
         </p>
       </section>
 

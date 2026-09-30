@@ -156,6 +156,50 @@ const docTemplate = `{
                     }
                 }
             },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "## What this does\nDeletes the **currently signed-in user** and all associated personal data\n(profile, sessions, drives, reports, stats, OAuth identities, avatar file).\nThis cannot be undone.\n\n## When to call\nAfter an explicit confirmation step in the app or website.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Account \u0026 Profile"
+                ],
+                "summary": "Permanently delete my account",
+                "responses": {
+                    "200": {
+                        "description": "Account deleted (` + "`" + `ok` + "`" + `: true)",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "boolean"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Missing or expired access token",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "User record no longer exists",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Unexpected server error",
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler.ErrorResponse"
+                        }
+                    }
+                }
+            },
             "patch": {
                 "security": [
                     {

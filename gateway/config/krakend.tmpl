@@ -473,6 +473,26 @@
       ]
     },
     {
+      "endpoint": "/v1/users/me",
+      "method": "DELETE",
+      "output_encoding": "no-op",
+      "input_headers": ["Authorization", "CF-Connecting-IP"],
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "max_rate": 20,
+          "client_max_rate": 2,
+          "strategy": "ip"
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/v1/users/me",
+          "encoding": "no-op",
+          "host": {{ marshal .backend.host }}
+        }
+      ]
+    },
+    {
       "endpoint": "/v1/users/me/profile-picture",
       "method": "POST",
       "output_encoding": "no-op",

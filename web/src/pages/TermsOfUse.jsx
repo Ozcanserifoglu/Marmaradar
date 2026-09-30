@@ -109,7 +109,8 @@ export default function TermsOfUse() {
         <p>
           Hesap oluşturmak isteğe bağlıdır; bazı özellikler (sürüş yükleme, istatistik,
           topluluk raporları) giriş gerektirir. Sahte veya kötü niyetli rapor yasaktır.
-          Hesabı askıya alabilir veya kapatabiliriz. Kişisel veriler{' '}
+          Hesabı askıya alabilir veya kapatabiliriz. Hesabını istediğin zaman uygulamadan veya{' '}
+          <Link to="/hesap-sil">hesap silme sayfasından</Link> silebilirsin. Kişisel veriler{' '}
           <Link to="/gizlilik">Gizlilik Politikası</Link>’na tabidir.
         </p>
       </section>

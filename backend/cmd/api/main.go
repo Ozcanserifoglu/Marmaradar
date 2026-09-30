@@ -284,6 +284,7 @@ func main() {
 			r.Patch("/drives/{id}", driveHandler.Rename)
 			r.Get("/users/me", usersHandler.Me)
 			r.Patch("/users/me", usersHandler.UpdateMe)
+			r.Delete("/users/me", usersHandler.DeleteMe)
 			r.Post("/users/me/profile-picture", usersHandler.UploadProfilePicture)
 			r.Get("/users/me/stats", statsHandler.Me)
 			r.Get("/leaderboard", leaderboardHandler.Get)

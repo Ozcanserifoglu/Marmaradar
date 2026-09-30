@@ -234,6 +234,29 @@ class RadarApiClient {
     return resp;
   }
 
+  Future<http.Response> _deleteAuthed(
+    Uri uri, {
+    bool retryOnUnauthorized = true,
+  }) async {
+    final headers = <String, String>{'Accept': 'application/json'};
+    final access = await _tokens.accessToken;
+    if (access != null && access.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $access';
+    }
+
+    final resp = await http
+        .delete(uri, headers: headers)
+        .timeout(const Duration(seconds: 30));
+
+    if (resp.statusCode == 401 && retryOnUnauthorized) {
+      final refreshed = await _tryRefresh();
+      if (refreshed) {
+        return _deleteAuthed(uri, retryOnUnauthorized: false);
+      }
+    }
+    return resp;
+  }
+
   Future<bool> _tryRefresh() async {
     final refresh = await _tokens.refreshToken;
     if (refresh == null || refresh.isEmpty) return false;
@@ -455,6 +478,14 @@ class RadarApiClient {
       throw ApiException('users/me', resp.statusCode, null, resp.body);
     }
     return UserProfile.fromJson(jsonDecode(resp.body) as Map<String, dynamic>);
+  }
+
+  Future<void> deleteMyAccount() async {
+    final uri = Uri.parse('$baseUrl/v1/users/me');
+    final resp = await _deleteAuthed(uri);
+    if (resp.statusCode != 200 && resp.statusCode != 204) {
+      throw ApiException('users/me', resp.statusCode, null, resp.body);
+    }
   }
 
   Future<UserProfile> updateMyPreferences({

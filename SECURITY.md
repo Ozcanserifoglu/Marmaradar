@@ -43,7 +43,7 @@ Use [`.env.example`](.env.example) as a template. Never push `.env`.
 
 ## Privacy / data
 
-Location, accounts, and trip uploads are described at [Gizlilik](https://www.marmaradar.com/gizlilik). There is no in-app account-deletion API yet; deletion is by email ([marmaradar@gmail.com](mailto:marmaradar@gmail.com)).
+Location, accounts, and trip uploads are described at [Gizlilik](https://www.marmaradar.com/gizlilik). Users can delete their account in the app (Profil → Hesabı sil) or on the web at [Hesabı Sil](https://www.marmaradar.com/hesap-sil) (`DELETE /v1/users/me`). Deletion requests can also be emailed to [marmaradar@gmail.com](mailto:marmaradar@gmail.com).
 
 ## Report issues
 

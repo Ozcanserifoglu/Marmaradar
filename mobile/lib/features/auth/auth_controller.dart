@@ -248,6 +248,33 @@ class AuthController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Permanently deletes the account on the server, then clears local session.
+  Future<bool> deleteAccount() async {
+    if (_busy) return false;
+    _busy = true;
+    _error = null;
+    notifyListeners();
+    try {
+      await _api.deleteMyAccount();
+      await logout();
+      return true;
+    } on ApiException catch (e) {
+      // Already gone on the server — treat as success and clear local session.
+      if (e.statusCode == 404) {
+        await logout();
+        return true;
+      }
+      _error = e.message;
+      return false;
+    } catch (e) {
+      _error = e.toString();
+      return false;
+    } finally {
+      _busy = false;
+      notifyListeners();
+    }
+  }
+
   void clearError() {
     _error = null;
     notifyListeners();
