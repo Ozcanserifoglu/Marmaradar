@@ -2,8 +2,8 @@ import './HowItWorks.css'
 
 const STEPS = [
   {
-    title: 'APK İndir',
-    description: 'Android beta paketini indir, yükle ve uygulamayı aç.',
+    title: 'Uygulamayı İndir',
+    description: 'Google Play’den Marmaradar’ı kur ve uygulamayı aç.',
   },
   {
     title: 'Konum İzni',
@@ -21,7 +21,7 @@ export default function HowItWorks({ stepRefs }) {
       <div className="container">
         <div className="section-head" ref={stepRefs?.head}>
           <h2>Nasıl çalışır?</h2>
-          <p>Üç adımda yola çık. Mağaza beklemeden beta ile başla.</p>
+          <p>Üç adımda yola çık.</p>
         </div>
 
         <ol className="steps">

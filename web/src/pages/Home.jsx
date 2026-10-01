@@ -1,5 +1,5 @@
 import { useId, useState } from 'react'
-import { ChevronDown, Download, Map, Camera, Gauge, Route, BellRing } from 'lucide-react'
+import { ChevronDown, Map, Camera, Gauge, Route, BellRing } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import GradientBlobs from '../components/GradientBlobs'
@@ -8,7 +8,7 @@ import StoreBadges from '../components/StoreBadges'
 import FeatureCard from '../components/FeatureCard'
 import HowItWorks from '../components/HowItWorks'
 import Footer from '../components/Footer'
-import ApkDisclaimer from '../components/ApkDisclaimer'
+import { PLAY_STORE_URL } from '../config/storeLinks'
 import { useScrollReveal } from '../hooks/useScrollReveal'
 import './Home.css'
 
@@ -103,10 +103,11 @@ export default function Home() {
   const faqRef1 = useScrollReveal({ staggerClass: 'stagger-1' })
   const faqRef2 = useScrollReveal({ staggerClass: 'stagger-2' })
   const faqRef3 = useScrollReveal({ staggerClass: 'stagger-3' })
-  const faqRef4 = useScrollReveal({ staggerClass: 'stagger-4' })
-  const faqRefs = [faqRef1, faqRef2, faqRef3, faqRef4]
+  const faqRefs = [faqRef1, faqRef2, faqRef3]
 
   const finalCtaRef = useScrollReveal()
+  const playHref = PLAY_STORE_URL || '#get-app'
+  const playExternal = Boolean(PLAY_STORE_URL)
 
   return (
     <div className="home-page">
@@ -148,13 +149,12 @@ export default function Home() {
         <div className="container faq-layout">
           <div className="section-head" ref={faqHeadRef}>
             <h2>Sık sorulanlar</h2>
-            <p>Beta hakkında bilmen gerekenler.</p>
+            <p>Uygulama hakkında bilmen gerekenler.</p>
           </div>
 
           <div className="faq-list">
-            <FaqItem question="Mağazalarda ne zaman olacak?" itemRef={faqRefs[0]}>
-              Google Play ve App Store yayınları henüz hazır değil. Şimdilik Android beta APK ile
-              erken erişim sunuyoruz.
+            <FaqItem question="Nereden indirebilirim?" itemRef={faqRefs[0]}>
+              Android için Google Play’den. App Store sürümü henüz yayınlanmadı.
             </FaqItem>
             <FaqItem question="Hangi bölgeleri kapsıyor?" itemRef={faqRefs[1]}>
               Türkiye genelinde EDS ve ortalama hız koridorlarını takip ediyoruz; kapsam
@@ -165,12 +165,6 @@ export default function Home() {
               yüklenebilir; topluluk raporları da konumla ilişkilendirilebilir. Reklam ağı
               yok. Ayrıntılar <Link to="/gizlilik">gizlilik sayfasında</Link>.
             </FaqItem>
-            <FaqItem question="APK’yı nasıl kurarım? Güvenli mi?" itemRef={faqRefs[3]}>
-              Google Play henüz yok; Android’de bilinmeyen kaynaklardan kurulum gerekir. Play
-              Protect uyarabilir. İndirme ve kurulum tamamen senin riskin; Marmaradar oluşan
-              hiçbir sonuçtan sorumlu değildir. Kurulumdan önce{' '}
-              <Link to="/kullanim-sartlari">kullanım şartlarını</Link> oku.
-            </FaqItem>
           </div>
         </div>
       </section>
@@ -179,23 +173,20 @@ export default function Home() {
         <div className="container">
           <div className="final-cta-box" ref={finalCtaRef}>
             <div className="final-cta-copy">
-              <h2>Beta’ya katıl, yolda bir adım önde ol</h2>
-              <p>
-                Marmaradar Android beta’sını şimdi indir; mağaza açılışından önce geri bildiriminle
-                şekillendir.
-              </p>
+              <h2>Yolda bir adım önde ol</h2>
+              <p>Marmaradar’ı Google Play’den indir; sürüşe çıkmadan önce hazır ol.</p>
             </div>
             <div className="final-cta-action">
               <a
                 className="btn btn-primary btn-lg"
-                href="/downloads/marmaradar-beta.apk"
-                download
+                href={playHref}
+                {...(playExternal
+                  ? { target: '_blank', rel: 'noopener noreferrer' }
+                  : undefined)}
               >
-                <Download size={18} aria-hidden="true" />
-                APK İndir (Beta)
+                Google Play’de İndir
               </a>
             </div>
-            <ApkDisclaimer />
           </div>
         </div>
       </section>

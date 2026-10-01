@@ -223,8 +223,4 @@
     justify-self: end;
     padding-bottom: 1.5rem;
   }
-
-  .final-cta-box .apk-disclaimer {
-    grid-column: 1 / -1;
-  }
 }

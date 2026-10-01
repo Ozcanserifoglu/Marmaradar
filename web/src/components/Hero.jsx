@@ -1,8 +1,10 @@
-import { Download } from 'lucide-react'
-import ApkDisclaimer from './ApkDisclaimer'
+import { PLAY_STORE_URL } from '../config/storeLinks'
 import './Hero.css'
 
 export default function Hero() {
+  const primaryHref = PLAY_STORE_URL || '#get-app'
+  const primaryExternal = Boolean(PLAY_STORE_URL)
+
   return (
     <section className="hero" id="top">
       <div className="hero-grid-bg" aria-hidden="true" />
@@ -11,7 +13,7 @@ export default function Hero() {
         <div className="hero-copy">
           <div className="pill reveal-hero d1">
             <span className="pill-dot" aria-hidden="true" />
-            Beta Now Live
+            Google Play’de
           </div>
 
           <h1 className="reveal-hero d2">
@@ -26,22 +28,19 @@ export default function Hero() {
           <div className="hero-ctas reveal-hero d4" id="download">
             <a
               className="btn btn-primary"
-              href="/downloads/marmaradar-beta.apk"
-              download
+              href={primaryHref}
+              {...(primaryExternal
+                ? { target: '_blank', rel: 'noopener noreferrer' }
+                : undefined)}
             >
-              <Download size={18} aria-hidden="true" />
-              APK İndir (Beta)
+              Google Play’de İndir
             </a>
             <a className="btn btn-ghost" href="#how">
               Nasıl Çalışır?
             </a>
           </div>
 
-          {/* TODO: update version number and file size once real APK is finalized */}
-          <p className="hero-meta reveal-hero d5">Android 8.0+ · v0.x Beta</p>
-          <div className="reveal-hero d5">
-            <ApkDisclaimer />
-          </div>
+          <p className="hero-meta reveal-hero d5">Android · Google Play</p>
         </div>
 
         <div className="phone-wrap reveal-hero d6">

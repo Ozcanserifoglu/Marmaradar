@@ -5,16 +5,15 @@ export default function TermsOfUse() {
   return (
     <LegalLayout title="Kullanım Şartları">
       <section className="legal-callout">
-        <h2>Beta APK — tüm risk sana aittir</h2>
+        <h2>Kabul</h2>
         <p>
-          marmaradar.com üzerinden APK’yı indirdiğin, cihazına kurduğun veya Marmaradar’ı
-          kullandığın anda bu şartların tamamını okuduğunu ve kabul ettiğini beyan edersin.
-          Marmaradar, sitenin, beta uygulamanın, kurulumun veya kullanımdan doğan hiçbir sonuç
-          için sorumluluk kabul etmez. Cihaz hasarı, veri kaybı, kötü amaçlı yazılım, işletim
-          sistemi / Play Protect uyarıları, güncelleme sorunları, yanlış veya eksik kamera
-          bilgisi, trafik cezası, kaza, yaralanma, maddi veya manevi zarar dahil her türlü
-          sonuç tamamen senin sorumluluğundadır. Uygulamayı “olduğu gibi” ve “mevcut haliyle”
-          sunuyoruz; açık veya zımni hiçbir garanti vermiyoruz.
+          Marmaradar web sitesini veya uygulamasını kullandığın anda bu şartların tamamını
+          okuduğunu ve kabul ettiğini beyan edersin. Marmaradar, sitenin veya uygulamanın
+          kullanımından doğan hiçbir sonuç için sorumluluk kabul etmez. Cihaz hasarı, veri
+          kaybı, yanlış veya eksik kamera bilgisi, trafik cezası, kaza, yaralanma, maddi veya
+          manevi zarar dahil her türlü sonuç tamamen senin sorumluluğundadır. Uygulamayı
+          “olduğu gibi” ve “mevcut haliyle” sunuyoruz; açık veya zımni hiçbir garanti
+          vermiyoruz.
         </p>
       </section>
 
@@ -62,36 +61,12 @@ export default function TermsOfUse() {
       </section>
 
       <section>
-        <h2>Beta yazılım</h2>
+        <h2>Uygulama mağazaları</h2>
         <p>
-          Uygulama beta aşamasındadır. Hatalar, kesintiler, veri kaybı ve geriye dönük uyumsuz
-          değişiklikler beklenmelidir. Mağaza sürümü henüz yoktur; özellikler değişebilir veya
-          durdurulabilir.
+          Android sürümünü yalnızca Google Play üzerinden indir. App Store sürümü henüz
+          yayınlanmamış olabilir. Üçüncü taraf sitelerden veya dosya paylaşımından gelen
+          paketlerden Marmaradar sorumlu değildir.
         </p>
-      </section>
-
-      <section>
-        <h2>APK ve yan yükleme (sideload)</h2>
-        <ul>
-          <li>
-            Dosya Google Play veya başka bir uygulama mağazasından gelmez. Android’de
-            “bilinmeyen kaynaklar” izni vermen gerekir; bu, cihaz güvenliğini zayıflatır.
-          </li>
-          <li>
-            Yalnızca <a href="https://www.marmaradar.com">www.marmaradar.com</a> üzerindeki
-            resmi indirme bağlantısını kullan. Başka siteden, mesajdan veya dosya paylaşımından
-            gelen APK’lardan Marmaradar sorumlu değildir.
-          </li>
-          <li>
-            Play Protect veya antivirüs uygulamayı engelleyebilir veya uyarabilir; bunları
-            aşmak senin kararındır ve riski sana aittir.
-          </li>
-          <li>Otomatik güncelleme yoktur; yeni sürümü kendin indirmen gerekir.</li>
-          <li>
-            İndirme, kurulum, izinler (konum, bildirim) ve kaldırma tamamen senin
-            cihazında ve senin kontrolündedir.
-          </li>
-        </ul>
       </section>
 
       <section>
@@ -126,8 +101,8 @@ export default function TermsOfUse() {
           hakların saklıdır; bunlar kanunla kaldırılamayan haklardır.
         </p>
         <p>
-          Siteyi veya APK’yı kullanmak istemiyorsan indirme; indirdiysen uygulamayı kaldır ve
-          kullanmayı bırak.
+          Siteyi veya uygulamayı kullanmak istemiyorsan kullanmayı bırak; uygulamayı
+          cihazından kaldır.
         </p>
       </section>
 

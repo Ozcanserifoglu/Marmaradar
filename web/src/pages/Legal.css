@@ -95,25 +95,6 @@
   opacity: 0.9;
 }
 
-.apk-disclaimer {
-  max-width: 42rem;
-  margin-top: 0.85rem;
-  font-size: 0.78rem;
-  line-height: 1.55;
-  color: var(--color-text-secondary);
-}
-
-.apk-disclaimer a {
-  color: var(--color-accent-teal);
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-.final-cta-box .apk-disclaimer {
-  margin: 0;
-  max-width: 46rem;
-}
-
 @media (min-width: 768px) {
   .legal-body {
     padding: 2.75rem 0 5rem;

@@ -29,16 +29,21 @@ Thumbs.db
 
 # Env — never commit real credentials
 .env
-.env.local
-.env.*.local
+.env.*
 !.env.example
+!.env.local.example
+!**/.env.example
 
-# Secrets / signing
+# Secrets / signing / local credentials
 **/*.keystore
 **/*.jks
+**/*.pem
+**/*.p12
 **/key.properties
 **/google-services.json
 **/GoogleService-Info.plist
+secrets.txt
+**/secrets.txt
 
 # Data
 *.db

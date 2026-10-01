@@ -122,9 +122,9 @@ export default function Privacy() {
       <section>
         <h2>Çerezler ve site</h2>
         <p>
-          Pazarlama sitesi temel olarak tanıtım ve APK indirme içindir. Zorunlu barındırma /
-          güvenlik kayıtları ve Google Fonts dışında pazarlama çerezi kullanmıyoruz. İleride
-          eklenirse bu metin güncellenir.
+          Pazarlama sitesi temel olarak tanıtım içindir. Zorunlu barındırma / güvenlik
+          kayıtları ve Google Fonts dışında pazarlama çerezi kullanmıyoruz. İleride eklenirse
+          bu metin güncellenir.
         </p>
       </section>
 
@@ -138,7 +138,7 @@ export default function Privacy() {
       <section>
         <h2>Uygulama ve şartlar</h2>
         <p>
-          Beta APK’yı indirmek ve uygulamayı kullanmak{' '}
+          Uygulamayı kullanmak{' '}
           <Link to="/kullanim-sartlari">Kullanım Şartları</Link>’na da tabidir.
         </p>
       </section>

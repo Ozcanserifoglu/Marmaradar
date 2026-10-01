@@ -1,6 +1,6 @@
 # Marmaradar Web
 
-Vite + React site for [www.marmaradar.com](https://www.marmaradar.com): marketing, changelog, password reset, legal pages, and the Android **beta APK**. Hosted as a SPA (`vercel.json` rewrites).
+Vite + React site for [www.marmaradar.com](https://www.marmaradar.com): marketing, changelog, password reset, and legal pages. Hosted as a SPA (`vercel.json` rewrites).
 
 ## Setup
 
@@ -17,13 +17,15 @@ Dev server: `http://localhost:5173`
 
 | Path | Purpose |
 |------|---------|
-| `/` | Landing (APK download CTAs) |
+| `/` | Landing (Play Store CTAs) |
 | `/changelog` | Product updates |
 | `/reset-password?token=…` | Password reset → `POST {VITE_API_BASE_URL}/v1/auth/reset-password` |
 | `/gizlilik` | Privacy / KVKK ([`Privacy.jsx`](src/pages/Privacy.jsx)) |
-| `/kullanim-sartlari` | Terms of use ([`TermsOfUse.jsx`](src/pages/TermsOfUse.jsx)), including APK sideload risk |
+| `/kullanim-sartlari` | Terms of use ([`TermsOfUse.jsx`](src/pages/TermsOfUse.jsx)) |
 
-Static files: `public/sitemap.xml`, `public/downloads/marmaradar-beta.apk`.
+Play Store URL: [`src/config/storeLinks.js`](src/config/storeLinks.js).
+
+Static files: `public/sitemap.xml`.
 
 ## Env
 

@@ -101,7 +101,7 @@ npm run dev
 Dev server: http://localhost:5173
 
 Routes: `/`, `/changelog`, `/reset-password`, `/gizlilik`, `/kullanim-sartlari`.  
-Beta APK: `web/public/downloads/marmaradar-beta.apk`.
+Play Store URL: `web/src/config/storeLinks.js`.
 
 ### Mobile
 
@@ -138,8 +138,6 @@ Release builds (Web client ID from `mobile/dart_defines.oauth.json`):
 ./scripts/build-release-mobile.sh apk
 ./scripts/build-release-mobile.sh ipa
 ```
-
-Publish a site beta by copying the APK to `web/public/downloads/marmaradar-beta.apk`.
 
 ## API (gateway → Go)
 

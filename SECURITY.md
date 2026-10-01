@@ -8,7 +8,7 @@
 | Local Docker DB password (`radar` / `radar` in `docker-compose.yml`) | OK — local only |
 | Camera/corridor seed data | OK — public road data |
 | Overpass / Geofabrik endpoints | OK — public OSM |
-| Marketing site, legal pages, beta APK path | OK — public by design |
+| Marketing site, legal pages, Play Store link | OK — public by design |
 | Google Sign-In **Web** client ID in `mobile/dart_defines.oauth.json` | OK — OAuth client IDs are not secrets; restrict the client in Google Cloud |
 
 ## What must NEVER be committed
@@ -39,7 +39,7 @@ Use [`.env.example`](.env.example) as a template. Never push `.env`.
 - `GEO_RESTRICT_COUNTRIES=TR` is an application filter, not Cloud Armor.
 - Do not put unrestricted API keys in the Flutter or web binaries. OAuth client IDs are expected in the app; Maps keys must be package/bundle restricted.
 - Gateway traffic is still **plain HTTP**. Android cleartext and iOS arbitrary loads are enabled. Tokens and drive uploads are readable on hostile networks. Terminate TLS in front of the gateway and drop cleartext before a store release.
-- The public beta APK is a sideload, not a Play Store build. Users accept that risk in [Kullanım Şartları](https://www.marmaradar.com/kullanim-sartlari). Host only builds you produced.
+- Distribute Android builds via Google Play. Do not host sideload APKs on the marketing site.
 
 ## Privacy / data
 

@@ -82,8 +82,6 @@ flutter build apk --dart-define-from-file=dart_defines.oauth.json
 
 iOS also needs `GOOGLE_IOS_CLIENT_ID` and `ios/Flutter/GoogleSignInSecrets.xcconfig` (from the `.example` file).
 
-Site beta: copy the APK to `web/public/downloads/marmaradar-beta.apk`.
-
 ## Location (foreground only)
 
 See [docs/BACKGROUND_LOCATION.md](docs/BACKGROUND_LOCATION.md).

@@ -24,10 +24,10 @@ Drivers in Turkey who want a simple on-the-road camera/corridor alert app.
 
 ## Platforms
 
-- **Android** — public **beta APK** from the website (`/downloads/marmaradar-beta.apk`). Not on Google Play yet.
+- **Android** — [Google Play](https://www.marmaradar.com/#get-app) (set the listing URL in `web/src/config/storeLinks.js`).
 - **iOS** — App Store listing is not published yet.
 
-Sideloading the APK is at your own risk. See [Kullanım Şartları](https://www.marmaradar.com/kullanim-sartlari).
+See [Kullanım Şartları](https://www.marmaradar.com/kullanim-sartlari).
 
 ## How to use it
 

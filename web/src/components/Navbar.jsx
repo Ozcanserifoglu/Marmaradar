@@ -1,18 +1,16 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Mail, Menu, X } from 'lucide-react'
+import { Menu, X } from 'lucide-react'
+import { PLAY_STORE_URL } from '../config/storeLinks'
 import './Navbar.css'
-
-// Suggestion (product copy): consider renaming label to "Beta İçin Başvur" or "Bize Ulaş"
-// so the mailto destination is clearer; keeping "Beta'ya Katıl" until decided.
-const BETA_MAILTO =
-  'mailto:marmaradar@gmail.com?subject=Beta%20Program%20Ba%C5%9Fvurusu&body=Merhaba%2C%0A%0ABeta%20program%C4%B1na%20kat%C4%B1lmak%20istiyorum.%0A%0ATe%C5%9Fekk%C3%BCrler.'
 
 export default function Navbar({ minimal = false }) {
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const { pathname } = useLocation()
   const onChangelog = pathname === '/changelog'
+  const ctaHref = PLAY_STORE_URL || '#get-app'
+  const ctaExternal = Boolean(PLAY_STORE_URL)
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24)
@@ -58,12 +56,13 @@ export default function Navbar({ minimal = false }) {
           <div className="nav-actions">
             {!minimal && (
               <a
-                href={BETA_MAILTO}
+                href={ctaHref}
                 className="btn btn-ghost btn-sm nav-cta"
-                aria-label="Beta programı için marmaradar@gmail.com adresine e-posta gönder"
+                {...(ctaExternal
+                  ? { target: '_blank', rel: 'noopener noreferrer' }
+                  : undefined)}
               >
-                <Mail size={16} aria-hidden="true" />
-                Beta&apos;ya Katıl
+                Google Play
               </a>
             )}
             {!minimal && (
@@ -94,9 +93,14 @@ export default function Navbar({ minimal = false }) {
             >
               Güncellemeler
             </Link>
-            <a href={BETA_MAILTO} onClick={closeMenu} aria-label="Beta programı için e-posta gönder">
-              <Mail size={16} aria-hidden="true" />
-              Beta&apos;ya Katıl
+            <a
+              href={ctaHref}
+              onClick={closeMenu}
+              {...(ctaExternal
+                ? { target: '_blank', rel: 'noopener noreferrer' }
+                : undefined)}
+            >
+              Google Play
             </a>
           </div>
         )}
