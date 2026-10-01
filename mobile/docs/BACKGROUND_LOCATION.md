@@ -1,59 +1,26 @@
-# Background Location — Testing & Hardening
+# Location (foreground only)
 
 Display name **Marmaradar**. Implementation: `mobile/lib/core/location/background_location_service.dart`.
 
+Background / always-on location was removed to avoid Google Play policy complications. The app requests and uses location **only while in use** (foreground).
+
 ## Current implementation
 
-- **Package:** `geolocator` with `ForegroundNotificationConfig` on Android
-- **iOS:** `AppleSettings` with `ActivityType.automotiveNavigation` and `UIBackgroundModes: location`
-- **Alerts:** `flutter_local_notifications` for audio/visual warnings when screen is off
-- **Permissions:** always-on location is required for lock-screen / background camera and corridor alerts (see the public [privacy page](https://www.marmaradar.com/gizlilik))
-
-## Recommended soak test (2+ hours)
-
-1. Install debug build on a physical Android device (Samsung/Xiaomi/Redmi preferred — aggressive battery killers).
-2. Grant **Always** location + notification permissions.
-3. Disable battery optimization for Marmaradar (Settings → Apps → Marmaradar → Battery → Unrestricted).
-4. Start tracking, open Google Maps navigation, turn screen off.
-5. Drive or simulate route through known Bursa EDS points.
-6. Log every 15 minutes: is foreground notification visible? Are GPS updates arriving?
-
-### Pass criteria
-
-- Foreground notification remains for full test duration
-- Camera alerts fire within 45s TTA at known points
-- Corridor session starts at entry gate and ends at exit gate
-
-## If geolocator is unreliable
-
-Evaluate migrating to **tracelet** (open-source, production-grade background geolocation):
-
-- Polygon geofences for corridor gates
-- Headless Dart execution when app is killed
-- SQLite persistence + HTTP sync built-in
-
-Migration path:
-
-1. Replace `BackgroundLocationService` with `Tracelet.onLocation` stream
-2. Register corridor gates as polygon/circle geofences
-3. Keep `AlertEngine` / `CorridorTracker` logic unchanged
+- **Package:** `geolocator` with foreground `AndroidSettings` / `AppleSettings`
+- **iOS:** `allowBackgroundLocationUpdates: false`; no `UIBackgroundModes: location`
+- **Permissions:** while-in-use only (`ACCESS_FINE_LOCATION` / `ACCESS_COARSE_LOCATION`, `NSLocationWhenInUseUsageDescription`)
 
 ## Android checklist
 
 - [x] `ACCESS_FINE_LOCATION`
-- [x] `ACCESS_BACKGROUND_LOCATION`
-- [x] `FOREGROUND_SERVICE_LOCATION`
+- [x] `ACCESS_COARSE_LOCATION`
 - [x] `POST_NOTIFICATIONS`
-- [x] `WAKE_LOCK`
-- [ ] Request `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` in settings flow (future)
+- [x] `WAKE_LOCK` (screen wakelock during an active drive — not for background GPS)
+- [x] No `ACCESS_BACKGROUND_LOCATION`
+- [x] No `FOREGROUND_SERVICE_LOCATION`
 
 ## iOS checklist
 
 - [x] `NSLocationWhenInUseUsageDescription`
-- [x] `NSLocationAlwaysAndWhenInUseUsageDescription`
-- [x] `UIBackgroundModes: location`
-- [ ] App Store review notes explaining navigation-adjacent safety use case
-
-## Tracelet evaluation summary
-
-**Decision:** Stay on `geolocator` for MVP. Tracelet is documented as the upgrade path if soak tests fail on target OEM devices. No tracelet dependency added yet to keep the initial scaffold simple and license-free.
+- [x] No `NSLocationAlwaysAndWhenInUseUsageDescription`
+- [x] No `UIBackgroundModes: location` (`audio` may remain for voice alerts)

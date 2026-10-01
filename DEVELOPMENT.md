@@ -195,7 +195,7 @@ iOS also needs `GOOGLE_IOS_CLIENT_ID` and `mobile/ios/Flutter/GoogleSignInSecret
 
 Open **TCP 8081**. `GEO_RESTRICT_COUNTRIES=TR` rejects public IPs outside Turkey (`/health` stays open). Use Cloud Armor on an HTTP(S) load balancer for packet-level geo blocking.
 
-## Background location
+## Location (foreground only)
 
 [`mobile/docs/BACKGROUND_LOCATION.md`](mobile/docs/BACKGROUND_LOCATION.md).
 

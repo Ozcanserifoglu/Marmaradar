@@ -2,7 +2,7 @@
 
 **Marmaradar** is a driving companion for **fixed speed cameras (EDS)** and **average-speed corridors** in **Turkey**. Coverage started around Bursa / Marmara and is expanding.
 
-Open the map, start a drive, and get warnings before you reach a camera or enter a corridor. Alerts can keep working in the background.
+Open the map, start a drive, and get warnings before you reach a camera or enter a corridor while the app is in use.
 
 Website: [www.marmaradar.com](https://www.marmaradar.com)
 
@@ -11,7 +11,7 @@ Website: [www.marmaradar.com](https://www.marmaradar.com)
 - **Live map** — your position, nearby cameras, and corridor stretches
 - **Speed camera alerts** — distance and speed limit as you approach a fixed camera
 - **Average-speed corridors** — track your average vs the limit inside a corridor
-- **Background warnings** — alerts with the screen off (always-on location required)
+- **Voice & on-screen alerts** — camera and corridor warnings while the app is open
 - **Destination search** — optional route with distance and ETA
 - **Automatic tracking** — optionally start when driving is detected
 - **Optional account** — Google / Apple / email; drive history, stats, and crowd reports when signed in
@@ -31,7 +31,7 @@ Sideloading the APK is at your own risk. See [Kullanım Şartları](https://www.
 
 ## How to use it
 
-1. Install the app and allow **location** (and **notifications**). For alerts while the phone is locked, choose **always** location and disable battery restrictions for Marmaradar if the OS asks.
+1. Install the app and allow **location** (while in use) and **notifications**.
 2. Open the map and wait for GPS lock.
 3. Tap **Sürüşe Başla** to start tracking, or turn on **Otomatik**.
 4. Optionally search a destination (**Nereye?**) and follow the route.

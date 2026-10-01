@@ -24,7 +24,7 @@ export default function Privacy() {
         <ul>
           <li>
             <strong>Konum:</strong> Harita, EDS ve koridor uyarıları için cihazının GPS verisi
-            (ön planda ve, izin verirsen, arka planda). Yakındaki kameralar ve koridorlar için
+            (yalnızca uygulama kullanımdayken / ön planda). Yakındaki kameralar ve koridorlar için
             hesap oluşturmasan da konum koordinatların sunucuya sorgu olarak gidebilir.
           </li>
           <li>

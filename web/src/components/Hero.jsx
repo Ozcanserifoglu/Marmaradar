@@ -20,7 +20,7 @@ export default function Hero() {
 
           <p className="hero-lead reveal-hero d3">
             Türkiye genelinde sabit hız kameraları (EDS) ve ortalama hız koridorlarını canlı takip et.
-            Yola çıkmadan önce uyar; sürüş sırasında arka planda da uyarı al.
+            Yola çıkmadan önce uyar; sürüş sırasında uygulama açıkken sesli ve görsel uyarı al.
           </p>
 
           <div className="hero-ctas reveal-hero d4" id="download">

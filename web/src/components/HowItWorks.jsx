@@ -7,7 +7,7 @@ const STEPS = [
   },
   {
     title: 'Konum İzni',
-    description: 'Konum ve bildirim izinlerini ver; arka plan uyarıları için “her zaman” seç.',
+    description: 'Konum (kullanımdayken) ve bildirim izinlerini ver.',
   },
   {
     title: 'Sürüşe Başla',

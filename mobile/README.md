@@ -84,6 +84,6 @@ iOS also needs `GOOGLE_IOS_CLIENT_ID` and `ios/Flutter/GoogleSignInSecrets.xccon
 
 Site beta: copy the APK to `web/public/downloads/marmaradar-beta.apk`.
 
-## Background location
+## Location (foreground only)
 
 See [docs/BACKGROUND_LOCATION.md](docs/BACKGROUND_LOCATION.md).

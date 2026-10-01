@@ -31,11 +31,16 @@ DriverSnapshot _toSnapshot(Position pos) {
   );
 }
 
+/// Foreground-only location stream. Does not request or use background location.
 class BackgroundLocationService {
   StreamSubscription<Position>? _sub;
   StreamSubscription<Position>? _idleSub;
 
-  Future<bool> ensureBasicPermission() async {
+  Future<bool> ensureBasicPermission() => _ensureWhileInUsePermission();
+
+  Future<bool> ensurePermissions() => _ensureWhileInUsePermission();
+
+  Future<bool> _ensureWhileInUsePermission() async {
     if (!await Geolocator.isLocationServiceEnabled()) {
       return false;
     }
@@ -43,27 +48,13 @@ class BackgroundLocationService {
     if (perm == LocationPermission.denied) {
       perm = await Geolocator.requestPermission();
     }
-    return perm == LocationPermission.always ||
-        perm == LocationPermission.whileInUse;
-  }
-
-  Future<bool> ensurePermissions() async {
-    if (!await Geolocator.isLocationServiceEnabled()) {
+    if (perm == LocationPermission.denied ||
+        perm == LocationPermission.deniedForever) {
       return false;
     }
-
-    var perm = await Geolocator.checkPermission();
-    if (perm == LocationPermission.denied) {
-      perm = await Geolocator.requestPermission();
-    }
-    if (perm == LocationPermission.deniedForever) {
-      return false;
-    }
-    if (perm == LocationPermission.whileInUse) {
-      perm = await Geolocator.requestPermission();
-    }
-    return perm == LocationPermission.always ||
-        perm == LocationPermission.whileInUse;
+    // Accept whileInUse (and always if previously granted); never upgrade to always.
+    return perm == LocationPermission.whileInUse ||
+        perm == LocationPermission.always;
   }
 
   Future<DriverSnapshot?> currentSnapshot() async {
@@ -113,9 +104,10 @@ class BackgroundLocationService {
             distanceFilter: 10,
             forceLocationManager: forceLocationManager,
           )
-        : const LocationSettings(
+        : AppleSettings(
             accuracy: LocationAccuracy.high,
             distanceFilter: 10,
+            allowBackgroundLocationUpdates: false,
           );
 
     await _idleSub?.cancel();
@@ -142,18 +134,14 @@ class BackgroundLocationService {
             distanceFilter: 5,
             intervalDuration: const Duration(seconds: 1),
             forceLocationManager: forceLocationManager,
-            foregroundNotificationConfig: const ForegroundNotificationConfig(
-              notificationTitle: 'Marmaradar aktif',
-              notificationText: 'Hız kamerası uyarıları arka planda çalışıyor',
-              enableWakeLock: true,
-            ),
           )
         : AppleSettings(
             accuracy: LocationAccuracy.bestForNavigation,
             distanceFilter: 5,
             activityType: ActivityType.automotiveNavigation,
             pauseLocationUpdatesAutomatically: false,
-            showBackgroundLocationIndicator: true,
+            showBackgroundLocationIndicator: false,
+            allowBackgroundLocationUpdates: false,
           );
 
     await _sub?.cancel();

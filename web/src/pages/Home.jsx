@@ -53,8 +53,8 @@ const FEATURES = [
   },
   {
     icon: BellRing,
-    title: 'Arka Plan Uyarıları',
-    description: 'Ekranı kapatsan da uyarılar çalışır. Sen yola bak.',
+    title: 'Sesli ve Görsel Uyarılar',
+    description: 'Uygulama açıkken yaklaşan kameraları ve koridorları sesli ve görsel uyarır.',
     className: 'feature-card-full',
   },
 ]

@@ -88,7 +88,7 @@ export default function TermsOfUse() {
           </li>
           <li>Otomatik güncelleme yoktur; yeni sürümü kendin indirmen gerekir.</li>
           <li>
-            İndirme, kurulum, izinler (konum, bildirim, arka plan) ve kaldırma tamamen senin
+            İndirme, kurulum, izinler (konum, bildirim) ve kaldırma tamamen senin
             cihazında ve senin kontrolündedir.
           </li>
         </ul>
