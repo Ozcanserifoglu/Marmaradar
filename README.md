@@ -24,7 +24,7 @@ Drivers in Turkey who want a simple on-the-road camera/corridor alert app.
 
 ## Platforms
 
-- **Android** — [Google Play](https://www.marmaradar.com/#get-app) (set the listing URL in `web/src/config/storeLinks.js`).
+- **Android** — [Google Play](https://play.google.com/store/apps/details?id=com.radaralert.radar_alert)
 - **iOS** — App Store listing is not published yet.
 
 See [Kullanım Şartları](https://www.marmaradar.com/kullanim-sartlari).
