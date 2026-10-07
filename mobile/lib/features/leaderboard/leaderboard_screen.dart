@@ -82,7 +82,9 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
           if (data != null)
             _MeBar(
               me: data.me,
-              valueLabel: _formatValue(board.category, data.me.value),
+              // Format from the payload category so a stale/mismatched cache
+              // cannot label meters as "katkı".
+              valueLabel: _formatValue(data.category, data.me.value),
               pictureUrl: _absoluteUrl(data.me.profilePictureUrl),
             ),
         ],
@@ -147,7 +149,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                 padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
                 child: _Podium(
                   entries: podium,
-                  category: board.category,
+                  category: data.category,
                   formatValue: _formatValue,
                   absoluteUrl: _absoluteUrl,
                   myUserId: data.me.userId,
@@ -179,7 +181,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                     padding: EdgeInsets.only(bottom: index == rest.length - 1 ? 0 : 8),
                     child: _LeaderboardRow(
                       entry: entry,
-                      valueLabel: _formatValue(board.category, entry.value),
+                      valueLabel: _formatValue(data.category, entry.value),
                       pictureUrl: _absoluteUrl(entry.profilePictureUrl),
                       isMe: entry.userId == data.me.userId,
                     ),

@@ -21,8 +21,14 @@ class LeaderboardController extends ChangeNotifier {
   String? get error => _error;
   bool get isRefreshing => _refreshing;
 
-  LeaderboardResponse? get current =>
-      _category == LeaderboardCategory.distance ? _distance : _reports;
+  LeaderboardResponse? get current {
+    final cached =
+        _category == LeaderboardCategory.distance ? _distance : _reports;
+    // Drop mismatched entries (e.g. a raced distance payload stored under
+    // reports) so the UI never formats meters as contributions.
+    if (cached == null || cached.category != _category) return null;
+    return cached;
+  }
 
   bool get hasCache => current != null;
 
@@ -43,7 +49,11 @@ class LeaderboardController extends ChangeNotifier {
   }
 
   Future<void> load({bool forceSpinner = false}) async {
-    final showSpinner = forceSpinner || current == null;
+    // Capture the category this request is for. If the user switches tabs while
+    // the request is in flight, we must NOT write the response into the other
+    // cache (that previously showed distance meters as "katkı").
+    final requested = _category;
+    final showSpinner = forceSpinner || _cacheFor(requested) == null;
     if (showSpinner) {
       _state = LeaderboardLoadState.loading;
       _error = null;
@@ -54,27 +64,44 @@ class LeaderboardController extends ChangeNotifier {
     }
 
     try {
-      final next = await _api.fetchLeaderboard(_category);
-      if (_category == LeaderboardCategory.distance) {
-        _distance = next;
-      } else {
-        _reports = next;
+      final next = await _api.fetchLeaderboard(requested);
+      _store(next);
+      if (_category == requested) {
+        _state = LeaderboardLoadState.ready;
+        _error = null;
       }
-      _state = LeaderboardLoadState.ready;
-      _error = null;
     } on ApiException catch (e) {
-      _error = e.message;
-      if (current == null) {
-        _state = LeaderboardLoadState.error;
+      if (_category == requested) {
+        _error = e.message;
+        if (_cacheFor(requested) == null) {
+          _state = LeaderboardLoadState.error;
+        }
       }
     } catch (e) {
-      _error = e.toString();
-      if (current == null) {
-        _state = LeaderboardLoadState.error;
+      if (_category == requested) {
+        _error = e.toString();
+        if (_cacheFor(requested) == null) {
+          _state = LeaderboardLoadState.error;
+        }
       }
     } finally {
-      _refreshing = false;
+      if (_category == requested) {
+        _refreshing = false;
+      }
       notifyListeners();
+    }
+  }
+
+  LeaderboardResponse? _cacheFor(LeaderboardCategory category) {
+    return category == LeaderboardCategory.distance ? _distance : _reports;
+  }
+
+  void _store(LeaderboardResponse next) {
+    // Prefer the category the API says it returned (must match the request).
+    if (next.category == LeaderboardCategory.distance) {
+      _distance = next;
+    } else {
+      _reports = next;
     }
   }
 
