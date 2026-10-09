@@ -1,16 +1,12 @@
+/* Translucent toolbar: content scrolls underneath; no hard divider. */
 .nav {
   position: sticky;
   top: 0;
   z-index: 40;
-  transition: background 0.3s var(--ease), border-color 0.3s var(--ease), backdrop-filter 0.3s var(--ease);
-  border-bottom: 1px solid transparent;
-}
-
-.nav.scrolled {
-  background: rgba(8, 8, 12, 0.72);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-bottom-color: var(--color-border-glass);
+  height: var(--nav-height);
+  border: none;
+  border-radius: 0;
+  box-shadow: inset 0 -1px 0 transparent;
 }
 
 .nav-inner {
@@ -18,33 +14,90 @@
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 1rem 0;
-  position: relative;
-  z-index: 2;
+  height: 100%;
+}
+
+/* Scroll edge: a soft fade where content meets the floating chrome. */
+.nav-edge {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: 1.25rem;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    light-dark(rgba(0, 0, 0, 0.06), rgba(0, 0, 0, 0.5)),
+    transparent
+  );
+  -webkit-mask-image: linear-gradient(to bottom, black, transparent);
+  mask-image: linear-gradient(to bottom, black, transparent);
+}
+
+.nav-leading {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  min-width: 0;
+}
+
+.nav-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.4rem 0.7rem 0.4rem 0.5rem;
+  border-radius: 999px;
+  font-size: var(--text-subhead);
+  font-weight: 500;
+  color: var(--red);
+  transition: background-color var(--dur-fast) ease;
+}
+
+.nav-back:hover {
+  background: var(--fill);
+}
+
+.nav-back:active {
+  background: var(--fill-strong);
+  transition-duration: 0ms;
 }
 
 .nav-links {
   display: none;
   align-items: center;
-  gap: 1.75rem;
+  gap: 0.25rem;
 }
 
 .nav-links a {
-  font-size: 0.9rem;
-  color: var(--color-text-secondary);
-  transition: color 0.2s;
+  padding: 0.45rem 0.8rem;
+  border-radius: 999px;
+  font-size: var(--text-subhead);
+  font-weight: 500;
+  letter-spacing: 0.002em;
+  color: var(--label-secondary);
+  transition:
+    color var(--dur-fast) ease,
+    background-color var(--dur-fast) ease;
 }
 
-.nav-links a:hover,
-.nav-links a.active,
-.mobile-menu a.active {
-  color: var(--color-text-primary);
+.nav-links a:hover {
+  color: var(--label);
+  background: var(--fill);
+}
+
+.nav-links a:active {
+  background: var(--fill-strong);
+  transition-duration: 0ms;
+}
+
+.nav-links a[aria-current="page"] {
+  color: var(--label);
 }
 
 .nav-actions {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.6rem;
 }
 
 .nav-cta {
@@ -55,37 +108,17 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
-  border: 1px solid var(--color-border-glass);
-  background: var(--color-surface-glass);
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 999px;
+  background: var(--fill);
+  color: var(--label);
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color var(--dur-fast) ease;
 }
 
-.mobile-menu {
-  display: none;
-  flex-direction: column;
-  gap: 0.25rem;
-  padding: 0.5rem 0 1rem;
-  border-top: 1px solid var(--color-border-glass);
-}
-
-.mobile-menu.open {
-  display: flex;
-}
-
-.mobile-menu a {
-  padding: 0.75rem 0.5rem;
-  color: var(--color-text-secondary);
-  border-radius: 10px;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-}
-
-.mobile-menu a:hover {
-  color: var(--color-text-primary);
-  background: var(--color-surface-glass);
+.menu-toggle:hover {
+  background: var(--fill-strong);
 }
 
 @media (min-width: 768px) {
@@ -99,9 +132,5 @@
 
   .menu-toggle {
     display: none;
-  }
-
-  .mobile-menu {
-    display: none !important;
   }
 }

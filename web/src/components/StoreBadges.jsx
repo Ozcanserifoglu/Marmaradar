@@ -1,27 +1,46 @@
 import { APP_STORE_URL, PLAY_STORE_URL } from '../config/storeLinks'
 import './StoreBadges.css'
 
-function StoreBadge({ href, comingSoon, children }) {
-  const disabled = comingSoon || !href
-  const className = `store-badge${disabled ? ' is-disabled' : ''}`
+function PlayIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" width="26" height="26">
+      <path d="M3.6 2.4l10.1 10.1L3.6 22.6A1.2 1.2 0 012 21.6V3.4a1.2 1.2 0 011.6-1zM15.1 13.9l2.6 1.5-9.6 5.5 7-7zm2.6-5.3l-2.6 1.5-7-7 9.6 5.5zM20.2 10.7l-2.2-1.3-2.7 1.6 2.7 1.6 2.2-1.3a1.2 1.2 0 000-2.1z" />
+    </svg>
+  )
+}
 
-  if (disabled) {
+function AppleIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" width="26" height="26">
+      <path d="M16.4 12.7c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9s-1.8-.8-3-.8c-1.5 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.3 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7 2-.1 3-2.2c1.1-1.6 1.5-3.1 1.5-3.2-.1 0-2.9-1.1-2.9-4.1zM14.3 5.9c.6-.8 1.1-1.9 1-3-.9 0-2 .6-2.6 1.4-.6.7-1.1 1.8-1 2.9 1 .1 2-.5 2.6-1.3z" />
+    </svg>
+  )
+}
+
+function StoreBadge({ href, icon, eyebrow, name }) {
+  const available = Boolean(href)
+
+  const content = (
+    <>
+      {icon}
+      <span className="store-text">
+        <span className="store-eyebrow t-caption">{available ? eyebrow : 'Yakında'}</span>
+        <span className="store-name">{name}</span>
+      </span>
+    </>
+  )
+
+  if (!available) {
     return (
-      <div className={className}>
-        <span className="coming-tag">Yakında</span>
-        <div className="store-badge-frame">{children}</div>
+      <div className="store-badge is-disabled" aria-disabled="true">
+        {content}
       </div>
     )
   }
 
   return (
-    <a
-      className={className}
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-    >
-      <div className="store-badge-frame">{children}</div>
+    <a className="store-badge" href={href} target="_blank" rel="noopener noreferrer">
+      {content}
     </a>
   )
 }
@@ -30,28 +49,12 @@ export default function StoreBadges() {
   return (
     <div className="store-strip" id="get-app">
       <div className="container store-inner">
-        <p className="store-label">
+        <p className="store-label t-footnote">
           {PLAY_STORE_URL ? 'Uygulamayı indir' : 'Mağazalar'}
         </p>
         <div className="store-badges">
-          <StoreBadge href={PLAY_STORE_URL} comingSoon={!PLAY_STORE_URL}>
-            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" width="28" height="28">
-              <path d="M3.6 2.4l10.1 10.1L3.6 22.6A1.2 1.2 0 012 21.6V3.4a1.2 1.2 0 011.6-1zM15.1 13.9l2.6 1.5-9.6 5.5 7-7zm2.6-5.3l-2.6 1.5-7-7 9.6 5.5zM20.2 10.7l-2.2-1.3-2.7 1.6 2.7 1.6 2.2-1.3a1.2 1.2 0 000-2.1z" />
-            </svg>
-            <div className="store-text">
-              <div className="tiny">GET IT ON</div>
-              <div className="name">Google Play</div>
-            </div>
-          </StoreBadge>
-          <StoreBadge href={APP_STORE_URL} comingSoon={!APP_STORE_URL}>
-            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" width="28" height="28">
-              <path d="M16.4 12.7c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9s-1.8-.8-3-.8c-1.5 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.3 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7 2-.1 3-2.2c1.1-1.6 1.5-3.1 1.5-3.2-.1 0-2.9-1.1-2.9-4.1zM14.3 5.9c.6-.8 1.1-1.9 1-3-.9 0-2 .6-2.6 1.4-.6.7-1.1 1.8-1 2.9 1 .1 2-.5 2.6-1.3z" />
-            </svg>
-            <div className="store-text">
-              <div className="tiny">Download on the</div>
-              <div className="name">App Store</div>
-            </div>
-          </StoreBadge>
+          <StoreBadge href={PLAY_STORE_URL} icon={<PlayIcon />} eyebrow="Get it on" name="Google Play" />
+          <StoreBadge href={APP_STORE_URL} icon={<AppleIcon />} eyebrow="Download on the" name="App Store" />
         </div>
       </div>
     </div>

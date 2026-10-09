@@ -1,0 +1,192 @@
+/* Shared form surface for the account pages (reset password, delete account). */
+
+.form-page {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.form-body {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  padding: 2.5rem 0 4rem;
+  overflow: hidden;
+}
+
+.form-container {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+}
+
+.form-card {
+  width: min(100%, 27.5rem);
+  padding: 2rem 1.5rem;
+  border-radius: var(--radius-xl);
+  background: var(--bg-elevated);
+  border: 1px solid var(--material-border);
+  box-shadow: var(--shadow-md);
+}
+
+@media (min-width: 480px) {
+  .form-card {
+    padding: 2.25rem 2rem;
+  }
+}
+
+.form-card h1 {
+  margin-bottom: 0.5rem;
+}
+
+.form-lead {
+  color: var(--label-secondary);
+  font-size: var(--text-subhead);
+  margin-bottom: 1.5rem;
+}
+
+.form-note {
+  color: var(--label-secondary);
+  font-size: var(--text-footnote);
+  line-height: 1.45;
+  margin-bottom: 1.25rem;
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-sm);
+  background: var(--fill);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.field-label {
+  font-size: var(--text-footnote);
+  font-weight: 600;
+  letter-spacing: 0.008em;
+  color: var(--label-secondary);
+}
+
+.field input {
+  width: 100%;
+  padding: 0.8rem 0.95rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--separator);
+  background: var(--bg);
+  color: var(--label);
+  font-size: var(--text-body);
+  transition:
+    border-color var(--dur-fast) ease,
+    box-shadow var(--dur-fast) ease;
+}
+
+.field input::placeholder {
+  color: var(--label-tertiary);
+}
+
+.field input:focus {
+  outline: none;
+  border-color: var(--focus);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 25%, transparent);
+}
+
+.field input[aria-invalid="true"] {
+  border-color: var(--red);
+}
+
+.field input[aria-invalid="true"]:focus {
+  box-shadow: 0 0 0 3px var(--red-tint);
+}
+
+.field input:disabled {
+  opacity: 0.6;
+}
+
+.field-hint {
+  font-size: var(--text-footnote);
+  color: var(--label-tertiary);
+}
+
+.field-error {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: var(--text-footnote);
+  color: var(--red);
+}
+
+.field-ok {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: var(--text-footnote);
+  color: #30a14e;
+}
+
+.form-submit {
+  margin-top: 0.35rem;
+}
+
+.form-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-sm);
+  background: var(--red-tint);
+  border: 1px solid color-mix(in srgb, var(--red) 30%, transparent);
+  color: var(--label);
+  font-size: var(--text-subhead);
+}
+
+.form-alert svg {
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+  color: var(--red);
+}
+
+.form-alert strong {
+  display: block;
+  margin-bottom: 0.15rem;
+}
+
+.form-alert p {
+  color: var(--label-secondary);
+}
+
+.form-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0 0.25rem;
+}
+
+.form-success-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  background: light-dark(rgba(48, 161, 78, 0.12), rgba(48, 209, 88, 0.18));
+  color: #30a14e;
+  margin-bottom: 0.4rem;
+}
+
+.form-success p {
+  color: var(--label-secondary);
+  font-size: var(--text-subhead);
+  margin-bottom: 0.75rem;
+}

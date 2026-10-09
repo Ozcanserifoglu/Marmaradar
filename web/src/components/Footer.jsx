@@ -11,15 +11,17 @@ export default function Footer() {
             <Link to="/" className="wordmark">
               <span className="wordmark-accent">Marmaradar</span>
             </Link>
-            <p>Türkiye genelinde sürücüler için canlı EDS ve koridor uyarıları.</p>
+            <p className="t-subhead">
+              Türkiye genelinde sürücüler için canlı EDS ve koridor uyarıları.
+            </p>
           </div>
           <a className="footer-contact" href="mailto:marmaradar@gmail.com">
             <Mail size={18} aria-hidden="true" />
-            İletişim için: marmaradar@gmail.com
+            marmaradar@gmail.com
           </a>
         </div>
 
-        <div className="footer-bottom">
+        <div className="footer-bottom t-footnote">
           <div className="footer-copy">
             <p>© 2026 Marmaradar. Tüm hakları saklıdır.</p>
             <p className="footer-osm">
@@ -34,11 +36,11 @@ export default function Footer() {
               katkıcıları (ODbL)
             </p>
           </div>
-          <div className="footer-legal">
+          <nav className="footer-legal" aria-label="Yasal">
             <Link to="/gizlilik">Gizlilik</Link>
             <Link to="/kullanim-sartlari">Kullanım Şartları</Link>
             <Link to="/hesap-sil">Hesabı Sil</Link>
-          </div>
+          </nav>
         </div>
       </div>
     </footer>

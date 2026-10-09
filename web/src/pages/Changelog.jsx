@@ -1,6 +1,6 @@
 import Navbar from '../components/Navbar'
-import GradientBlobs from '../components/GradientBlobs'
 import Footer from '../components/Footer'
+import Reveal from '../components/Reveal'
 import changelog from '../data/changelog.json'
 import './Changelog.css'
 
@@ -20,27 +20,32 @@ export default function Changelog() {
       <Navbar />
 
       <div className="changelog-body">
-        <GradientBlobs subtle />
+        <div className="ambient ambient-subtle" aria-hidden="true" />
         <div className="container changelog-container">
-          <header className="changelog-head">
-            <h1>Güncellemeler</h1>
+          <Reveal as="header" className="changelog-head">
+            <h1 className="t-title1">Güncellemeler</h1>
             <p>Marmaradar&apos;daki yenilikler ve iyileştirmeler — en yeniler en üstte.</p>
-          </header>
+          </Reveal>
 
           <ol className="changelog-list">
-            {changelog.map((entry) => (
-              <li key={entry.version} className="changelog-card">
-                <div className="changelog-meta">
+            {changelog.map((entry, index) => (
+              <Reveal
+                as="li"
+                key={entry.version}
+                className="changelog-card"
+                delay={Math.min(index, 3) * 0.05}
+              >
+                <div className="changelog-meta t-footnote">
                   <span className="changelog-version">v{entry.version}</span>
                   <time dateTime={entry.date}>{formatDate(entry.date)}</time>
                 </div>
-                <h2 className="changelog-title">{entry.title}</h2>
+                <h2 className="changelog-title t-title3">{entry.title}</h2>
                 <ul className="changelog-changes">
                   {entry.changes.map((change) => (
                     <li key={change}>{change}</li>
                   ))}
                 </ul>
-              </li>
+              </Reveal>
             ))}
           </ol>
         </div>

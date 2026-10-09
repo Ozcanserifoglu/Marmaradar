@@ -1,15 +1,16 @@
 import { useId, useState } from 'react'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { ChevronDown, Map, Camera, Gauge, Route, BellRing } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import Navbar from '../components/Navbar'
-import GradientBlobs from '../components/GradientBlobs'
 import Hero from '../components/Hero'
 import StoreBadges from '../components/StoreBadges'
 import FeatureCard from '../components/FeatureCard'
 import HowItWorks from '../components/HowItWorks'
 import Footer from '../components/Footer'
+import Reveal from '../components/Reveal'
 import { PLAY_STORE_URL } from '../config/storeLinks'
-import { useScrollReveal } from '../hooks/useScrollReveal'
+import { FADE, SPRING_SNAPPY } from '../motion/springs'
 import './Home.css'
 
 const FEATURES = [
@@ -59,14 +60,20 @@ const FEATURES = [
   },
 ]
 
-function FaqItem({ question, children, itemRef }) {
+/**
+ * Disclosure row. The panel's height is driven by a spring that starts from
+ * its current value, so rapid toggling never jumps or waits.
+ */
+function FaqItem({ question, children }) {
   const [open, setOpen] = useState(false)
+  const reduceMotion = useReducedMotion()
   const baseId = useId()
   const panelId = `${baseId}-panel`
   const buttonId = `${baseId}-button`
+  const transition = reduceMotion ? FADE : SPRING_SNAPPY
 
   return (
-    <div className={`faq-item${open ? ' open' : ''}`} ref={itemRef}>
+    <div className={`faq-item${open ? ' open' : ''}`}>
       <h3>
         <button
           type="button"
@@ -77,35 +84,37 @@ function FaqItem({ question, children, itemRef }) {
           onClick={() => setOpen((value) => !value)}
         >
           {question}
-          <ChevronDown className="faq-icon" size={18} aria-hidden="true" />
+          <motion.span
+            className="faq-icon"
+            animate={{ rotate: open ? 180 : 0 }}
+            transition={transition}
+          >
+            <ChevronDown size={18} aria-hidden="true" />
+          </motion.span>
         </button>
       </h3>
-      <div className="faq-a" id={panelId} role="region" aria-labelledby={buttonId}>
-        <div>
-          <p>{children}</p>
-        </div>
-      </div>
+      <AnimatePresence initial={false}>
+        {open ? (
+          <motion.div
+            key="panel"
+            className="faq-a"
+            id={panelId}
+            role="region"
+            aria-labelledby={buttonId}
+            initial={reduceMotion ? { opacity: 0 } : { height: 0, opacity: 0 }}
+            animate={reduceMotion ? { opacity: 1 } : { height: 'auto', opacity: 1 }}
+            exit={reduceMotion ? { opacity: 0 } : { height: 0, opacity: 0 }}
+            transition={transition}
+          >
+            <p>{children}</p>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </div>
   )
 }
 
 export default function Home() {
-  const featuresHeadRef = useScrollReveal()
-  const featureGridRef = useScrollReveal({ staggerClass: 'stagger-1' })
-
-  const howHeadRef = useScrollReveal()
-  const howStep1 = useScrollReveal({ staggerClass: 'stagger-1' })
-  const howStep2 = useScrollReveal({ staggerClass: 'stagger-2' })
-  const howStep3 = useScrollReveal({ staggerClass: 'stagger-3' })
-  const howStepRefs = [howStep1, howStep2, howStep3]
-
-  const faqHeadRef = useScrollReveal()
-  const faqRef1 = useScrollReveal({ staggerClass: 'stagger-1' })
-  const faqRef2 = useScrollReveal({ staggerClass: 'stagger-2' })
-  const faqRef3 = useScrollReveal({ staggerClass: 'stagger-3' })
-  const faqRefs = [faqRef1, faqRef2, faqRef3]
-
-  const finalCtaRef = useScrollReveal()
   const playHref = PLAY_STORE_URL || '#get-app'
   const playExternal = Boolean(PLAY_STORE_URL)
 
@@ -113,22 +122,19 @@ export default function Home() {
     <div className="home-page">
       <Navbar />
 
-      <div className="home-hero-wrap">
-        <GradientBlobs />
-        <Hero />
-      </div>
+      <Hero />
 
       <StoreBadges />
 
       <section className="page-section features-section" id="features">
         <div className="container">
-          <div className="section-head section-head-split" ref={featuresHeadRef}>
-            <h2>Neden Marmaradar?</h2>
+          <Reveal className="section-head section-head-split">
+            <h2 className="t-title1">Neden Marmaradar?</h2>
             <p>Sürüşte işine yarayan uyarılar. Gereksiz gürültü yok.</p>
-          </div>
+          </Reveal>
 
-          <div className="feature-grid" ref={featureGridRef}>
-            {FEATURES.map((feature) => (
+          <div className="feature-grid">
+            {FEATURES.map((feature, index) => (
               <FeatureCard
                 key={feature.title}
                 icon={feature.icon}
@@ -137,57 +143,60 @@ export default function Home() {
                 className={feature.className}
                 lead={feature.lead}
                 image={feature.image}
+                delay={Math.min(index, 2) * 0.06}
               />
             ))}
           </div>
         </div>
       </section>
 
-      <HowItWorks stepRefs={{ head: howHeadRef, items: howStepRefs }} />
+      <HowItWorks />
 
       <section className="page-section faq-section" id="faq">
         <div className="container faq-layout">
-          <div className="section-head" ref={faqHeadRef}>
-            <h2>Sık sorulanlar</h2>
+          <Reveal className="section-head">
+            <h2 className="t-title1">Sık sorulanlar</h2>
             <p>Uygulama hakkında bilmen gerekenler.</p>
-          </div>
+          </Reveal>
 
-          <div className="faq-list">
-            <FaqItem question="Nereden indirebilirim?" itemRef={faqRefs[0]}>
+          <Reveal className="faq-list" delay={0.06}>
+            <FaqItem question="Nereden indirebilirim?">
               Android için Google Play’den. App Store sürümü henüz yayınlanmadı.
             </FaqItem>
-            <FaqItem question="Hangi bölgeleri kapsıyor?" itemRef={faqRefs[1]}>
-              Türkiye genelinde EDS ve ortalama hız koridorlarını takip ediyoruz; kapsam
-              sürekli genişliyor.
+            <FaqItem question="Hangi bölgeleri kapsıyor?">
+              Türkiye genelinde EDS ve ortalama hız koridorlarını takip ediyoruz; kapsam sürekli
+              genişliyor.
             </FaqItem>
-            <FaqItem question="Konum verisi ne için kullanılıyor?" itemRef={faqRefs[2]}>
+            <FaqItem question="Konum verisi ne için kullanılıyor?">
               Harita, EDS ve koridor uyarıları için. Giriş yaptıysan sürüş kaydı sunucuya
-              yüklenebilir; topluluk raporları da konumla ilişkilendirilebilir. Reklam ağı
-              yok. Ayrıntılar <Link to="/gizlilik">gizlilik sayfasında</Link>.
+              yüklenebilir; topluluk raporları da konumla ilişkilendirilebilir. Reklam ağı yok.
+              Ayrıntılar{' '}
+              <Link className="link" to="/gizlilik">
+                gizlilik sayfasında
+              </Link>
+              .
             </FaqItem>
-          </div>
+          </Reveal>
         </div>
       </section>
 
       <section className="final-cta">
         <div className="container">
-          <div className="final-cta-box" ref={finalCtaRef}>
+          <Reveal className="final-cta-box material-thick">
             <div className="final-cta-copy">
-              <h2>Yolda bir adım önde ol</h2>
+              <h2 className="t-title2">Yolda bir adım önde ol</h2>
               <p>Marmaradar’ı Google Play’den indir; sürüşe çıkmadan önce hazır ol.</p>
             </div>
             <div className="final-cta-action">
               <a
                 className="btn btn-primary btn-lg"
                 href={playHref}
-                {...(playExternal
-                  ? { target: '_blank', rel: 'noopener noreferrer' }
-                  : undefined)}
+                {...(playExternal ? { target: '_blank', rel: 'noopener noreferrer' } : undefined)}
               >
                 Google Play’de İndir
               </a>
             </div>
-          </div>
+          </Reveal>
         </div>
       </section>
 

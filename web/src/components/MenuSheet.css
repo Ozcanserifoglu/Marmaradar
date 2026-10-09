@@ -1,0 +1,76 @@
+.menu-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: light-dark(rgba(0, 0, 0, 0.28), rgba(0, 0, 0, 0.55));
+  -webkit-tap-highlight-color: transparent;
+}
+
+.menu-sheet {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 35;
+  /* Sits under the toolbar; the toolbar is where it comes from. */
+  padding: calc(var(--nav-height) + 0.5rem) 1rem 0.75rem;
+  border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+  border-top: none;
+  transform-origin: top center;
+  touch-action: none;
+  will-change: transform;
+  outline: none;
+}
+
+.menu-sheet-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.menu-sheet-content a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.9rem 0.85rem;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-headline);
+  font-weight: 600;
+  letter-spacing: -0.006em;
+  color: var(--label);
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color var(--dur-fast) ease;
+}
+
+.menu-sheet-content a:hover {
+  background: var(--fill);
+}
+
+.menu-sheet-content a:active {
+  background: var(--fill-strong);
+  transition-duration: 0ms;
+}
+
+.menu-sheet-content a[aria-current="page"] {
+  color: var(--red);
+}
+
+.menu-sheet-content .menu-sheet-cta {
+  margin-top: 0.6rem;
+  justify-content: center;
+}
+
+.menu-grabber {
+  width: 2.25rem;
+  height: 0.3125rem;
+  border-radius: 999px;
+  background: var(--label-tertiary);
+  margin: 0.85rem auto 0;
+}
+
+@media (min-width: 768px) {
+  .menu-scrim,
+  .menu-sheet {
+    display: none;
+  }
+}

@@ -9,28 +9,16 @@
   min-height: 0;
   overflow: hidden;
   padding: 1.75rem;
-  border: 1px solid var(--color-border-glass);
   border-radius: var(--radius-lg);
-  background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.045), transparent 48%),
-    var(--color-surface-glass-strong);
-  backdrop-filter: blur(22px);
-  -webkit-backdrop-filter: blur(22px);
-  box-shadow:
-    0 22px 55px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.045);
-  transition:
-    transform 0.3s var(--ease),
-    border-color 0.3s var(--ease),
-    background 0.3s var(--ease);
+  background: var(--bg-elevated);
+  border: 1px solid var(--material-border);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--dur-base) var(--ease-out);
+  -webkit-tap-highlight-color: transparent;
 }
 
 .feature-card:hover {
-  transform: translateY(-3px);
-  border-color: rgba(232, 38, 45, 0.28);
-  background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.065), transparent 48%),
-    var(--color-surface-high);
+  box-shadow: var(--shadow-md);
 }
 
 .feature-copy {
@@ -43,23 +31,26 @@
 }
 
 .feature-icon {
-  color: var(--color-brand-red);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 0.85rem;
+  background: var(--red-tint);
+  color: var(--red);
   margin-bottom: 1.25rem;
   flex: 0 0 auto;
 }
 
 .feature-card h3 {
-  font-family: var(--font-display);
-  font-size: 1.1rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.45rem;
 }
 
 .feature-card p {
-  font-size: 0.92rem;
-  color: var(--color-text-secondary);
-  line-height: 1.55;
+  font-size: var(--text-subhead);
+  color: var(--label-secondary);
+  line-height: 1.5;
   max-width: 34ch;
 }
 
@@ -72,8 +63,7 @@
   min-width: 0;
   min-height: 0;
   width: calc(100% + 3.5rem);
-  height: 260px;
-  max-height: 300px;
+  height: 16.25rem;
   margin: 0 -1.75rem -1.75rem;
   overflow: hidden;
 }
@@ -83,9 +73,9 @@
   position: absolute;
   inset: auto 0 0;
   z-index: 1;
-  height: 24%;
+  height: 28%;
   pointer-events: none;
-  background: linear-gradient(to bottom, transparent, rgba(8, 8, 13, 0.72));
+  background: linear-gradient(to bottom, transparent, var(--bg-elevated));
 }
 
 .feature-shot img {
@@ -93,9 +83,9 @@
   max-width: 100%;
   width: auto;
   height: 100%;
-  max-height: 300px;
   object-fit: contain;
   object-position: center bottom;
+  border-radius: 1.25rem 1.25rem 0 0;
 }
 
 /* Wide bento cards: copy left, edge-aligned product mockup right. */
@@ -104,7 +94,7 @@
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  min-height: 340px;
+  min-height: 21.25rem;
   padding: 2rem;
 }
 
@@ -119,28 +109,21 @@
   flex: 1 1 50%;
   width: auto;
   height: auto;
-  max-height: 300px;
   margin: auto -2rem -2rem 0;
 }
 
 .feature-card-wide .feature-shot img {
+  max-height: 18.75rem;
   object-position: right bottom;
+  border-radius: 1.25rem 0 0 0;
 }
 
 .feature-card-lead {
-  background:
-    radial-gradient(ellipse 75% 100% at 4% 110%, rgba(232, 38, 45, 0.18), transparent 62%),
-    linear-gradient(145deg, rgba(255, 255, 255, 0.055), transparent 48%),
-    var(--color-surface-glass-strong);
-}
-
-.feature-card-lead h3 {
-  font-size: 1.45rem;
-  letter-spacing: -0.025em;
+  background-image: radial-gradient(75% 100% at 4% 110%, var(--red-tint), transparent 62%);
 }
 
 .feature-card-lead p {
-  font-size: 1rem;
+  font-size: var(--text-callout);
 }
 
 /* Short full-width closing strip. */
@@ -150,9 +133,6 @@
   align-items: center;
   min-height: 0;
   padding: 1.5rem 2rem;
-  background:
-    radial-gradient(ellipse 45% 160% at 100% 50%, rgba(232, 38, 45, 0.12), transparent 68%),
-    var(--color-surface-glass-strong);
 }
 
 .feature-card-full .feature-copy {
@@ -195,13 +175,14 @@
     align-self: auto;
     justify-content: center;
     width: calc(100% + 3rem);
-    height: 260px;
+    height: 16.25rem;
     margin: 0 -1.5rem -1.5rem;
   }
 
   .feature-card .feature-shot img,
   .feature-card-wide .feature-shot img {
     object-position: center bottom;
+    border-radius: 1.25rem 1.25rem 0 0;
   }
 
   .feature-card-full .feature-copy {
